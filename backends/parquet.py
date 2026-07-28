@@ -82,6 +82,7 @@ class _TushareParquetSource:
 
 
 _LOCAL_FIXED_PARAM_COLUMNS: dict[str, dict[str, str]] = {
+    "daily_basic": {},
     "income": {
         "ann_date": "ann_date",
         "f_ann_date": "f_ann_date",
@@ -718,6 +719,11 @@ class DuckDBParquetBackend:
             return TushareBackend._coerce_frame(
                 pd.DataFrame(columns=columns), catalog.schema
             )
+        partitions = self._select_archive_partitions(source, catalog, query)
+        if not partitions:
+            return TushareBackend._coerce_frame(
+                pd.DataFrame(columns=columns), catalog.schema
+            )
 
         projected = ", ".join(_quote_identifier(column) for column in columns)
         sql = (
@@ -725,7 +731,7 @@ class DuckDBParquetBackend:
             "FROM read_parquet(?, union_by_name = true) AS source"
         )
         params: list[object] = [
-            [str(partition.path) for partition in source.partitions]
+            [str(partition.path) for partition in partitions]
         ]
         clauses: list[str] = []
         fixed_columns = _LOCAL_FIXED_PARAM_COLUMNS[catalog.name]
@@ -866,6 +872,26 @@ class DuckDBParquetBackend:
         return value
 
     @staticmethod
+    def _select_archive_partitions(
+        source: _TushareParquetSource,
+        catalog: TushareDatasetCatalog,
+        query: DataQuery,
+    ) -> tuple[_ArchivePartition, ...]:
+        if catalog.name != "daily_basic":
+            return source.partitions
+        if query.start is None or query.end is None:
+            raise InvalidQueryError(
+                "Local daily_basic queries require both start and end"
+            )
+        start_key = query.start.strftime("%Y%m%d")
+        end_key = query.end.strftime("%Y%m%d")
+        return tuple(
+            partition
+            for partition in source.partitions
+            if start_key <= partition.key <= end_key
+        )
+
+    @staticmethod
     def _validate_local_fixed_params(
         definition: TushareParquetDatasetSpec,
         catalog: TushareDatasetCatalog,
@@ -955,6 +981,11 @@ class DuckDBParquetBackend:
             if not isinstance(raw_key, str) or not isinstance(entry, Mapping):
                 raise DatasetRegistrationError(
                     f"Manifest partition is invalid for {logical_name!r}"
+                )
+            if logical_name == "daily_basic":
+                DuckDBParquetBackend._parse_manifest_date(
+                    raw_key,
+                    f"{logical_name} partition key",
                 )
             relative = entry.get("relative_path")
             rows = entry.get("rows")

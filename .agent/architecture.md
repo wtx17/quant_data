@@ -44,6 +44,8 @@ Catalog 负责静态 schema 和数据语义。
 - `TushareParquetDatasetSpec`：读取 `_manifest.json` 和分区，复用远端 Tushare catalog。
 - 本地 Tushare 表查询不调用数据 API；披露和成分面板只通过 Tushare 获取
   `trade_cal`，普通观测面板保持全本地。
+- 本地 `daily_basic` 按查询闭区间裁剪 `trade_date` 分区，再通过一次 DuckDB
+  扫描读取；不复用远端逐交易日请求逻辑。
 - manifest 字段、分区字段、行数、类型和固定参数在注册时校验。
 
 ### ClickHouse
@@ -109,4 +111,5 @@ Catalog 负责静态 schema 和数据语义。
 - 所有成功和失败查询都必须写审计记录。
 - 审计 fingerprint 只能包含经过清洗的来源信息。
 - 内置 catalog、生成文档和 schema 签名测试必须同步。
-- 远端默认数据集与默认本地快照集合可以不同；`daily_basic` 当前只在远端默认集合中。
+- 配置 Tushare 归档目录后，全部逻辑数据集默认使用本地快照；仅
+  `tushare_remote_datasets` 指定的数据集使用远端 API。

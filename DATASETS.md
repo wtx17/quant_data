@@ -202,7 +202,7 @@
 <a id="dataset-daily-basic"></a>
 ## `daily_basic`：Tushare 每日基本面指标
 
-全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，`get_panel()` 以 `trade_date × ts_code` 构造宽表。
+全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，本地直接扫描范围内的日期分区，`get_panel()` 以 `trade_date × ts_code` 构造宽表。
 
 - `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
 - `get_table()`：支持；自动返回 `trade_date`、`ts_code`，再附加请求字段。

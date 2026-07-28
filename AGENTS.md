@@ -82,8 +82,8 @@ ruff format --check path/to/changed.py
   `trade_cal` 获取开市日，再逐日调用 `daily_basic(trade_date=...)`；即使指定
   `instruments` 也不要同时向 API 发送 `ts_code`，而应在合并后本地过滤。
 - `daily_basic` 单日返回达到 6000 行时必须报错，不能把可能被 API 截断的数据当作完整结果。
-- `daily_basic` 默认只注册远端数据源，不属于 `_TUSHARE_ARCHIVE_DATASETS`。如需改变本地
-  Parquet 默认集合，先确认旧快照目录缺少对应 manifest 时的兼容策略。
+- 配置 `tushare_data_dir` 后，全部 Tushare 数据集（包括 `daily_basic`）默认注册为
+  本地数据源；只有 `tushare_remote_datasets` 指定的数据集使用远端 API。
 - `get_table()` 必须保留自动键和身份列；不要把事件数据强制透视为面板。
 - 不要在审计、异常、日志或 `repr` 中写入密码和 token。
 - 不要在未确认兼容策略时放宽 Tushare Parquet manifest 和分区 schema 校验。

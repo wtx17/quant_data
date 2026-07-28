@@ -87,11 +87,10 @@ Agent 工作约定、架构说明和本文件。
 
 Tushare 注册集合：
 
-- `_TUSHARE_DATASETS`：全部远端默认数据集，包含 `daily_basic`。
-- `_TUSHARE_ARCHIVE_DATASETS`：保持旧 manifest 快照集合，不包含 `daily_basic`。
-- `tushare_parquet_dataset_specs()` 只生成默认快照集合；显式
-  `tushare_local_datasets={"daily_basic"}` 仍可选择本地，但必须已有通过严格校验的
-  `daily_basic` manifest 和分区。
+- `_TUSHARE_DATASETS`：全部受支持的远端和本地逻辑数据集，包含 `daily_basic`。
+- `tushare_parquet_dataset_specs()` 为全部 Tushare 数据集生成本地快照规格。
+- 配置 `tushare_data_dir` 后默认全部使用本地快照；
+  `tushare_remote_datasets` 中的数据集改用远端 API。
 
 默认 ClickHouse 数据集：
 

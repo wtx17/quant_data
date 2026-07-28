@@ -362,7 +362,7 @@ description = "合并的成交单子的买方委托编号"
 
 [datasets.daily_basic]
 title = "Tushare 每日基本面指标"
-summary = "全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，`get_panel()` 以 `trade_date × ts_code` 构造宽表。"
+summary = "全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，本地直接扫描范围内的日期分区，`get_panel()` 以 `trade_date × ts_code` 构造宽表。"
 
 [datasets.daily_basic.fields.ts_code]
 description = "带交易所后缀的证券代码。"
