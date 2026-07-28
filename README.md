@@ -43,6 +43,24 @@ with initialize_data_client() as data:
     )
 ```
 
+`get_panel()` 也可以通过 `universe` 选择内置股票池：
+
+```python
+with initialize_data_client() as data:
+    hs300_close = data.get_panel(
+        "minghu_daily",
+        ["close"],
+        start="2026-01-01",
+        end="2026-01-31",
+        universe="hs300",
+    )["close"]
+```
+
+当前支持 `hs300`、`sz50` 和 `zz500`。它们是 `2026-07-20` 的固定成分股快照，
+会应用于整个查询区间，并不表示历史时点成分；`universe` 与 `instruments` 不能同时
+使用。股票池版本、内容哈希和展开后的证券列表会写入查询审计及面板元数据。展开后的
+列表沿用现有后端路由，因此远端 Tushare 财务面板可能产生逐证券 API 请求。
+
 配置 `tushare_data_dir` 后，全部 Tushare 数据集默认从同一 Parquet 归档读取。
 只有 `tushare_remote_datasets` 中列出的数据集继续调用远端 API：
 

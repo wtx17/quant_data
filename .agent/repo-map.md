@@ -6,7 +6,8 @@
 
 ### `pyproject.toml`
 
-Hatchling 构建配置、Python/依赖范围、pytest marker、ruff 和 mypy 配置。
+Hatchling 构建配置、Python/依赖范围、pytest marker、ruff 和 mypy 配置；wheel
+显式包含 `_universes.py` 和 `resources/`。
 
 ### `AGENTS.md` 与 `.agent/`
 
@@ -27,6 +28,19 @@ Agent 工作约定、架构说明和本文件。
 
 - `__version__: str`
 
+### `_universes.py` 与 `resources/universes/`
+
+- 加载、校验并缓存 `hs300`、`sz50`、`zz500` 的版本化 CSV 快照。
+- 将 Baostock 代码规范化为 `000001.SZ` 形式，并提供快照日期与 SHA-256。
+- `SUPPORTED_UNIVERSES: tuple[str, ...]`
+- `UniverseSnapshot(name, snapshot_date, instruments, sha256)`
+- `load_universe(value) -> UniverseSnapshot`
+- `normalize_universe_name(value) -> str`
+- `_parse_universe_csv(name, payload) -> UniverseSnapshot`
+
+资源契约：表头固定为 `updateDate,code,code_name`，单一快照日期、证券代码唯一，
+CSV 行序即面板列序；预期数量为沪深 300、中证 500、上证 50 的名义成分数。
+
 ### `client.py`
 
 `class DataClient`
@@ -35,7 +49,7 @@ Agent 工作约定、架构说明和本文件。
 - `add_clickhouse_connection(name: str, config: ClickHouseConfig) -> None`
 - `add_tushare_connection(name: str, config: TushareConfig) -> None`
 - `register(spec: DatasetDefinition) -> None`
-- `get_panel(dataset, fields, start=None, end=None, instruments=None, adjusted=None) -> dict[str, pd.DataFrame]`
+- `get_panel(dataset, fields, start=None, end=None, instruments=None, adjusted=None, *, universe: str | None = None) -> dict[str, pd.DataFrame]`
 - `get_table(dataset, fields, start=None, end=None, instruments=None, limit=None, adjusted=None) -> pa.Table`
 - `close() -> None`
 - `__enter__() -> DataClient`
@@ -43,7 +57,7 @@ Agent 工作约定、架构说明和本文件。
 
 关键内部入口：
 
-- `_execute(mode, dataset, fields, start, end, instruments, limit, adjusted)`
+- `_execute(mode, dataset, fields, start, end, instruments, limit, adjusted, universe)`
 - `_build_tushare_disclosure_panels(dataset_name, dataset, query, record, backend)`
 - `_build_panels(table, dataset_name, dataset, query, record, apply_adjustment)`
 - `_prepare_query(mode, dataset, fields, start, end, instruments, limit) -> DataQuery`
@@ -78,11 +92,11 @@ Agent 工作约定、架构说明和本文件。
 - `tushare_dataset_specs(connection="tushare") -> tuple[TushareDatasetSpec, ...]`
 - `tushare_parquet_dataset_specs(data_dir, calendar_connection="tushare") -> tuple[TushareParquetDatasetSpec, ...]`
 - `registered_dataset_names() -> tuple[str, ...]`
-- `initialize_data_client(*, audit_dir=None, register_clickhouse=True, register_tushare=True, clickhouse_connection="minghu", clickhouse_host=None, clickhouse_port=None, clickhouse_username=None, clickhouse_password=None, clickhouse_password_env=None, clickhouse_secure=None, tushare_connection="tushare", tushare_data_dir=None, tushare_local_datasets=None, tushare_token=None, tushare_token_env=None) -> DataClient`
+- `initialize_data_client(*, audit_dir=None, register_clickhouse=True, register_tushare=True, clickhouse_connection="minghu", clickhouse_host=None, clickhouse_port=None, clickhouse_username=None, clickhouse_password=None, clickhouse_password_env=None, clickhouse_secure=None, tushare_connection="tushare", tushare_data_dir=None, tushare_remote_datasets=None, tushare_token=None, tushare_token_env=None) -> DataClient`
 - `initialize(**kwargs) -> DataClient`
 - `main() -> None`
 
-内部环境解析：`_resolve_tushare_local_datasets(...)`, `_first_env(...)`,
+内部环境解析：`_resolve_tushare_remote_datasets(...)`, `_first_env(...)`,
 `_env_int(...)`, `_env_bool(...)`。
 
 Tushare 注册集合：
@@ -314,7 +328,7 @@ Catalog 对象：
 
 ### `README.md`
 
-安装、初始化、远端/本地混合 Tushare 示例。
+安装、初始化、命名股票池以及远端/本地混合 Tushare 示例。
 
 ### `DATASETS.md`
 
@@ -322,8 +336,9 @@ Catalog 对象：
 
 ## 测试地图
 
-- `tests/test_client.py`：通用 Parquet、查询校验、调价、审计、重复键。
-- `tests/test_clickhouse.py`：离线 ClickHouse fake、SQL、类型、代码后缀、注册。
+- `tests/test_universes.py`：包内快照数量、顺序、代码转换、名称归一化和资源损坏校验。
+- `tests/test_client.py`：通用 Parquet、命名股票池展开、查询校验、调价、审计、重复键。
+- `tests/test_clickhouse.py`：离线 ClickHouse fake、股票池参数绑定、SQL、类型、代码后缀、注册。
 - `tests/test_clickhouse_integration.py`：真实 Minghu schema drift 和 smoke test。
 - `tests/test_initialize.py`：默认 spec、注册名称、离线初始化。
 - `tests/test_dataset_catalog.py`：生成文档离线且无漂移。

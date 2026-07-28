@@ -98,6 +98,79 @@ def test_empty_instruments_preserve_requested_fields(tmp_path: Path, sample_file
     assert result["close"].columns.name == "ts_code"
 
 
+def test_named_universe_expands_in_snapshot_order_and_is_audited(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+    result = client.get_panel("daily", ["close"], universe=" HS300 ")
+    panel = result["close"]
+
+    assert len(panel.columns) == 300
+    assert panel.columns[0] == "600000.SH"
+    assert panel.columns[-1] == "302132.SZ"
+    assert panel.loc[pd.Timestamp("2026-01-05"), "000001.SZ"] == 10.32
+    assert panel["600000.SH"].isna().all()
+
+    parameters = panel.attrs["parameters"]
+    assert parameters["instruments"] == list(panel.columns)
+    assert parameters["universe"]["name"] == "hs300"
+    assert parameters["universe"]["snapshot_date"] == "2026-07-20"
+    assert parameters["universe"]["count"] == 300
+    assert len(parameters["universe"]["sha256"]) == 64
+
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["parameters"]["instruments"] == list(panel.columns)
+    assert audit["parameters"]["universe"] == parameters["universe"]
+
+
+def test_panel_rejects_instruments_and_universe_together(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    with pytest.raises(InvalidQueryError, match="mutually exclusive"):
+        client.get_panel(
+            "daily",
+            ["close"],
+            instruments=[],
+            universe="hs300",
+        )
+
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["status"] == "failed"
+    assert audit["parameters"]["universe"] == "hs300"
+
+
+def test_panel_rejects_unknown_universe_and_audits_failure(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    with pytest.raises(InvalidQueryError, match="supported universes"):
+        client.get_panel("daily", ["close"], universe="csi1000")
+
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["status"] == "failed"
+    assert audit["parameters"]["universe"] == "csi1000"
+
+
+@pytest.mark.parametrize("method_name", ["get_panel", "get_table"])
+def test_query_rejects_bare_string_instruments_and_audits_failure(
+    tmp_path: Path,
+    sample_files: Path,
+    method_name: str,
+) -> None:
+    client = make_client(tmp_path, sample_files)
+    method = getattr(client, method_name)
+
+    with pytest.raises(InvalidQueryError, match="not a string"):
+        method("daily", ["close"], instruments="000001.SZ")
+
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["status"] == "failed"
+    assert audit["parameters"]["instruments"] == "000001.SZ"
+
+
 def test_get_table_returns_arrow_with_metadata(tmp_path: Path, sample_files: Path) -> None:
     client = make_client(tmp_path, sample_files)
     result = client.get_table(
@@ -203,7 +276,5 @@ def test_sql_special_characters_are_values_not_sql(tmp_path: Path) -> None:
             instrument_column="asset code",
         )
     )
-    result = client.get_panel(
-        "special", ['odd"field'], instruments=["x'); DROP TABLE source; --"]
-    )
+    result = client.get_panel("special", ['odd"field'], instruments=["x'); DROP TABLE source; --"])
     assert result['odd"field'].iloc[0, 0] == 7

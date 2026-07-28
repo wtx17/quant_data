@@ -40,6 +40,7 @@ from .models import (
     TushareParquetDatasetSpec,
 )
 from .transforms import build_daily_panels, build_panels
+from ._universes import load_universe
 
 QueryMode = Literal["panel", "table"]
 _MINGHU_CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
@@ -181,6 +182,8 @@ class DataClient:
         end: Any | None = None,
         instruments: Sequence[str] | None = None,
         adjusted: bool | None = None,
+        *,
+        universe: str | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Query fields as ``time × instrument`` Pandas panels.
 
@@ -200,6 +203,11 @@ class DataClient:
         adjusted
             ``True`` forces configured price adjustment, ``False`` requests
             raw values, and ``None`` uses the dataset default.
+        universe
+            Optional built-in stock-pool name: ``"hs300"``, ``"sz50"``, or
+            ``"zz500"``. Names are case-insensitive and surrounding whitespace
+            is ignored. This parameter is mutually exclusive with
+            ``instruments``.
 
         Returns
         -------
@@ -226,13 +234,22 @@ class DataClient:
         Notes
         -----
         Query bounds are closed. Requested instruments without observations
-        remain as all-missing columns. Disclosed Tushare datasets always align
-        announcements to a trading calendar, apply their availability lag,
-        and carry whole-row point-in-time state.
+        remain as all-missing columns. Built-in universes are fixed snapshots,
+        not historical point-in-time membership. Disclosed Tushare datasets
+        always align announcements to a trading calendar, apply their
+        availability lag, and carry whole-row point-in-time state.
         """
 
         result = self._execute(
-            "panel", dataset, fields, start, end, instruments, limit=None, adjusted=adjusted
+            "panel",
+            dataset,
+            fields,
+            start,
+            end,
+            instruments,
+            limit=None,
+            adjusted=adjusted,
+            universe=universe,
         )
         return cast(dict[str, pd.DataFrame], result)
 
@@ -295,7 +312,15 @@ class DataClient:
         """
 
         result = self._execute(
-            "table", dataset, fields, start, end, instruments, limit, adjusted
+            "table",
+            dataset,
+            fields,
+            start,
+            end,
+            instruments,
+            limit,
+            adjusted,
+            universe=None,
         )
         return cast(pa.Table, result)
 
@@ -331,10 +356,18 @@ class DataClient:
         instruments: Sequence[str] | None,
         limit: int | None,
         adjusted: bool | None,
+        universe: str | None,
     ) -> dict[str, pd.DataFrame] | pa.Table:
         query_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
         started_clock = time.perf_counter()
+        audited_instruments: list[str] | str | None = (
+            instruments
+            if isinstance(instruments, str)
+            else list(instruments)
+            if instruments is not None
+            else None
+        )
         record = QueryAudit(
             query_id=query_id,
             dataset=dataset,
@@ -342,7 +375,10 @@ class DataClient:
             parameters={
                 "start": self._audit_value(start),
                 "end": self._audit_value(end),
-                "instruments": list(instruments) if instruments is not None else None,
+                "instruments": audited_instruments,
+                "universe": (
+                    universe if isinstance(universe, (str, type(None))) else repr(universe)
+                ),
                 "limit": limit,
                 "adjusted": adjusted,
             },
@@ -359,9 +395,7 @@ class DataClient:
             contract = registered.contract
             backend = self._backends[spec.backend]
             record.frequency = (
-                contract.panel_frequency
-                if mode == "panel"
-                else contract.table_frequency
+                contract.panel_frequency if mode == "panel" else contract.table_frequency
             )
             record.dataset_version = contract.version
             record.source = backend.fingerprint(registered)
@@ -370,24 +404,37 @@ class DataClient:
                 raise InvalidQueryError(
                     f"Dataset {dataset!r} is event data and cannot be pivoted; use get_table"
                 )
+            resolved_instruments = instruments
+            if mode == "panel" and universe is not None:
+                if instruments is not None:
+                    raise InvalidQueryError("instruments and universe are mutually exclusive")
+                snapshot = load_universe(universe)
+                resolved_instruments = snapshot.instruments
+                record.parameters["instruments"] = list(snapshot.instruments)
+                record.parameters["universe"] = {
+                    "name": snapshot.name,
+                    "snapshot_date": snapshot.snapshot_date.isoformat(),
+                    "count": len(snapshot.instruments),
+                    "sha256": snapshot.sha256,
+                }
             query = self._prepare_query(
-                mode, registered, fields, start, end, instruments, limit
+                mode,
+                registered,
+                fields,
+                start,
+                end,
+                resolved_instruments,
+                limit,
             )
             semantic_backend = (
                 cast(TushareSemanticBackend, backend)
-                if isinstance(
-                    spec, (TushareDatasetSpec, TushareParquetDatasetSpec)
-                )
+                if isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec))
                 else None
             )
             if isinstance(spec, TushareParquetDatasetSpec):
                 if semantic_backend is None:
-                    raise SchemaMismatchError(
-                        "Tushare Parquet semantic backend is unavailable"
-                    )
-                query = semantic_backend.normalize_snapshot_query(
-                    registered, query, mode
-                )
+                    raise SchemaMismatchError("Tushare Parquet semantic backend is unavailable")
+                query = semantic_backend.normalize_snapshot_query(registered, query, mode)
                 record.parameters["effective_start"] = self._audit_value(query.start)
                 record.parameters["effective_end"] = self._audit_value(query.end)
             if isinstance(spec, TushareDatasetSpec):
@@ -408,9 +455,7 @@ class DataClient:
             )
             if tushare_panel_kind == "disclosure":
                 if semantic_backend is None:
-                    raise SchemaMismatchError(
-                        "Disclosure panel backend is unavailable"
-                    )
+                    raise SchemaMismatchError("Disclosure panel backend is unavailable")
                 result = self._build_tushare_disclosure_panels(
                     dataset,
                     registered,
@@ -420,12 +465,8 @@ class DataClient:
                 )
             elif tushare_panel_kind == "membership":
                 if semantic_backend is None:
-                    raise SchemaMismatchError(
-                        "Membership panel backend is unavailable"
-                    )
-                table = semantic_backend.scan_membership_panel(
-                    registered, scan_query
-                )
+                    raise SchemaMismatchError("Membership panel backend is unavailable")
+                table = semantic_backend.scan_membership_panel(registered, scan_query)
                 record.calendar_aligned = True
                 record.parameters["calendar_api"] = "trade_cal"
                 record.source["calendar_api"] = "trade_cal"
@@ -459,9 +500,7 @@ class DataClient:
                     )
                     record.result_shapes = {"table": [result.num_rows, result.num_columns]}
                 else:
-                    table = table.select(
-                        [time_column, instrument_column, *query.fields]
-                    )
+                    table = table.select([time_column, instrument_column, *query.fields])
                     result = self._build_panels(
                         table,
                         dataset,
@@ -491,9 +530,7 @@ class DataClient:
         backend: TushareSemanticBackend,
     ) -> dict[str, pd.DataFrame]:
         spec = dataset.spec
-        if not isinstance(
-            spec, (TushareDatasetSpec, TushareParquetDatasetSpec)
-        ):
+        if not isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec)):
             raise SchemaMismatchError("PIT panels require a Tushare dataset")
         if query.start is None or query.end is None:
             raise InvalidQueryError(
@@ -508,9 +545,7 @@ class DataClient:
             time_column=contract.table_time_column,
             instrument_column=contract.instrument_column,
         )
-        disclosure_column, period_column, revision_order = (
-            backend.pit_panel_semantics(dataset)
-        )
+        disclosure_column, period_column, revision_order = backend.pit_panel_semantics(dataset)
         calendar = backend.trade_calendar(dataset, query)
         panels = build_daily_panels(
             table,
@@ -531,9 +566,7 @@ class DataClient:
         record.parameters["disclosure_lag"] = spec.disclosure_lag
         record.parameters["calendar_api"] = "trade_cal"
         record.source["calendar_api"] = "trade_cal"
-        self._finish_panels(
-            panels, dataset_name, dataset, record, apply_adjustment=False
-        )
+        self._finish_panels(panels, dataset_name, dataset, record, apply_adjustment=False)
         return panels
 
     def _build_panels(
@@ -560,9 +593,7 @@ class DataClient:
             fields=query.fields,
             instruments=query.instruments,
         )
-        self._finish_panels(
-            panels, dataset_name, dataset, record, apply_adjustment
-        )
+        self._finish_panels(panels, dataset_name, dataset, record, apply_adjustment)
         return panels
 
     @staticmethod
@@ -585,8 +616,7 @@ class DataClient:
         for panel in panels.values():
             panel.attrs.update(attrs)
         record.result_shapes = {
-            field: [int(panel.shape[0]), int(panel.shape[1])]
-            for field, panel in panels.items()
+            field: [int(panel.shape[0]), int(panel.shape[1])] for field, panel in panels.items()
         }
 
     @staticmethod
@@ -651,9 +681,7 @@ class DataClient:
             if not spec.time_column or not spec.instrument_column:
                 raise DatasetRegistrationError("Key column names cannot be empty")
             if spec.time_column == spec.instrument_column:
-                raise DatasetRegistrationError(
-                    "Time and instrument columns must be different"
-                )
+                raise DatasetRegistrationError("Time and instrument columns must be different")
         if isinstance(spec, DatasetSpec):
             if not spec.paths:
                 raise DatasetRegistrationError("Dataset paths cannot be empty")
@@ -662,17 +690,11 @@ class DataClient:
                 raise DatasetRegistrationError("Tushare dataset cannot be empty")
             if isinstance(spec, TushareParquetDatasetSpec):
                 if not str(spec.data_dir).strip():
-                    raise DatasetRegistrationError(
-                        "Tushare Parquet data_dir cannot be empty"
-                    )
+                    raise DatasetRegistrationError("Tushare Parquet data_dir cannot be empty")
                 if not spec.calendar_connection.strip():
-                    raise DatasetRegistrationError(
-                        "Tushare calendar_connection cannot be empty"
-                    )
+                    raise DatasetRegistrationError("Tushare calendar_connection cannot be empty")
             if not spec.calendar_exchange.strip():
-                raise DatasetRegistrationError(
-                    "Tushare calendar_exchange cannot be empty"
-                )
+                raise DatasetRegistrationError("Tushare calendar_exchange cannot be empty")
             if (
                 isinstance(spec.disclosure_lag, bool)
                 or not isinstance(spec.disclosure_lag, int)
@@ -735,15 +757,18 @@ class DataClient:
             if mode == "panel"
             else dataset.contract.table_requires_time_range
         )
-        if requires_range and (
-            parsed_start is None or parsed_end is None
-        ):
+        if requires_range and (parsed_start is None or parsed_end is None):
             raise InvalidQueryError(
                 f"Dataset {dataset.spec.name!r} {mode} query requires both start and end"
             )
 
         requested_instruments: tuple[str, ...] | None = None
         if instruments is not None:
+            if isinstance(instruments, str):
+                raise InvalidQueryError(
+                    "instruments must be a sequence of identifiers, not a string; "
+                    "wrap one identifier in a list or use get_panel(..., universe=...)"
+                )
             requested_instruments = tuple(instruments)
             if not all(isinstance(item, str) and item for item in requested_instruments):
                 raise InvalidQueryError("Instrument identifiers must be non-empty strings")
@@ -764,9 +789,7 @@ class DataClient:
             isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0
         ):
             raise InvalidQueryError("limit must be a positive integer")
-        return DataQuery(
-            requested_fields, parsed_start, parsed_end, requested_instruments, limit
-        )
+        return DataQuery(requested_fields, parsed_start, parsed_end, requested_instruments, limit)
 
     @staticmethod
     def _parse_time(value: Any | None, name: str, timezone_name: str | None) -> datetime | None:
@@ -802,9 +825,7 @@ class DataClient:
         arrays: dict[str, pa.Array] = {}
         for column in columns:
             data_type = (
-                dataset.schema.field(column).type
-                if column in dataset.schema.names
-                else pa.date32()
+                dataset.schema.field(column).type if column in dataset.schema.names else pa.date32()
             )
             arrays[column] = pa.array([], type=data_type)
         return pa.table(arrays)
@@ -826,25 +847,15 @@ class DataClient:
                 )
 
     @staticmethod
-    def _mode_keys(
-        dataset: RegisteredDataset, mode: QueryMode
-    ) -> tuple[str, str]:
+    def _mode_keys(dataset: RegisteredDataset, mode: QueryMode) -> tuple[str, str]:
         contract = dataset.contract
-        time_column = (
-            contract.panel_time_column
-            if mode == "panel"
-            else contract.table_time_column
-        )
+        time_column = contract.panel_time_column if mode == "panel" else contract.table_time_column
         if time_column is None:
-            raise InvalidQueryError(
-                f"Dataset {dataset.spec.name!r} does not support panel queries"
-            )
+            raise InvalidQueryError(f"Dataset {dataset.spec.name!r} does not support panel queries")
         return time_column, contract.instrument_column
 
     @staticmethod
-    def _table_columns(
-        dataset: RegisteredDataset, fields: tuple[str, ...]
-    ) -> tuple[str, ...]:
+    def _table_columns(dataset: RegisteredDataset, fields: tuple[str, ...]) -> tuple[str, ...]:
         contract = dataset.contract
         result: list[str] = []
         for column in (

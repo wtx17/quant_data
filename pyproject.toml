@@ -33,12 +33,14 @@ dev-mode-dirs = [".."]
 only-include = [
   "__init__.py",
   "_version.py",
+  "_universes.py",
   "audit.py",
   "backends",
   "client.py",
   "exceptions.py",
   "initialize.py",
   "models.py",
+  "resources",
   "transforms",
 ]
 

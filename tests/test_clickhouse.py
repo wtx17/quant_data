@@ -118,9 +118,9 @@ def test_daily_panel_and_connection_reuse(tmp_path: Path) -> None:
     client.register(spec)
     assert fake.calls == []
     assert factory.calls == []
-    panel = client.get_panel(
-        "minghu_daily", ["close"], start="2026-03-02", end="2026-03-02"
-    )["close"]
+    panel = client.get_panel("minghu_daily", ["close"], start="2026-03-02", end="2026-03-02")[
+        "close"
+    ]
 
     assert list(panel.columns) == ["000001.SZ", "000002.SZ"]
     assert panel.loc[date(2026, 3, 2), "000001.SZ"] == pytest.approx(20.6)
@@ -214,6 +214,44 @@ def test_daily_accepts_suffixed_instruments(tmp_path: Path) -> None:
     assert parameters["instruments"] == ["000001.SZ"]
 
 
+def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) -> None:
+    result = pa.table(
+        {
+            "date": pa.array([date(2026, 3, 2)]),
+            "code": ["600028.SH"],
+            "close": [10.3],
+            "hfq": [1.0],
+        }
+    )
+    client, fake, _ = make_remote_client(tmp_path, result)
+    client.register(
+        ClickHouseDatasetSpec(
+            name="daily",
+            connection="minghu",
+            table="stock_base.daily",
+            time_column="date",
+        )
+    )
+
+    panel = client.get_panel(
+        "daily",
+        ["close"],
+        start="2026-03-02",
+        end="2026-03-02",
+        adjusted=False,
+        universe="SZ50",
+    )["close"]
+
+    assert len(panel.columns) == 50
+    assert panel.columns[0] == "600028.SH"
+    assert panel.loc[date(2026, 3, 2), "600028.SH"] == pytest.approx(10.3)
+    sql, parameters, _ = fake.calls[-1]
+    assert parameters["instruments"][0] == "600028.SH"
+    assert len(parameters["instruments"]) == 50
+    assert "600028.SH" not in sql
+    assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
+
+
 def test_index_daily_supports_panel_and_table_with_suffixes(tmp_path: Path) -> None:
     result = pa.table(
         {
@@ -291,9 +329,7 @@ def test_daily_can_return_raw_prices_and_hides_factor(tmp_path: Path) -> None:
             time_column="date",
         )
     )
-    table = client.get_table(
-        "daily", ["close", "volume"], adjusted=False
-    )
+    table = client.get_table("daily", ["close", "volume"], adjusted=False)
     assert table.column_names == ["date", "code", "close", "volume"]
     assert table["code"].to_pylist() == ["000001.SZ"]
     assert table["close"].to_pylist() == [10.3]
@@ -462,9 +498,7 @@ def test_tk_table_requires_range_preserves_rows_and_blocks_panel(tmp_path: Path)
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
     assert "`_q`.`date` >= {partition_start:Date}" in sql
     assert "`_q`.`date` <= {partition_end:Date}" in sql
-    assert sql.endswith(
-        "ORDER BY `_q`.`date_time`, `_q`.`code`, `_q`.`time_int`"
-    )
+    assert sql.endswith("ORDER BY `_q`.`date_time`, `_q`.`code`, `_q`.`time_int`")
     assert parameters["instruments"] == ["000001.SZ"]
     assert parameters["partition_start"] == date(2026, 3, 2)
 
@@ -508,7 +542,9 @@ def test_remote_audit_is_sanitized(tmp_path: Path) -> None:
     assert "researcher" not in audit_text
 
 
-def test_missing_password_environment_variable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_missing_password_environment_variable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.delenv("MISSING_CLICKHOUSE_PASSWORD", raising=False)
     result = pa.table({"date": [], "code": [], "close": []})
     client, _, _ = make_remote_client(
