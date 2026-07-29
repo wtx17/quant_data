@@ -13,15 +13,17 @@ from quant_data._universes import (
 
 
 @pytest.mark.parametrize(
-    ("name", "count", "first", "last"),
+    ("name", "snapshot_date", "count", "first", "last"),
     [
-        ("hs300", 300, "600000.SH", "302132.SZ"),
-        ("sz50", 50, "600028.SH", "688981.SH"),
-        ("zz500", 500, "600004.SH", "301611.SZ"),
+        ("hs300", date(2026, 7, 20), 300, "600000.SH", "302132.SZ"),
+        ("sz50", date(2026, 7, 20), 50, "600028.SH", "688981.SH"),
+        ("zz500", date(2026, 7, 20), 500, "600004.SH", "301611.SZ"),
+        ("zz1000", date(2026, 7, 28), 1000, "600789.SH", "603376.SH"),
     ],
 )
 def test_builtin_universe_resources_are_valid(
     name: str,
+    snapshot_date: date,
     count: int,
     first: str,
     last: str,
@@ -29,12 +31,18 @@ def test_builtin_universe_resources_are_valid(
     snapshot = load_universe(name)
 
     assert snapshot.name == name
-    assert snapshot.snapshot_date == date(2026, 7, 20)
+    assert snapshot.snapshot_date == snapshot_date
     assert len(snapshot.instruments) == count
     assert len(set(snapshot.instruments)) == count
     assert snapshot.instruments[0] == first
     assert snapshot.instruments[-1] == last
-    assert all(instrument.endswith((".SH", ".SZ", ".BJ")) for instrument in snapshot.instruments)
+    assert all(
+        len(instrument) == 9
+        and instrument[:6].isascii()
+        and instrument[:6].isdecimal()
+        and instrument[6:] in {".SH", ".SZ", ".BJ"}
+        for instrument in snapshot.instruments
+    )
     assert len(snapshot.sha256) == 64
 
 
@@ -58,22 +66,22 @@ def test_unknown_or_invalid_universe_name_fails(value: object) -> None:
         ),
         (
             (
-                "updateDate,code,code_name\n2026-07-20,sh.600000,one\n2026-07-21,sh.600001,two\n"
+                "updateDate,code,code_name\n2026-07-20,600000.SH,one\n2026-07-21,600001.SH,two\n"
             ).encode(),
             "exactly one updateDate",
         ),
         (
             (
-                "updateDate,code,code_name\n2026-07-20,sh.600000,one\n2026-07-20,SH.600000,two\n"
+                "updateDate,code,code_name\n2026-07-20,600000.SH,one\n2026-07-20,600000.SH,two\n"
             ).encode(),
             "duplicate instrument",
         ),
         (
-            b"updateDate,code,code_name\n2026-07-20,600000.SH,name\n",
-            "invalid Baostock code",
+            b"updateDate,code,code_name\n2026-07-20,sh.600000,name\n",
+            "invalid instrument code",
         ),
         (
-            b"updateDate,code,code_name\n2026-07-20,sh.600000,name\n",
+            b"updateDate,code,code_name\n2026-07-20,600000.SH,name\n",
             "contains 1 instruments; expected 300",
         ),
     ],

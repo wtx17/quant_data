@@ -123,6 +123,20 @@ def test_named_universe_expands_in_snapshot_order_and_is_audited(
     assert audit["parameters"]["universe"] == parameters["universe"]
 
 
+def test_zz1000_named_universe_uses_its_versioned_snapshot(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+    panel = client.get_panel("daily", ["close"], universe=" ZZ1000 ")["close"]
+
+    assert len(panel.columns) == 1000
+    assert panel.columns[0] == "600789.SH"
+    assert panel.columns[-1] == "603376.SH"
+    assert panel.attrs["parameters"]["universe"]["name"] == "zz1000"
+    assert panel.attrs["parameters"]["universe"]["snapshot_date"] == "2026-07-28"
+    assert panel.attrs["parameters"]["universe"]["count"] == 1000
+
+
 def test_panel_rejects_instruments_and_universe_together(
     tmp_path: Path, sample_files: Path
 ) -> None:

@@ -204,10 +204,10 @@ class DataClient:
             ``True`` forces configured price adjustment, ``False`` requests
             raw values, and ``None`` uses the dataset default.
         universe
-            Optional built-in stock-pool name: ``"hs300"``, ``"sz50"``, or
-            ``"zz500"``. Names are case-insensitive and surrounding whitespace
-            is ignored. This parameter is mutually exclusive with
-            ``instruments``.
+            Optional built-in stock-pool name: one of ``"hs300"``, ``"sz50"``,
+            ``"zz500"``, and ``"zz1000"``. Names are case-insensitive and
+            surrounding whitespace is ignored. This parameter is mutually
+            exclusive with ``instruments``.
 
         Returns
         -------

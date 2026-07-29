@@ -30,8 +30,8 @@ Agent 工作约定、架构说明和本文件。
 
 ### `_universes.py` 与 `resources/universes/`
 
-- 加载、校验并缓存 `hs300`、`sz50`、`zz500` 的版本化 CSV 快照。
-- 将 Baostock 代码规范化为 `000001.SZ` 形式，并提供快照日期与 SHA-256。
+- 加载、校验并缓存 `hs300`、`sz50`、`zz500`、`zz1000` 的版本化 CSV 快照。
+- 要求资源代码严格采用 `000001.SZ` 形式，并提供快照日期与 SHA-256。
 - `SUPPORTED_UNIVERSES: tuple[str, ...]`
 - `UniverseSnapshot(name, snapshot_date, instruments, sha256)`
 - `load_universe(value) -> UniverseSnapshot`
@@ -39,7 +39,8 @@ Agent 工作约定、架构说明和本文件。
 - `_parse_universe_csv(name, payload) -> UniverseSnapshot`
 
 资源契约：表头固定为 `updateDate,code,code_name`，单一快照日期、证券代码唯一，
-CSV 行序即面板列序；预期数量为沪深 300、中证 500、上证 50 的名义成分数。
+CSV 行序即面板列序；预期数量为沪深 300、上证 50、中证 500、中证 1000 的名义
+成分数。
 
 ### `client.py`
 

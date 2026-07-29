@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import re
 from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
@@ -13,15 +12,16 @@ from importlib.resources import files
 
 from .exceptions import InvalidQueryError, SchemaMismatchError
 
-SUPPORTED_UNIVERSES = ("hs300", "sz50", "zz500")
+SUPPORTED_UNIVERSES = ("hs300", "sz50", "zz500", "zz1000")
 
 _EXPECTED_COLUMNS = ("updateDate", "code", "code_name")
 _EXPECTED_COUNTS = {
     "hs300": 300,
     "sz50": 50,
     "zz500": 500,
+    "zz1000": 1000,
 }
-_BAOSTOCK_CODE = re.compile(r"(sh|sz|bj)\.(\d{6})", re.IGNORECASE)
+_SUPPORTED_EXCHANGES = frozenset({"SH", "SZ", "BJ"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,14 +112,21 @@ def _parse_universe_csv(name: str, payload: bytes) -> UniverseSnapshot:
                 f"has invalid updateDate {raw_date!r}"
             ) from exc
 
-        match = _BAOSTOCK_CODE.fullmatch(raw_code)
-        if match is None:
+        digits, separator, exchange = raw_code.partition(".")
+        if (
+            not separator
+            or "." in exchange
+            or len(digits) != 6
+            or not digits.isascii()
+            or not digits.isdecimal()
+            or exchange not in _SUPPORTED_EXCHANGES
+        ):
             raise SchemaMismatchError(
                 f"Built-in universe snapshot {name!r} row {row_number} "
-                f"has invalid Baostock code {raw_code!r}"
+                f"has invalid instrument code {raw_code!r}; "
+                "expected a canonical code such as '000001.SZ'"
             )
-        exchange, digits = match.groups()
-        instrument = f"{digits}.{exchange.upper()}"
+        instrument = raw_code
         if instrument in seen:
             raise SchemaMismatchError(
                 f"Built-in universe snapshot {name!r} contains duplicate instrument {instrument!r}"

@@ -6,7 +6,8 @@
 
 - `DataClient.get_panel()` 返回 `time × instrument` 的 Pandas 宽表。
 - `DataClient.get_table()` 返回保留事件、修订和身份列的 Arrow 长表。
-- `get_panel(universe=...)` 支持 `hs300`、`sz50`、`zz500` 三个包内版本化股票池快照。
+- `get_panel(universe=...)` 支持 `hs300`、`sz50`、`zz500`、`zz1000` 四个包内
+  版本化股票池快照。
 - ClickHouse 支持内置 Minghu 表和自定义表。
 - Tushare 支持远端 API，以及带 manifest 的本地 Parquet 快照。
 - Tushare `daily_basic` 支持普通日频长表和宽表；远端查询按交易日逐日获取。
@@ -80,14 +81,15 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
 ## 修改约束
 
 - `DATASETS.md` 由 `tools/generate_dataset_catalog.py` 生成，不要手工修改。
-- `get_panel()` 的 `universe` 只接受 `hs300`、`sz50`、`zz500`（忽略大小写和首尾
-  空白），与 `instruments` 互斥；`get_table()` 不支持 `universe`。两个查询方法都
-  必须拒绝裸字符串形式的 `instruments`，单证券也应放入列表。
-- 三个股票池是固定快照，不是历史时点成分。当前快照日期为 `2026-07-20`；即使查询
-  更早数据，也使用同一份当前成分列表，不要将其描述为 point-in-time 股票池。
-- 股票池资源位于 `resources/universes/`，运行时不得依赖仓库外的 Baostock 文件。
+- `get_panel()` 的 `universe` 只接受 `hs300`、`sz50`、`zz500`、`zz1000`（忽略
+  大小写和首尾空白），与 `instruments` 互斥；`get_table()` 不支持 `universe`。
+  两个查询方法都必须拒绝裸字符串形式的 `instruments`，单证券也应放入列表。
+- 四个股票池是固定快照，不是历史时点成分。`hs300`、`sz50`、`zz500` 的快照日期为
+  `2026-07-20`，`zz1000` 的快照日期为 `2026-07-28`；即使查询更早数据，也使用
+  对应的固定成分列表，不要将其描述为 point-in-time 股票池。
+- 股票池资源位于 `resources/universes/`，运行时不得依赖仓库外的源文件。
   更新快照时保持 `updateDate,code,code_name` 表头和源文件行序，确保日期唯一、代码
-  唯一且为 `sh.600000` / `sz.000001` / `bj.430001` 形式；同步核对
+  唯一且严格为 `600000.SH` / `000001.SZ` / `430001.BJ` 形式；同步核对
   `_universes.py` 的预期数量、`tests/test_universes.py` 和 wheel 打包结果。
 - 命名股票池必须在审计初始化后、Backend 查询前展开。审计和面板参数需要保留规范化
   名称、快照日期、成分数量、CSV SHA-256 以及完整展开列表；解析失败也必须写失败审计。
