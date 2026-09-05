@@ -275,8 +275,29 @@ class TushareParquetDatasetSpec:
     backend: str = field(default="parquet", init=False)
 
 
+@dataclass(frozen=True, slots=True)
+class BuiltInDatasetSpec:
+    """Describe a bundled logical dataset and its auxiliary ClickHouse connection.
+
+    ``name`` is the registration alias; ``dataset`` selects the built-in semantics.
+    Currently only ``membership_events`` is supported. Parquet supplies its
+    events; ``connection`` supplies the market and calendar via stock_base.daily.
+    """
+
+    name: str = "membership_events"
+    dataset: str = "membership_events"
+    connection: str = "minghu"
+    timezone: str = "Asia/Shanghai"
+    version: str | None = None
+    backend: str = field(default="parquet", init=False)
+
+
 DatasetDefinition = (
-    DatasetSpec | ClickHouseDatasetSpec | TushareDatasetSpec | TushareParquetDatasetSpec
+    BuiltInDatasetSpec
+    | DatasetSpec
+    | ClickHouseDatasetSpec
+    | TushareDatasetSpec
+    | TushareParquetDatasetSpec
 )
 
 

@@ -188,3 +188,69 @@ def test_minute_sql_time_synthesis(
         assert str(panel.index.tz) == "Asia/Shanghai"
         assert panel.index.tolist() == [expected]
         assert panel.loc[expected, "000001.SZ"] == pytest.approx(10.3)
+
+
+def test_membership_events_real_daily(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Three bounded date/code reads with one-month lookback; verify state against independent CSV panels."""
+    from quant_data import InvalidQueryError
+    from quant_data._universes import load_universe
+    from quant_data.initialize import initialize_data_client
+
+    require_environment()
+    query_date = os.getenv("MINGHU_CLICKHOUSE_TEST_DATE", "2026-03-02")
+    day = pd.Timestamp(query_date).date()
+    pools = {
+        name: set(load_universe(name).select(day, day)) for name in ("hs300", "zz500", "zz1000")
+    }
+    reads: list[tuple[int, int]] = []
+    market_codes: set[str] = set()
+    with initialize_data_client(audit_dir=tmp_path / "audit", register_tushare=False) as data:
+        original_scan = data._clickhouse.scan
+
+        def measured_scan(dataset, query):
+            assert query.start.date() == (pd.Timestamp(day) - pd.DateOffset(months=1)).date()
+            assert query.end.date() == day
+            assert query.fields == ()
+            table = original_scan(dataset, query)
+            assert table.column_names == ["date", "code"]
+            reads.append((table.num_rows, table.nbytes))
+            market_codes.update(table["code"].to_pylist())
+            return table
+
+        monkeypatch.setattr(data._clickhouse, "scan", measured_scan)
+        instruments = ["000001.SZ", "600000.SH", "000009.SZ"]
+        panel = data.get_panel(
+            "membership_events", ["membership"], query_date, query_date, instruments=instruments
+        )["membership"]
+        assert panel.shape == (1, 3)
+        assert panel.columns.tolist() == instruments
+        assert panel.index.tolist() == [pd.Timestamp(query_date)]
+        for code in instruments:
+            expected = sum(i for i, pool in enumerate(pools.values(), 1) if code in pool)
+            assert panel.loc[query_date, code] == expected
+        assert all(dtype == "int8" for dtype in panel.dtypes)
+        missing_members = sorted(pools["hs300"] - market_codes)
+        if missing_members:
+            with pytest.raises(InvalidQueryError, match="absent from stock_base.daily") as exc:
+                data.get_panel(
+                    "membership_events", ["membership"], query_date, query_date, universe="hs300"
+                )
+            assert all(code in str(exc.value) for code in missing_members)
+        else:
+            universe = data.get_panel(
+                "membership_events", ["membership"], query_date, query_date, universe="hs300"
+            )["membership"]
+            assert universe.shape == (1, 300)
+            assert set(universe.columns) == pools["hs300"]
+            assert (universe == 1).all().all()
+        with pytest.raises(InvalidQueryError, match="absent from stock_base.daily"):
+            data.get_panel(
+                "membership_events",
+                ["membership"],
+                query_date,
+                query_date,
+                instruments=["999999.SZ"],
+            )
+    assert len(reads) == 3
+    print(f"date={query_date}, reads(rows, Arrow bytes)={reads}")
+    print(f"membership={panel.iloc[0].to_dict()}, hs300 missing from market={missing_members}")

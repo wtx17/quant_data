@@ -33,6 +33,7 @@ from .models import (
     DataQuery,
     DatasetDefinition,
     DatasetSpec,
+    BuiltInDatasetSpec,
     QueryAudit,
     RegisteredDataset,
     TushareConfig,
@@ -40,6 +41,7 @@ from .models import (
     TushareParquetDatasetSpec,
 )
 from .transforms import build_daily_panels, build_panels
+from .transforms.membership import build_membership_panel
 from ._universes import load_universe
 
 _MINGHU_CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
@@ -367,7 +369,11 @@ class DataClient:
             tushare_panel_kind = (
                 semantic_backend.panel_kind(registered) if semantic_backend is not None else None
             )
-            if tushare_panel_kind == "disclosure":
+            if isinstance(spec, BuiltInDatasetSpec):
+                result = self._build_builtin_membership_panel(registered, query, record)
+                record.calendar_aligned = True
+                self._finish_panels(result, dataset, registered, record, False)
+            elif tushare_panel_kind == "disclosure":
                 if semantic_backend is None:
                     raise SchemaMismatchError("Disclosure panel backend is unavailable")
                 result = self._build_tushare_disclosure_panels(
@@ -427,6 +433,51 @@ class DataClient:
         record.duration_ms = (time.perf_counter() - started_clock) * 1000
         self._audit.write(record)
         return result
+
+    def _build_builtin_membership_panel(
+        self,
+        dataset: RegisteredDataset,
+        query: DataQuery,
+        record: QueryAudit,
+    ) -> dict[str, pd.DataFrame]:
+        spec = cast(BuiltInDatasetSpec, dataset.spec)
+        if query.start is None or query.end is None:
+            raise InvalidQueryError("Membership requires both start and end")
+        market_dataset = self._clickhouse.prepare(
+            ClickHouseDatasetSpec(
+                name=spec.name,
+                connection=spec.connection,
+                table="stock_base.daily",
+                time_column="date",
+                require_time_range=True,
+            )
+        )
+        record.source["market"] = self._clickhouse.fingerprint(market_dataset)
+        market = self._clickhouse.scan(
+            market_dataset,
+            DataQuery(
+                fields=(),
+                start=(pd.Timestamp(query.start) - pd.DateOffset(months=1)).to_pydatetime(),
+                end=query.end,
+            ),
+        ).to_pandas()
+        calendar = pd.DatetimeIndex(pd.to_datetime(market["date"]).unique()).sort_values()
+        calendar = calendar[
+            (calendar >= pd.Timestamp(query.start.date()))
+            & (calendar <= pd.Timestamp(query.end.date()))
+        ]
+        calendar.name = "date"
+        available = set(market["code"])
+        codes = list(query.instruments) if query.instruments is not None else sorted(available)
+        missing = sorted(set(codes) - available)
+        if missing:
+            raise InvalidQueryError(
+                f"Instruments absent from stock_base.daily in query range including one-month lookback: {missing}"
+            )
+        table = self._parquet.scan(dataset, query)
+        panel = build_membership_panel(table, calendar, codes)
+        panel.attrs["events_sha256"] = record.source["events_sha256"]
+        return {"membership": panel}
 
     def _build_tushare_disclosure_panels(
         self,

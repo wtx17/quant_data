@@ -1981,3 +1981,13 @@ description = "移出行业成分的日期；空值表示仍在成分中。"
 
 [datasets.index_member_all.fields.is_new]
 description = "当前成分与历史成分标记。"
+
+[datasets.membership_events]
+title = "历史指数成分归属"
+summary = "包内 membership_events.parquet 累计事件状态，变更当日起生效。交易日和全市场证券从 ClickHouse stock_base.daily 推断；证券并集范围为 start 向前一个自然月至 end，输入证券不在该并集则报错，输出交易日仍限定在原始 start/end。首个事件前为 0，末个事件后延续状态。"
+[datasets.membership_events.fields.date]
+description = "ClickHouse stock_base.daily 中的交易日。"
+[datasets.membership_events.fields.code]
+description = "带交易所后缀的股票代码。"
+[datasets.membership_events.fields.membership]
+description = "0：均不属于；1：沪深300；2：中证500；3：中证1000。"

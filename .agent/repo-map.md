@@ -339,3 +339,11 @@ Catalog 对象：
 - `tests/test_tushare_industry.py`：中信/申万有效区间和面板展开。
 - `tests/test_tushare_parquet.py`：manifest、本地语义、混合远端/本地初始化。
 - `tests/test_tushare_schemas.py`：Tushare schema 字段数量、顺序和类型 hash。
+
+### 包内成分归属数据集
+
+- `models.py`：`BuiltInDatasetSpec(name="membership_events", dataset="membership_events", connection="minghu")`，backend 为 `parquet`。
+- `backends/parquet.py`：注册内置逻辑 schema、读取包内完整事件 Arrow 长表、记录事件哈希。
+- `client.py`：`_build_builtin_membership_panel()` 编排 ClickHouse 市场查询、一个月回看、证券校验和原始区间日历。
+- `transforms/membership.py`：`build_membership_panel(table, calendar, instruments)` 纯状态展开。
+- `tests/test_membership.py`：状态继承、指数切换、股票池、停牌回看、日历、审计和参数校验。

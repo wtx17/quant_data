@@ -14,6 +14,7 @@ if __package__:
         ClickHouseConfig,
         ClickHouseDatasetSpec,
         DataClient,
+        BuiltInDatasetSpec,
         DatasetRegistrationError,
         TushareConfig,
         TushareDatasetSpec,
@@ -25,6 +26,7 @@ else:
         ClickHouseConfig,
         ClickHouseDatasetSpec,
         DataClient,
+        BuiltInDatasetSpec,
         DatasetRegistrationError,
         TushareConfig,
         TushareDatasetSpec,
@@ -193,6 +195,7 @@ def registered_dataset_names() -> tuple[str, ...]:
     or remote service access.
     """
     names = [spec.name for spec in clickhouse_dataset_specs()]
+    names.append("membership_events")
     names.extend(spec.name for spec in tushare_dataset_specs())
     return tuple(names)
 
@@ -313,6 +316,7 @@ def initialize_data_client(
         )
         for clickhouse_spec in clickhouse_dataset_specs(clickhouse_connection):
             client.register(clickhouse_spec)
+        client.register(BuiltInDatasetSpec(connection=clickhouse_connection))
 
     if register_tushare:
         client.add_tushare_connection(

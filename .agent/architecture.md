@@ -133,3 +133,13 @@ Catalog 负责静态 schema 和数据语义。
 - 内置 catalog、生成文档和 schema 签名测试必须同步。
 - 配置 Tushare 归档目录后，全部逻辑数据集默认使用本地快照；仅
   `tushare_remote_datasets` 指定的数据集使用远端 API。
+
+### 包内指数归属
+
+`BuiltInDatasetSpec(dataset="membership_events", connection="minghu")` 声明包内数据集语义
+及辅助 ClickHouse 连接，默认注册名为 `membership_events`，backend 为 `parquet`。
+Parquet backend 读取完整事件历史的 Arrow 长表；`transforms/membership.py` 只负责累计
+事件状态并展开到传入的交易日。`DataClient` 读取 ClickHouse `stock_base.daily` 的日期和代码，
+查询起点向前一个自然月，校验输入证券属于扩展区间并集；输出交易日仍限定原始 start/end。
+通用参数、universe 展开和审计沿用公共流程。事件 SHA-256 和 ClickHouse 来源记入审计。
+空证券选择保留交易日索引；变更当日生效，首事件前为零，末事件后延续。

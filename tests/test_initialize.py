@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from quant_data import BuiltInDatasetSpec
 from quant_data.initialize import (
     clickhouse_dataset_specs,
     initialize_data_client,
@@ -32,7 +33,8 @@ def test_clickhouse_dataset_specs_only_include_panel_datasets() -> None:
 def test_registered_dataset_names_match_supported_specs() -> None:
     names = registered_dataset_names()
     assert names == tuple(
-        spec.name for spec in (*clickhouse_dataset_specs(), *tushare_dataset_specs())
+        spec.name
+        for spec in (*clickhouse_dataset_specs(), BuiltInDatasetSpec(), *tushare_dataset_specs())
     )
 
 

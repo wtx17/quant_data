@@ -98,6 +98,20 @@ def collect_references() -> tuple[DatasetReference, ...]:
             ),
         )
 
+    from quant_data.backends.parquet import BUILTIN_MEMBERSHIP_SCHEMA
+
+    _add_reference(
+        references,
+        DatasetReference(
+            name="membership_events",
+            fields=tuple((f.name, str(f.type)) for f in BUILTIN_MEMBERSHIP_SCHEMA),
+            source_time_column="date",
+            instrument_column="code",
+            identity_columns=(),
+            panel_time_column="date",
+        ),
+    )
+
     for tushare_spec in tushare_dataset_specs():
         catalog_name = tushare_spec.dataset or tushare_spec.name
         catalog = TUSHARE_DATASETS.get(catalog_name)

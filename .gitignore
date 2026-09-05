@@ -6,9 +6,12 @@ __pycache__/
 .venv/
 venv/
 env/
+.quant_data/
 
 .idea/
 .vscode/
 .codex/
 
 .DS_Store
+
+test.ipynb

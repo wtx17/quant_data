@@ -101,3 +101,30 @@ with initialize_data_client(
 python tools/generate_dataset_catalog.py
 python tools/generate_dataset_catalog.py --check
 ```
+
+### 历史指数成分归属
+
+开启 ClickHouse 注册时，`initialize_data_client()` 同时注册 `membership_events`：
+
+```python
+membership = client.get_panel(
+    "membership_events",
+    fields=["membership"],
+    instruments=["000001.SZ", "600000.SH"],  # 或 universe="hs300"
+    start="2024-01-01",
+    end="2024-12-31",
+)["membership"]
+```
+
+输出交易日 × 股票代码的 `int8` 宽表：0 表示不属于三个指数，1 / 2 / 3 分别表示
+沪深300 / 中证500 / 中证1000。事件从 `change_date` 当日起生效，查询起点继承此前状态；
+首个事件前为 0，最后事件后延续状态。包内事件文件不会自动更新。
+
+交易日和全市场股票来自 ClickHouse `stock_base.daily`，只读取日期及代码。
+全市场证券并集取 `[start 向前一个自然月, end]`（月末按目标月最后一天对齐），
+输入证券必须在该扩展区间出现过，否则报错，以减少停牌股被误判的情况。
+输出交易日仍严格限定在原始 `start/end`；不要求每个证券每天都有行情。
+证券缺少某日行情时仍按事件状态填值。省略 `instruments/universe` 查询上述扩展区间的全市场，
+空 `instruments=[]` 保留交易日索引、返回零列。`start/end` 必填。
+手动注册可使用 `client.register(BuiltInDatasetSpec(connection="minghu"))`
+（从 `quant_data` 导入 `BuiltInDatasetSpec`）。

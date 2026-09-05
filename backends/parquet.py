@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
 from collections.abc import Iterable, Mapping, Sequence
@@ -26,6 +27,7 @@ from ..models import (
     DatasetContract,
     DatasetDefinition,
     DatasetSpec,
+    BuiltInDatasetSpec,
     RegisteredDataset,
     TushareParquetDatasetSpec,
 )
@@ -34,6 +36,18 @@ from .tushare_catalog import (
     DisclosureSemantics,
     MembershipSemantics,
     TushareDatasetCatalog,
+)
+
+
+BUILTIN_MEMBERSHIP_SCHEMA = pa.schema(
+    [
+        ("date", pa.date32()),
+        ("code", pa.string()),
+        ("membership", pa.int8()),
+    ]
+)
+MEMBERSHIP_EVENTS_PATH = (
+    Path(__file__).resolve().parents[1] / "resources/universes/membership_events.parquet"
 )
 
 
@@ -171,12 +185,29 @@ class DuckDBParquetBackend:
             with the Tushare catalog.
         """
 
+        if isinstance(definition, BuiltInDatasetSpec):
+            if definition.dataset != "membership_events":
+                raise DatasetRegistrationError(f"Unknown built-in dataset: {definition.dataset!r}")
+            return RegisteredDataset(
+                definition,
+                BUILTIN_MEMBERSHIP_SCHEMA,
+                MEMBERSHIP_EVENTS_PATH,
+                DatasetContract(
+                    source_time_column="change_date",
+                    instrument_column="code",
+                    panel_time_column="date",
+                    panel_frequency="1d",
+                    timezone=definition.timezone,
+                    version=definition.version,
+                    panel_requires_time_range=True,
+                ),
+            )
         if isinstance(definition, DatasetSpec):
             return self._prepare_generic(definition)
         if isinstance(definition, TushareParquetDatasetSpec):
             return self._prepare_tushare(definition)
         raise DatasetRegistrationError(
-            "Parquet backend requires DatasetSpec or TushareParquetDatasetSpec"
+            "Parquet backend requires DatasetSpec, BuiltInDatasetSpec or TushareParquetDatasetSpec"
         )
 
     def _prepare_generic(self, definition: DatasetSpec) -> RegisteredDataset:
@@ -300,6 +331,11 @@ class DuckDBParquetBackend:
             checksums with current file stats.
         """
 
+        if isinstance(dataset.spec, BuiltInDatasetSpec):
+            return {
+                "events_path": str(dataset.source),
+                "events_sha256": hashlib.sha256(dataset.source.read_bytes()).hexdigest(),
+            }
         if isinstance(dataset.source, _TushareParquetSource):
             source = dataset.source
             partitions: list[dict[str, object]] = []
@@ -368,6 +404,9 @@ class DuckDBParquetBackend:
             registered schema.
         """
 
+        if isinstance(dataset.spec, BuiltInDatasetSpec):
+            # Full history is required to reconstruct the state at the query start.
+            return pq.read_table(dataset.source)
         if isinstance(dataset.spec, DatasetSpec):
             return self._scan_generic(dataset, query)
         if isinstance(dataset.spec, TushareParquetDatasetSpec):

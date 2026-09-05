@@ -9,7 +9,7 @@
   历史成分面板。
 - ClickHouse 支持内置 Minghu 表和自定义表。
 - Tushare 支持远端 API，以及带 manifest 的本地 Parquet 快照。
-- Tushare `daily_basic` 支持普通日频宽表；远端查询按交易日逐日获取。
+- Tushare `daily_basic` 支持普通日频宽表；
 - Tushare 财务披露数据支持交易日对齐的 point-in-time 面板。
 - 行业成分支持有效区间展开。
 - 每次查询都写入不含凭据的 JSON 审计记录。
@@ -86,7 +86,7 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
 - 股票池资源位于 `resources/universes/`，运行时不得依赖仓库外的源文件。
   `<name>_panel.csv` 的第一列为 `change_date`，后续列为全历史证券，行是从该日期
   起生效的 0/1 状态；日期、代码、行宽和掩码严格校验，每行 1 的数量分别为
-  300/500/1000。保留 panel 文件原始字节用于 SHA-256 和 header 顺序。
+  300/500/1000。
 - 命名股票池必须在审计初始化后、Backend 查询前展开。对 `[start, end]`，选择
   `start` 当日状态以及之后至 `end` 的所有调仓状态的证券并集；首行之前为空，末行
   之后延续末状态。审计和面板参数需要保留规范化名称、panel 首末 change date、
@@ -99,11 +99,6 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
   - `tests/test_tushare_schemas.py`
   - 重新生成 `DATASETS.md`
 - 修改 ClickHouse 内置字段时，同步更新 `backends/clickhouse_catalog.py` 和集成校验。
-- 保持 schema 字段顺序稳定；顺序参与 Tushare schema hash。
-- `daily_basic` 的 `get_panel()` 要求闭区间 `start/end`。远端先通过
-  `trade_cal` 获取开市日，再逐日调用 `daily_basic(trade_date=...)`；即使指定
-  `instruments` 也不要同时向 API 发送 `ts_code`，而应在合并后本地过滤。
-- `daily_basic` 单日返回达到 6000 行时必须报错，不能把可能被 API 截断的数据当作完整结果。
 - 配置 `tushare_data_dir` 后，全部 Tushare 数据集（包括 `daily_basic`）默认注册为
   本地数据源；只有 `tushare_remote_datasets` 指定的数据集使用远端 API。
 - 内部扫描仍使用 Arrow 长表；保留财务 PIT 的公告、修订及行业成分的有效区间。

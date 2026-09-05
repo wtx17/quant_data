@@ -17,6 +17,7 @@
 | [`minghu_daily`](#dataset-minghu-daily) | 宽表 |
 | [`minghu_index_daily`](#dataset-minghu-index-daily) | 宽表 |
 | [`minghu_m1`](#dataset-minghu-m1) | 宽表 |
+| [`membership_events`](#dataset-membership-events) | 宽表 |
 | [`daily_basic`](#dataset-daily-basic) | 宽表 |
 | [`income`](#dataset-income) | 宽表 |
 | [`balancesheet`](#dataset-balancesheet) | 宽表 |
@@ -95,6 +96,19 @@
 | `volume` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟成交量。 |
 | `amount` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟成交额。 |
 | `date` | `Date` | `get_panel()` 可请求值 | 日期 |
+
+<a id="dataset-membership-events"></a>
+## `membership_events`：历史指数成分归属
+
+包内 membership_events.parquet 累计事件状态，变更当日起生效。交易日和全市场证券来自 ClickHouse stock_base.daily；证券并集范围为 start 向前一个自然月至 end，输入证券不在该并集则报错，输出交易日仍限定在原始 start/end。首个事件前为 0，末个事件后延续状态。
+
+- `get_panel()`：按 `date × code` 返回每个请求字段的宽表。
+
+| 字段 | 类型 | 使用方式 | 说明 |
+| --- | --- | --- | --- |
+| `date` | `date32[day]` | `get_panel()` 索引 | ClickHouse stock_base.daily 中的交易日。 |
+| `code` | `string` | `get_panel()` 列键 | 带交易所后缀的股票代码。 |
+| `membership` | `int8` | `get_panel()` 可请求值 | 0：均不属于；1：沪深300；2：中证500；3：中证1000。 |
 
 <a id="dataset-daily-basic"></a>
 ## `daily_basic`：Tushare 每日基本面指标
