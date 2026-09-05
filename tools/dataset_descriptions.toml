@@ -92,7 +92,7 @@ description = "成交额"
 
 [datasets.minghu_m1]
 title = "明湖一分钟线"
-summary = "明湖汇`stock_base.m1`表描述。查询必须同时给出 `start` 和 `end`。"
+summary = "明湖汇`stock_base.m1`表描述。查询必须同时给出 `start` 和 `end`，其中价格字段都未复权"
 
 [datasets.minghu_m1.fields.code]
 description = "证券代码"
