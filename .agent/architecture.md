@@ -10,8 +10,8 @@ DatasetSpec
 
 get_panel()
     -> 审计初始化与数据集契约检查
-    -> get_panel() 命名股票池快照展开
     -> 通用参数规范化
+    -> get_panel() 命名股票池历史区间展开
     -> Backend.scan() 或 Tushare 语义扫描
     -> Arrow 长表校验
     -> 调价 / PIT / 区间展开 / 普通透视
@@ -27,7 +27,7 @@ Catalog 负责静态 schema 和数据语义。
 | 层 | 文件 | 职责 |
 | --- | --- | --- |
 | 公共 API | `__init__.py`, `client.py` | 注册、查询、校验、调价、结果元数据、审计编排 |
-| 股票池 | `_universes.py`, `resources/universes/` | 固定快照加载、校验、代码规范化和内容指纹 |
+| 股票池 | `_universes.py`, `resources/universes/` | 历史成分 panel 加载、校验、区间选择和内容指纹 |
 | 初始化 | `initialize.py` | 默认连接配置和默认数据集注册 |
 | 数据模型 | `models.py` | Spec、Contract、Prepared state、Query、Audit |
 | Backend 协议 | `backends/base.py` | 通用扫描协议和 Tushare 语义扩展协议 |
@@ -86,12 +86,15 @@ Catalog 负责静态 schema 和数据语义。
 - `transforms.panel.build_panels()` 校验键非空和键对唯一。
 - 每个请求字段生成一个 Pandas DataFrame。
 - 调用方指定的证券顺序必须保留；无数据证券补全为空列。
-- `get_panel(universe=...)` 将包内版本化股票池快照展开为普通证券列表，后端路由和
-  过滤语义与调用方直接传入该列表一致；股票池日期和哈希写入审计。
-- 股票池在审计记录创建之后、`DataQuery` 构造之前解析；因此解析失败仍有失败审计，
-  Backend 和 Transform 只看到规范化后的 `.SH/.SZ/.BJ` 证券元组。
-- 审计参数中的 `universe` 保存规范化名称、`snapshot_date`、`count` 和 `sha256`，
-  `instruments` 保存完整展开列表。CSV 行序即输出列序。
+- `get_panel(universe=...)` 将包内历史成分 panel 在查询闭区间内展开为证券并集，后端
+  路由和过滤语义与调用方直接传入该列表一致；panel 首末 change date、选中数量和
+  哈希写入审计。
+- 股票池在审计记录创建之后、Backend 查询之前解析；先由 `DataClient` 规范化查询
+  日期，再按该闭区间选择成分，因此解析失败仍有失败审计，Backend 和 Transform 只
+  看到规范化后的 `.SH/.SZ/.BJ` 证券元组。
+- 审计参数中的 `universe` 保存规范化名称、`first_change_date`、`last_change_date`、
+  选中 `count` 和 `sha256`，`instruments` 保存完整展开列表。panel header 顺序即输出
+  列序。
 - 公共 `get_panel(universe=...)` 是命名股票池选择器，与
   `TushareApiRoute.universe` 的全市场/单证券路由声明不是同一概念。展开后远端
   Tushare 仍按普通证券列表选择路由。
@@ -121,7 +124,8 @@ Catalog 负责静态 schema 和数据语义。
 - 所有成功和失败查询都必须写审计记录。
 - 审计 fingerprint 只能包含经过清洗的来源信息。
 - `get_panel()` 的 `universe` 与 `instruments` 互斥；不接受裸字符串 `instruments`。
-- 内置股票池是随包发布的固定快照，不随查询日期变化，也不从外部路径或网络自动刷新。
+- 内置股票池是随包发布的历史成分 panel；查询时按 `[start, end]` 选择曾经属于指数的
+  证券并集，不从外部路径或网络自动刷新。
 - 内置 catalog、生成文档和 schema 签名测试必须同步。
 - 配置 Tushare 归档目录后，全部逻辑数据集默认使用本地快照；仅
   `tushare_remote_datasets` 指定的数据集使用远端 API。

@@ -1,47 +1,102 @@
-"""Load and validate versioned built-in instrument-universe snapshots."""
+"""Load and select the package's historical instrument-universe panels."""
 
 from __future__ import annotations
 
 import csv
 import hashlib
 import io
+import re
+from bisect import bisect_right
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from functools import lru_cache
 from importlib.resources import files
 
 from .exceptions import InvalidQueryError, SchemaMismatchError
 
-SUPPORTED_UNIVERSES = ("hs300", "sz50", "zz500", "zz1000")
+SUPPORTED_UNIVERSES = ("hs300", "zz500", "zz1000")
 
-_EXPECTED_COLUMNS = ("updateDate", "code", "code_name")
 _EXPECTED_COUNTS = {
     "hs300": 300,
-    "sz50": 50,
     "zz500": 500,
     "zz1000": 1000,
 }
-_SUPPORTED_EXCHANGES = frozenset({"SH", "SZ", "BJ"})
+_CANONICAL_INSTRUMENT = re.compile(r"[0-9]{6}\.(?:SH|SZ|BJ)\Z")
+_ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 
 
 @dataclass(frozen=True, slots=True)
-class UniverseSnapshot:
-    """Immutable normalized contents and identity of one stock-pool snapshot."""
+class UniversePanel:
+    """Immutable contents and identity of one historical universe panel.
+
+    ``change_dates[i]`` is the date on which ``masks[i]`` becomes effective.
+    The instrument order is the order of the panel header and is therefore
+    also the order returned by :meth:`select`.
+    """
 
     name: str
-    snapshot_date: date
+    change_dates: tuple[date, ...]
     instruments: tuple[str, ...]
+    masks: tuple[tuple[int, ...], ...]
     sha256: str
 
+    @property
+    def first_change_date(self) -> date:
+        """Return the first date represented by this panel."""
 
-def load_universe(value: str) -> UniverseSnapshot:
-    """Normalize a universe name and load its cached package snapshot."""
+        return self.change_dates[0]
+
+    @property
+    def last_change_date(self) -> date:
+        """Return the last date represented by this panel."""
+
+        return self.change_dates[-1]
+
+    def select(self, start: date, end: date) -> tuple[str, ...]:
+        """Return instruments belonging to the universe at any selected state.
+
+        The query interval is closed.  A change takes effect on its own date,
+        so the state at ``start`` and every state changed during
+        ``(start, end]`` contribute to the union.  Before the first panel row
+        there is no state; after the last row the last state remains effective.
+        """
+
+        if not isinstance(start, date) or isinstance(start, datetime):
+            raise InvalidQueryError("universe selection start must be a date")
+        if not isinstance(end, date) or isinstance(end, datetime):
+            raise InvalidQueryError("universe selection end must be a date")
+        if start > end:
+            raise InvalidQueryError("universe selection start must be earlier than or equal to end")
+
+        selected = [False] * len(self.instruments)
+        state_index = bisect_right(self.change_dates, start) - 1
+        if state_index >= 0:
+            self._or_row(selected, self.masks[state_index])
+
+        first_changed = bisect_right(self.change_dates, start)
+        last_changed = bisect_right(self.change_dates, end)
+        for row in self.masks[first_changed:last_changed]:
+            self._or_row(selected, row)
+
+        return tuple(
+            instrument for instrument, included in zip(self.instruments, selected) if included
+        )
+
+    @staticmethod
+    def _or_row(selected: list[bool], row: tuple[int, ...]) -> None:
+        for index, value in enumerate(row):
+            if value:
+                selected[index] = True
+
+
+def load_universe(value: str) -> UniversePanel:
+    """Normalize a universe name and load its cached package panel."""
 
     return _load_universe(normalize_universe_name(value))
 
 
 def normalize_universe_name(value: object) -> str:
-    """Return a canonical built-in universe name or raise a query error."""
+    """Return a canonical supported universe name or raise a query error."""
 
     if not isinstance(value, str) or not value.strip():
         raise InvalidQueryError("universe must be a non-empty string")
@@ -54,101 +109,107 @@ def normalize_universe_name(value: object) -> str:
 
 
 @lru_cache(maxsize=len(SUPPORTED_UNIVERSES))
-def _load_universe(name: str) -> UniverseSnapshot:
-    resource = files("quant_data").joinpath("resources", "universes", f"{name}.csv")
+def _load_universe(name: str) -> UniversePanel:
+    resource = files("quant_data").joinpath("resources", "universes", f"{name}_panel.csv")
     try:
         payload = resource.read_bytes()
     except OSError as exc:
         raise SchemaMismatchError(
-            f"Unable to read built-in universe snapshot {name!r}: {exc}"
+            f"Unable to read built-in universe panel {name!r}: {exc}"
         ) from exc
     return _parse_universe_csv(name, payload)
 
 
-def _parse_universe_csv(name: str, payload: bytes) -> UniverseSnapshot:
-    """Parse one package resource and enforce the built-in snapshot contract."""
+def _parse_universe_csv(name: str, payload: bytes) -> UniversePanel:
+    """Parse one package panel and enforce its strict CSV contract."""
 
     expected_count = _EXPECTED_COUNTS.get(name)
     if expected_count is None:
-        raise SchemaMismatchError(f"Unsupported built-in universe snapshot {name!r}")
+        raise SchemaMismatchError(f"Unsupported built-in universe panel {name!r}")
     try:
         text = payload.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise SchemaMismatchError(
-            f"Built-in universe snapshot {name!r} is not valid UTF-8"
-        ) from exc
+        raise SchemaMismatchError(f"Built-in universe panel {name!r} is not valid UTF-8") from exc
 
     reader = csv.reader(io.StringIO(text, newline=""))
     try:
         header = tuple(next(reader))
     except StopIteration as exc:
-        raise SchemaMismatchError(f"Built-in universe snapshot {name!r} is empty") from exc
-    if header != _EXPECTED_COLUMNS:
+        raise SchemaMismatchError(f"Built-in universe panel {name!r} is empty") from exc
+    if not header or header[0] != "change_date":
         raise SchemaMismatchError(
-            f"Built-in universe snapshot {name!r} has columns {header}; "
-            f"expected {_EXPECTED_COLUMNS}"
+            f"Built-in universe panel {name!r} must have 'change_date' as its first column"
         )
-
-    snapshot_dates: set[date] = set()
-    instruments: list[str] = []
-    seen: set[str] = set()
-    for row_number, row in enumerate(reader, start=2):
-        if len(row) != len(_EXPECTED_COLUMNS):
+    instruments = header[1:]
+    if not instruments:
+        raise SchemaMismatchError(
+            f"Built-in universe panel {name!r} must contain at least one security column"
+        )
+    seen_instruments: set[str] = set()
+    for instrument in instruments:
+        if not _CANONICAL_INSTRUMENT.fullmatch(instrument):
             raise SchemaMismatchError(
-                f"Built-in universe snapshot {name!r} row {row_number} "
-                f"has {len(row)} columns; expected {len(_EXPECTED_COLUMNS)}"
-            )
-        raw_date, raw_code, code_name = (item.strip() for item in row)
-        if not raw_date or not raw_code or not code_name:
-            raise SchemaMismatchError(
-                f"Built-in universe snapshot {name!r} row {row_number} "
-                "contains an empty required value"
-            )
-        try:
-            snapshot_dates.add(date.fromisoformat(raw_date))
-        except ValueError as exc:
-            raise SchemaMismatchError(
-                f"Built-in universe snapshot {name!r} row {row_number} "
-                f"has invalid updateDate {raw_date!r}"
-            ) from exc
-
-        digits, separator, exchange = raw_code.partition(".")
-        if (
-            not separator
-            or "." in exchange
-            or len(digits) != 6
-            or not digits.isascii()
-            or not digits.isdecimal()
-            or exchange not in _SUPPORTED_EXCHANGES
-        ):
-            raise SchemaMismatchError(
-                f"Built-in universe snapshot {name!r} row {row_number} "
-                f"has invalid instrument code {raw_code!r}; "
+                f"Built-in universe panel {name!r} has invalid instrument code {instrument!r}; "
                 "expected a canonical code such as '000001.SZ'"
             )
-        instrument = raw_code
-        if instrument in seen:
+        if instrument in seen_instruments:
             raise SchemaMismatchError(
-                f"Built-in universe snapshot {name!r} contains duplicate instrument {instrument!r}"
+                f"Built-in universe panel {name!r} contains duplicate instrument {instrument!r}"
             )
-        seen.add(instrument)
-        instruments.append(instrument)
+        seen_instruments.add(instrument)
 
-    if len(snapshot_dates) != 1:
-        rendered_dates = sorted(value.isoformat() for value in snapshot_dates)
+    change_dates: list[date] = []
+    masks: list[tuple[int, ...]] = []
+    for row_number, row in enumerate(reader, start=2):
+        if len(row) != len(header):
+            raise SchemaMismatchError(
+                f"Built-in universe panel {name!r} row {row_number} has {len(row)} columns; "
+                f"expected {len(header)}"
+            )
+        raw_date = row[0]
+        if not _ISO_DATE.fullmatch(raw_date):
+            raise SchemaMismatchError(
+                f"Built-in universe panel {name!r} row {row_number} has invalid change_date "
+                f"{raw_date!r}"
+            )
+        try:
+            change_date = date.fromisoformat(raw_date)
+        except ValueError as exc:
+            raise SchemaMismatchError(
+                f"Built-in universe panel {name!r} row {row_number} has invalid change_date "
+                f"{raw_date!r}"
+            ) from exc
+        if change_dates and change_date <= change_dates[-1]:
+            raise SchemaMismatchError(
+                f"Built-in universe panel {name!r} change_date values must be strictly increasing; "
+                f"row {row_number} has {raw_date!r}"
+            )
+
+        mask: list[int] = []
+        for column_number, value in enumerate(row[1:], start=2):
+            if value not in {"0", "1"}:
+                raise SchemaMismatchError(
+                    f"Built-in universe panel {name!r} row {row_number} column "
+                    f"{column_number} has invalid mask value {value!r}; expected 0 or 1"
+                )
+            mask.append(int(value))
+        if sum(mask) != expected_count:
+            raise SchemaMismatchError(
+                f"Built-in universe panel {name!r} row {row_number} contains {sum(mask)} "
+                f"instruments; expected {expected_count}"
+            )
+        change_dates.append(change_date)
+        masks.append(tuple(mask))
+
+    if not change_dates:
         raise SchemaMismatchError(
-            f"Built-in universe snapshot {name!r} must contain exactly one "
-            f"updateDate; found {rendered_dates}"
-        )
-    if len(instruments) != expected_count:
-        raise SchemaMismatchError(
-            f"Built-in universe snapshot {name!r} contains {len(instruments)} "
-            f"instruments; expected {expected_count}"
+            f"Built-in universe panel {name!r} must contain at least one change row"
         )
 
-    return UniverseSnapshot(
+    return UniversePanel(
         name=name,
-        snapshot_date=next(iter(snapshot_dates)),
+        change_dates=tuple(change_dates),
         instruments=tuple(instruments),
+        masks=tuple(masks),
         sha256=hashlib.sha256(payload).hexdigest(),
     )

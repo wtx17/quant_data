@@ -203,10 +203,11 @@ class DataClient:
             ``True`` forces configured price adjustment, ``False`` requests
             raw values, and ``None`` uses the dataset default.
         universe
-            Optional built-in stock-pool name: one of ``"hs300"``, ``"sz50"``,
+            Optional historical built-in stock-pool name: one of ``"hs300"``,
             ``"zz500"``, and ``"zz1000"``. Names are case-insensitive and
-            surrounding whitespace is ignored. This parameter is mutually
-            exclusive with ``instruments``.
+            surrounding whitespace is ignored. This parameter requires both
+            ``start`` and ``end`` and is mutually exclusive with
+            ``instruments``.
 
         Returns
         -------
@@ -233,10 +234,11 @@ class DataClient:
         Notes
         -----
         Query bounds are closed. Requested instruments without observations
-        remain as all-missing columns. Built-in universes are fixed snapshots,
-        not historical point-in-time membership. Disclosed Tushare datasets
-        always align announcements to a trading calendar, apply their
-        availability lag, and carry whole-row point-in-time state.
+        remain as all-missing columns. A named universe selects the union of
+        all membership states effective within the requested date range.
+        Disclosed Tushare datasets always align announcements to a trading
+        calendar, apply their availability lag, and carry whole-row
+        point-in-time state.
         """
 
         return self._execute(
@@ -319,26 +321,27 @@ class DataClient:
             record.dataset_version = contract.version
             record.source = backend.fingerprint(registered)
 
-            resolved_instruments = instruments
             if universe is not None:
                 if instruments is not None:
                     raise InvalidQueryError("instruments and universe are mutually exclusive")
-                snapshot = load_universe(universe)
-                resolved_instruments = snapshot.instruments
-                record.parameters["instruments"] = list(snapshot.instruments)
+                # Normalize the query first so universe selection uses the same
+                # timezone and date interpretation as the backend query.
+                query = self._prepare_query(registered, fields, start, end, None)
+                if query.start is None or query.end is None:
+                    raise InvalidQueryError("universe queries require both start and end")
+                panel = load_universe(universe)
+                selected_instruments = panel.select(query.start.date(), query.end.date())
+                query = replace(query, instruments=selected_instruments)
+                record.parameters["instruments"] = list(selected_instruments)
                 record.parameters["universe"] = {
-                    "name": snapshot.name,
-                    "snapshot_date": snapshot.snapshot_date.isoformat(),
-                    "count": len(snapshot.instruments),
-                    "sha256": snapshot.sha256,
+                    "name": panel.name,
+                    "first_change_date": panel.first_change_date.isoformat(),
+                    "last_change_date": panel.last_change_date.isoformat(),
+                    "count": len(selected_instruments),
+                    "sha256": panel.sha256,
                 }
-            query = self._prepare_query(
-                registered,
-                fields,
-                start,
-                end,
-                resolved_instruments,
-            )
+            else:
+                query = self._prepare_query(registered, fields, start, end, instruments)
             semantic_backend = (
                 cast(TushareSemanticBackend, backend)
                 if isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec))

@@ -235,15 +235,15 @@ def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) ->
         start="2026-03-02",
         end="2026-03-02",
         adjusted=False,
-        universe="SZ50",
+        universe="HS300",
     )["close"]
 
-    assert len(panel.columns) == 50
-    assert panel.columns[0] == "600028.SH"
+    assert len(panel.columns) == 300
+    assert panel.columns[0] == "000001.SZ"
     assert panel.loc[date(2026, 3, 2), "600028.SH"] == pytest.approx(10.3)
     sql, parameters, _ = fake.calls[-1]
-    assert parameters["instruments"][0] == "600028.SH"
-    assert len(parameters["instruments"]) == 50
+    assert parameters["instruments"][0] == "000001.SZ"
+    assert len(parameters["instruments"]) == 300
     assert "600028.SH" not in sql
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
 

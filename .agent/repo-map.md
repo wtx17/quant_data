@@ -30,17 +30,17 @@ Agent 工作约定、架构说明和本文件。
 
 ### `_universes.py` 与 `resources/universes/`
 
-- 加载、校验并缓存 `hs300`、`sz50`、`zz500`、`zz1000` 的版本化 CSV 快照。
-- 要求资源代码严格采用 `000001.SZ` 形式，并提供快照日期与 SHA-256。
+- 加载、校验并缓存 `hs300`、`zz500`、`zz1000` 的历史成分 panel。
+- 要求 `<name>_panel.csv` 首列为 `change_date`，证券表头严格采用
+  `000001.SZ` 形式，行掩码每次恰好有对应名义成分数，并提供首末变更日期与 SHA-256。
 - `SUPPORTED_UNIVERSES: tuple[str, ...]`
-- `UniverseSnapshot(name, snapshot_date, instruments, sha256)`
-- `load_universe(value) -> UniverseSnapshot`
+- `UniversePanel(name, change_dates, instruments, masks, sha256)`
+- `load_universe(value) -> UniversePanel`
 - `normalize_universe_name(value) -> str`
-- `_parse_universe_csv(name, payload) -> UniverseSnapshot`
+- `_parse_universe_csv(name, payload) -> UniversePanel`
 
-资源契约：表头固定为 `updateDate,code,code_name`，单一快照日期、证券代码唯一，
-CSV 行序即面板列序；预期数量为沪深 300、上证 50、中证 500、中证 1000 的名义
-成分数。
+资源契约：CSV 行日期严格递增且从当日生效；查询闭区间选择起始状态及区间内所有
+调仓状态的证券并集，CSV header 顺序即面板列序。
 
 ### `client.py`
 
@@ -327,7 +327,7 @@ Catalog 对象：
 
 ## 测试地图
 
-- `tests/test_universes.py`：包内快照数量、顺序、代码转换、名称归一化和资源损坏校验。
+- `tests/test_universes.py`：包内 panel 数量、历史区间选择、名称归一化和资源损坏校验。
 - `tests/test_client.py`：通用 Parquet、命名股票池展开、查询校验、调价、审计、重复键。
 - `tests/test_clickhouse.py`：离线 ClickHouse fake、股票池参数绑定、SQL、类型、代码后缀、注册。
 - `tests/test_clickhouse_integration.py`：真实 Minghu schema drift 和 smoke test。

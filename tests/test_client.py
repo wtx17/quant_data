@@ -98,23 +98,30 @@ def test_empty_instruments_preserve_requested_fields(tmp_path: Path, sample_file
     assert result["close"].columns.name == "ts_code"
 
 
-def test_named_universe_expands_in_snapshot_order_and_is_audited(
+def test_named_universe_expands_in_header_order_and_is_audited(
     tmp_path: Path, sample_files: Path
 ) -> None:
     client = make_client(tmp_path, sample_files)
-    result = client.get_panel("daily", ["close"], universe=" HS300 ")
+    result = client.get_panel(
+        "daily",
+        ["close"],
+        start="2026-01-05",
+        end="2026-01-06",
+        universe=" HS300 ",
+    )
     panel = result["close"]
 
     assert len(panel.columns) == 300
-    assert panel.columns[0] == "600000.SH"
-    assert panel.columns[-1] == "302132.SZ"
+    assert panel.columns[0] == "000001.SZ"
+    assert panel.columns[-1] == "688981.SH"
     assert panel.loc[pd.Timestamp("2026-01-05"), "000001.SZ"] == 10.32
     assert panel["600000.SH"].isna().all()
 
     parameters = panel.attrs["parameters"]
     assert parameters["instruments"] == list(panel.columns)
     assert parameters["universe"]["name"] == "hs300"
-    assert parameters["universe"]["snapshot_date"] == "2026-07-20"
+    assert parameters["universe"]["first_change_date"] == "2005-04-08"
+    assert parameters["universe"]["last_change_date"] == "2026-06-15"
     assert parameters["universe"]["count"] == 300
     assert len(parameters["universe"]["sha256"]) == 64
 
@@ -123,17 +130,22 @@ def test_named_universe_expands_in_snapshot_order_and_is_audited(
     assert audit["parameters"]["universe"] == parameters["universe"]
 
 
-def test_zz1000_named_universe_uses_its_versioned_snapshot(
-    tmp_path: Path, sample_files: Path
-) -> None:
+def test_zz1000_named_universe_uses_historical_panel(tmp_path: Path, sample_files: Path) -> None:
     client = make_client(tmp_path, sample_files)
-    panel = client.get_panel("daily", ["close"], universe=" ZZ1000 ")["close"]
+    panel = client.get_panel(
+        "daily",
+        ["close"],
+        start="2026-01-05",
+        end="2026-01-06",
+        universe=" ZZ1000 ",
+    )["close"]
 
     assert len(panel.columns) == 1000
-    assert panel.columns[0] == "600789.SH"
-    assert panel.columns[-1] == "603376.SH"
+    assert panel.columns[0] == "000012.SZ"
+    assert panel.columns[-1] == "688800.SH"
     assert panel.attrs["parameters"]["universe"]["name"] == "zz1000"
-    assert panel.attrs["parameters"]["universe"]["snapshot_date"] == "2026-07-28"
+    assert panel.attrs["parameters"]["universe"]["first_change_date"] == "2014-10-17"
+    assert panel.attrs["parameters"]["universe"]["last_change_date"] == "2026-06-15"
     assert panel.attrs["parameters"]["universe"]["count"] == 1000
 
 
@@ -161,11 +173,77 @@ def test_panel_rejects_unknown_universe_and_audits_failure(
     client = make_client(tmp_path, sample_files)
 
     with pytest.raises(InvalidQueryError, match="supported universes"):
-        client.get_panel("daily", ["close"], universe="csi1000")
+        client.get_panel(
+            "daily",
+            ["close"],
+            start="2026-01-05",
+            end="2026-01-06",
+            universe="csi1000",
+        )
 
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert audit["status"] == "failed"
     assert audit["parameters"]["universe"] == "csi1000"
+
+
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (None, None),
+        ("2026-01-05", None),
+        (None, "2026-01-06"),
+    ],
+)
+def test_named_universe_requires_closed_date_range_and_audits_failure(
+    tmp_path: Path,
+    sample_files: Path,
+    start: str | None,
+    end: str | None,
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    with pytest.raises(InvalidQueryError, match="both start and end"):
+        client.get_panel("daily", ["close"], start=start, end=end, universe="hs300")
+
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["status"] == "failed"
+    assert audit["parameters"]["universe"] == "hs300"
+
+
+def test_named_universe_before_first_change_returns_no_instruments(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    panel = client.get_panel(
+        "daily",
+        ["close"],
+        start="2000-01-01",
+        end="2000-12-31",
+        universe="hs300",
+    )["close"]
+
+    assert panel.empty
+    assert list(panel.columns) == []
+    assert panel.attrs["parameters"]["instruments"] == []
+    assert panel.attrs["parameters"]["universe"]["count"] == 0
+
+
+def test_named_universe_spanning_rebalance_returns_membership_union(
+    tmp_path: Path, sample_files: Path
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    panel = client.get_panel(
+        "daily",
+        ["close"],
+        start="2005-06-30",
+        end="2005-07-01",
+        universe="hs300",
+    )["close"]
+
+    assert len(panel.columns) == 314
+    assert panel.attrs["parameters"]["universe"]["count"] == 314
 
 
 @pytest.mark.parametrize("method_name", ["get_panel"])
