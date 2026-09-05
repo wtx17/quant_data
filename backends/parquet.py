@@ -7,10 +7,9 @@ import json
 import os
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any, Literal, Protocol, cast
-from zoneinfo import ZoneInfo
+from typing import Any, Protocol, cast
 
 import duckdb
 import pandas as pd
@@ -34,7 +33,6 @@ from .tushare import TushareBackend
 from .tushare_catalog import (
     DisclosureSemantics,
     MembershipSemantics,
-    ObservationSemantics,
     TushareDatasetCatalog,
 )
 
@@ -116,11 +114,6 @@ _LOCAL_FIXED_PARAM_COLUMNS: dict[str, dict[str, str]] = {
         "l3_code": "l3_code",
         "is_new": "is_new",
     },
-    "stk_holdertrade": {
-        "ann_date": "ann_date",
-        "trade_type": "in_de",
-        "holder_type": "holder_type",
-    },
 }
 
 
@@ -147,14 +140,12 @@ class DuckDBParquetBackend:
     -----
     Generic datasets resolve files and merge their schemas. Manifest-backed
     Tushare snapshots instead use the shared logical catalog for their public
-    schema and reproduce disclosure, membership, and event behavior locally.
+    schema and reproduce disclosure, membership, and observation panels locally.
     Every scan uses a short-lived in-memory DuckDB connection.
     """
 
     def __init__(self, calendar_provider: Any | None = None) -> None:
-        self._calendar_provider = cast(
-            _TradingCalendarProvider | None, calendar_provider
-        )
+        self._calendar_provider = cast(_TradingCalendarProvider | None, calendar_provider)
 
     def prepare(self, definition: DatasetDefinition) -> RegisteredDataset:
         """Resolve and validate a generic or Tushare-shaped Parquet dataset.
@@ -202,9 +193,8 @@ class DuckDBParquetBackend:
                     f"Parquet file {path} is missing key columns: {sorted(missing_keys)}"
                 )
         contract = DatasetContract(
-            table_time_column=definition.time_column,
+            source_time_column=definition.time_column,
             instrument_column=definition.instrument_column,
-            table_frequency=definition.frequency,
             panel_time_column=definition.time_column,
             panel_frequency=definition.frequency,
             timezone=definition.timezone,
@@ -217,9 +207,7 @@ class DuckDBParquetBackend:
             contract=contract,
         )
 
-    def _prepare_tushare(
-        self, definition: TushareParquetDatasetSpec
-    ) -> RegisteredDataset:
+    def _prepare_tushare(self, definition: TushareParquetDatasetSpec) -> RegisteredDataset:
         logical_name = definition.dataset or definition.name
         catalog = TushareBackend._catalog(logical_name)
         TushareBackend._validate_definition(definition, catalog)
@@ -230,8 +218,7 @@ class DuckDBParquetBackend:
             )
         if not self._calendar_provider.has_connection(definition.calendar_connection):
             raise DatasetRegistrationError(
-                f"Tushare calendar connection {definition.calendar_connection!r} "
-                "is not configured"
+                f"Tushare calendar connection {definition.calendar_connection!r} is not configured"
             )
 
         data_dir = Path(definition.data_dir).expanduser().resolve()
@@ -248,8 +235,7 @@ class DuckDBParquetBackend:
             )
         if manifest.get("dataset") != logical_name:
             raise DatasetRegistrationError(
-                f"Manifest dataset differs for {logical_name!r}: "
-                f"{manifest.get('dataset')!r}"
+                f"Manifest dataset differs for {logical_name!r}: {manifest.get('dataset')!r}"
             )
         range_start = self._parse_manifest_date(
             manifest.get("range_start"), f"{logical_name} range_start"
@@ -258,23 +244,15 @@ class DuckDBParquetBackend:
             manifest.get("range_end"), f"{logical_name} range_end"
         )
         if range_start > range_end:
-            raise DatasetRegistrationError(
-                f"Manifest range is reversed for {logical_name!r}"
-            )
+            raise DatasetRegistrationError(f"Manifest range is reversed for {logical_name!r}")
         schema_hash = manifest.get("schema_hash")
         if not isinstance(schema_hash, str) or not schema_hash:
-            raise DatasetRegistrationError(
-                f"Manifest for {logical_name!r} has no schema_hash"
-            )
+            raise DatasetRegistrationError(f"Manifest for {logical_name!r} has no schema_hash")
         self._validate_manifest_fields(manifest, catalog)
-        partitions = self._resolve_manifest_partitions(
-            data_dir, manifest, catalog, logical_name
-        )
+        partitions = self._resolve_manifest_partitions(data_dir, manifest, catalog, logical_name)
         updated_at = manifest.get("updated_at")
         if updated_at is not None and not isinstance(updated_at, str):
-            raise DatasetRegistrationError(
-                f"Manifest updated_at is invalid for {logical_name!r}"
-            )
+            raise DatasetRegistrationError(f"Manifest updated_at is invalid for {logical_name!r}")
         effective_fixed_params = {
             **_LOCAL_DEFAULT_FIXED_PARAMS.get(logical_name, {}),
             **definition.fixed_params,
@@ -369,14 +347,14 @@ class DuckDBParquetBackend:
         return {"backend": "parquet", "files": fingerprints}
 
     def scan(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
-        """Execute a generic or Tushare-shaped Parquet table query.
+        """Scan Parquet observations for panel construction.
 
         Parameters
         ----------
         dataset
             Prepared Parquet dataset.
         query
-            Normalized fields, closed bounds, instruments, and limit.
+            Normalized fields, closed bounds, instruments.
 
         Returns
         -------
@@ -393,7 +371,7 @@ class DuckDBParquetBackend:
         if isinstance(dataset.spec, DatasetSpec):
             return self._scan_generic(dataset, query)
         if isinstance(dataset.spec, TushareParquetDatasetSpec):
-            return self._scan_tushare_table(dataset, query)
+            return self._scan_tushare_observations(dataset, query)
         raise SchemaMismatchError("Invalid Parquet registered dataset")
 
     def _scan_generic(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
@@ -407,10 +385,7 @@ class DuckDBParquetBackend:
             instrument_col,
             *[_quote_identifier(field) for field in query.fields],
         ]
-        sql = (
-            f"SELECT {', '.join(projected)} "
-            "FROM read_parquet(?, union_by_name = true) AS source"
-        )
+        sql = f"SELECT {', '.join(projected)} FROM read_parquet(?, union_by_name = true) AS source"
         params: list[object] = [[str(path) for path in self._generic_files(dataset)]]
         clauses: list[str] = []
 
@@ -426,15 +401,10 @@ class DuckDBParquetBackend:
             if query.instruments is not None:
                 requested = pa.table({spec.instrument_column: list(query.instruments)})
                 connection.register("requested_instruments", requested)
-                sql += (
-                    f" INNER JOIN requested_instruments AS requested USING ({instrument_col})"
-                )
+                sql += f" INNER JOIN requested_instruments AS requested USING ({instrument_col})"
             if clauses:
                 sql += " WHERE " + " AND ".join(clauses)
             sql += f" ORDER BY {time_col}, {instrument_col}"
-            if query.limit is not None:
-                sql += " LIMIT ?"
-                params.append(query.limit)
             return connection.execute(sql, params).to_arrow_table()
         except (duckdb.Error, pa.ArrowException) as exc:
             raise SchemaMismatchError(
@@ -443,73 +413,38 @@ class DuckDBParquetBackend:
         finally:
             connection.close()
 
-    def _scan_tushare_table(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def _scan_tushare_observations(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         _, _, catalog = self._tushare_state(dataset)
-        selected = self._table_columns(dataset, query.fields)
+        selected = (
+            dataset.contract.panel_time_column,
+            dataset.contract.instrument_column,
+            *query.fields,
+        )
         if query.instruments == ():
             return TushareBackend._empty_arrow(catalog.schema, selected)
         remote_fields = TushareBackend._remote_columns(selected, catalog)
         semantics = catalog.semantics
-        if isinstance(semantics, DisclosureSemantics):
-            frame = self._read_archive_frame(
-                dataset,
-                query,
-                remote_fields,
-                date_column=semantics.period_column,
-                order_columns=semantics.table_order,
-                limit=query.limit,
-            )
-            frame = TushareBackend._filter_time(frame, semantics.period_column, query)
-        elif isinstance(semantics, MembershipSemantics):
-            frame = self._read_archive_frame(
-                dataset,
-                query,
-                remote_fields,
-                membership=semantics,
-                order_columns=semantics.table_order,
-                limit=query.limit,
-            )
-            frame = TushareBackend._filter_membership_overlap(frame, semantics, query)
-        else:
-            frame = self._read_archive_frame(
-                dataset,
-                query,
-                remote_fields,
-                date_column=semantics.table_time_column,
-                order_columns=semantics.table_order,
-                limit=query.limit,
-            )
-            frame = TushareBackend._filter_time(frame, semantics.table_time_column, query)
-        frame = TushareBackend._sort_by(frame, semantics.table_order)
-        if query.limit is not None:
-            frame = frame.head(query.limit)
+        frame = self._read_archive_frame(
+            dataset,
+            query,
+            remote_fields,
+            date_column=dataset.contract.panel_time_column,
+            order_columns=semantics.source_order,
+        )
+        frame = TushareBackend._filter_time(frame, dataset.contract.panel_time_column, query)
+        frame = TushareBackend._sort_by(frame, semantics.source_order)
         return TushareBackend._frame_to_arrow(frame, catalog.schema, selected)
 
     def normalize_snapshot_query(
         self,
         dataset: RegisteredDataset,
         query: DataQuery,
-        mode: Literal["panel", "table"],
     ) -> DataQuery:
-        """Validate explicit bounds and apply missing archive table bounds.
-
-        Disclosure table queries retain the remote API's open-range interface;
-        a missing bound becomes the corresponding manifest boundary. Panel
-        requests must also have enough archived history for their configured
-        PIT carry-in buffer.
-        """
+        """Validate panel bounds and archived history for the PIT carry-in buffer."""
 
         spec, source, catalog = self._tushare_state(dataset)
         start = query.start
         end = query.end
-        if isinstance(catalog.semantics, DisclosureSemantics) and mode == "table":
-            if start is None:
-                start = self._archive_datetime(source.range_start, spec, end)
-            if end is None:
-                end = self._archive_datetime(source.range_end, spec, start)
-
         if start is not None and start.date() < source.range_start:
             raise InvalidQueryError(
                 f"Dataset {spec.name!r} starts at {source.range_start.isoformat()}; "
@@ -521,11 +456,9 @@ class DuckDBParquetBackend:
                 f"requested end is {end.date().isoformat()}"
             )
         if (
-            mode == "panel"
-            and isinstance(catalog.semantics, DisclosureSemantics)
+            isinstance(catalog.semantics, DisclosureSemantics)
             and start is not None
-            and (start - timedelta(days=spec.fetch_buffer_days)).date()
-            < source.range_start
+            and (start - timedelta(days=spec.fetch_buffer_days)).date() < source.range_start
         ):
             earliest = source.range_start + timedelta(days=spec.fetch_buffer_days)
             raise InvalidQueryError(
@@ -543,13 +476,9 @@ class DuckDBParquetBackend:
             return "disclosure"
         if isinstance(catalog.semantics, MembershipSemantics):
             return "membership"
-        if isinstance(catalog.semantics, ObservationSemantics):
-            return "observation"
-        return "event"
+        return "observation"
 
-    def scan_disclosure_events(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_disclosure_events(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Read local disclosure events needed by a PIT panel."""
 
         spec, _, catalog = self._tushare_state(dataset)
@@ -575,7 +504,6 @@ class DuckDBParquetBackend:
         fetch_query = replace(
             query,
             start=query.start - timedelta(days=spec.fetch_buffer_days),
-            limit=None,
         )
         frame = self._read_archive_frame(
             dataset,
@@ -591,9 +519,7 @@ class DuckDBParquetBackend:
                 )
             ),
         )
-        frame = TushareBackend._filter_time(
-            frame, semantics.disclosure_column, fetch_query
-        )
+        frame = TushareBackend._filter_time(frame, semantics.disclosure_column, fetch_query)
         frame = TushareBackend._sort_by(
             frame,
             self._unique_columns(
@@ -607,16 +533,12 @@ class DuckDBParquetBackend:
         )
         return TushareBackend._frame_to_arrow(frame, catalog.schema, selected)
 
-    def trade_calendar(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> list[date]:
+    def trade_calendar(self, dataset: RegisteredDataset, query: DataQuery) -> list[date]:
         """Fetch the buffered Tushare calendar for a local PIT panel."""
 
         spec, _, _ = self._tushare_state(dataset)
         if query.start is None or query.end is None:
-            raise InvalidQueryError(
-                f"Dataset {spec.name!r} panel requires both start and end"
-            )
+            raise InvalidQueryError(f"Dataset {spec.name!r} panel requires both start and end")
         provider = self._calendar()
         return provider.fetch_calendar(
             spec.calendar_connection,
@@ -625,9 +547,7 @@ class DuckDBParquetBackend:
             query.end + timedelta(days=spec.fetch_margin_days),
         )
 
-    def pit_panel_semantics(
-        self, dataset: RegisteredDataset
-    ) -> tuple[str, str, tuple[str, ...]]:
+    def pit_panel_semantics(self, dataset: RegisteredDataset) -> tuple[str, str, tuple[str, ...]]:
         """Return disclosure, report-period, and revision-order columns."""
 
         _, _, catalog = self._tushare_state(dataset)
@@ -642,9 +562,7 @@ class DuckDBParquetBackend:
             semantics.revision_order,
         )
 
-    def scan_membership_panel(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_membership_panel(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Expand local membership intervals over the remote trade calendar."""
 
         spec, _, catalog = self._tushare_state(dataset)
@@ -672,7 +590,7 @@ class DuckDBParquetBackend:
             query,
             remote_fields,
             membership=semantics,
-            order_columns=semantics.table_order,
+            order_columns=semantics.source_order,
         )
         frame = TushareBackend._filter_membership_overlap(frame, semantics, query)
         calendar = self._calendar().fetch_calendar(
@@ -712,27 +630,17 @@ class DuckDBParquetBackend:
         date_column: str | None = None,
         membership: MembershipSemantics | None = None,
         order_columns: tuple[str, ...] = (),
-        limit: int | None = None,
     ) -> pd.DataFrame:
         spec, source, catalog = self._tushare_state(dataset)
         if query.instruments == ():
-            return TushareBackend._coerce_frame(
-                pd.DataFrame(columns=columns), catalog.schema
-            )
+            return TushareBackend._coerce_frame(pd.DataFrame(columns=columns), catalog.schema)
         partitions = self._select_archive_partitions(source, catalog, query)
         if not partitions:
-            return TushareBackend._coerce_frame(
-                pd.DataFrame(columns=columns), catalog.schema
-            )
+            return TushareBackend._coerce_frame(pd.DataFrame(columns=columns), catalog.schema)
 
         projected = ", ".join(_quote_identifier(column) for column in columns)
-        sql = (
-            f"SELECT {projected} "
-            "FROM read_parquet(?, union_by_name = true) AS source"
-        )
-        params: list[object] = [
-            [str(partition.path) for partition in partitions]
-        ]
+        sql = f"SELECT {projected} FROM read_parquet(?, union_by_name = true) AS source"
+        params: list[object] = [[str(partition.path) for partition in partitions]]
         clauses: list[str] = []
         fixed_columns = _LOCAL_FIXED_PARAM_COLUMNS[catalog.name]
         for key, value in source.fixed_params.items():
@@ -742,14 +650,10 @@ class DuckDBParquetBackend:
 
         if date_column is not None:
             if query.start is not None:
-                clauses.append(
-                    f"source.{_quote_identifier(date_column)} >= ?"
-                )
+                clauses.append(f"source.{_quote_identifier(date_column)} >= ?")
                 params.append(query.start.strftime("%Y%m%d"))
             if query.end is not None:
-                clauses.append(
-                    f"source.{_quote_identifier(date_column)} <= ?"
-                )
+                clauses.append(f"source.{_quote_identifier(date_column)} <= ?")
                 params.append(query.end.strftime("%Y%m%d"))
         elif membership is not None:
             start_col = _quote_identifier(membership.interval_start_column)
@@ -761,35 +665,24 @@ class DuckDBParquetBackend:
                 )
                 params.append(query.start.strftime("%Y%m%d"))
             if query.end is not None:
-                clauses.append(
-                    f"NULLIF(CAST(source.{start_col} AS VARCHAR), '') IS NOT NULL"
-                )
+                clauses.append(f"NULLIF(CAST(source.{start_col} AS VARCHAR), '') IS NOT NULL")
                 clauses.append(f"source.{start_col} <= ?")
                 params.append(query.end.strftime("%Y%m%d"))
 
         connection = duckdb.connect(database=":memory:")
         try:
             if query.instruments is not None:
-                requested = pa.table(
-                    {catalog.instrument_column: list(query.instruments)}
-                )
+                requested = pa.table({catalog.instrument_column: list(query.instruments)})
                 connection.register("requested_instruments", requested)
                 instrument = _quote_identifier(catalog.instrument_column)
-                sql += (
-                    f" INNER JOIN requested_instruments AS requested USING ({instrument})"
-                )
+                sql += f" INNER JOIN requested_instruments AS requested USING ({instrument})"
             if clauses:
                 sql += " WHERE " + " AND ".join(clauses)
-            available_order = [
-                column for column in order_columns if column in columns
-            ]
+            available_order = [column for column in order_columns if column in columns]
             if available_order:
                 sql += " ORDER BY " + ", ".join(
                     _quote_identifier(column) for column in available_order
                 )
-            if limit is not None:
-                sql += " LIMIT ?"
-                params.append(limit)
             frame = connection.execute(sql, params).fetchdf()
         except (duckdb.Error, pa.ArrowException, ValueError, TypeError) as exc:
             raise SchemaMismatchError(
@@ -831,37 +724,12 @@ class DuckDBParquetBackend:
         return self._calendar_provider
 
     @staticmethod
-    def _table_columns(
-        dataset: RegisteredDataset, fields: tuple[str, ...]
-    ) -> tuple[str, ...]:
-        contract = dataset.contract
-        return DuckDBParquetBackend._unique_columns(
-            (
-                contract.table_time_column,
-                contract.instrument_column,
-                *contract.table_identity_columns,
-                *fields,
-            )
-        )
-
-    @staticmethod
     def _unique_columns(columns: tuple[str, ...]) -> tuple[str, ...]:
         result: list[str] = []
         for column in columns:
             if column not in result:
                 result.append(column)
         return tuple(result)
-
-    @staticmethod
-    def _archive_datetime(
-        value: date,
-        spec: TushareParquetDatasetSpec,
-        reference: datetime | None,
-    ) -> datetime:
-        zone = reference.tzinfo if reference is not None else None
-        if zone is None and spec.timezone:
-            zone = ZoneInfo(spec.timezone)
-        return datetime.combine(value, time.min, tzinfo=zone)
 
     @staticmethod
     def _fixed_param_value(value: object) -> object:
@@ -880,15 +748,11 @@ class DuckDBParquetBackend:
         if catalog.name != "daily_basic":
             return source.partitions
         if query.start is None or query.end is None:
-            raise InvalidQueryError(
-                "Local daily_basic queries require both start and end"
-            )
+            raise InvalidQueryError("Local daily_basic queries require both start and end")
         start_key = query.start.strftime("%Y%m%d")
         end_key = query.end.strftime("%Y%m%d")
         return tuple(
-            partition
-            for partition in source.partitions
-            if start_key <= partition.key <= end_key
+            partition for partition in source.partitions if start_key <= partition.key <= end_key
         )
 
     @staticmethod
@@ -937,9 +801,7 @@ class DuckDBParquetBackend:
         try:
             return datetime.strptime(value, "%Y%m%d").date()
         except ValueError as exc:
-            raise DatasetRegistrationError(
-                f"{label} must use YYYYMMDD format: {value!r}"
-            ) from exc
+            raise DatasetRegistrationError(f"{label} must use YYYYMMDD format: {value!r}") from exc
 
     @staticmethod
     def _validate_manifest_fields(
@@ -947,9 +809,7 @@ class DuckDBParquetBackend:
     ) -> None:
         fields = manifest.get("fields")
         if not isinstance(fields, list):
-            raise DatasetRegistrationError(
-                f"Manifest fields are invalid for {catalog.name!r}"
-            )
+            raise DatasetRegistrationError(f"Manifest fields are invalid for {catalog.name!r}")
         names = {
             item.get("name")
             for item in fields
@@ -958,8 +818,7 @@ class DuckDBParquetBackend:
         missing = set(catalog.schema.names).difference(names)
         if missing:
             raise DatasetRegistrationError(
-                f"Manifest for {catalog.name!r} is missing catalog fields: "
-                f"{sorted(missing)}"
+                f"Manifest for {catalog.name!r} is missing catalog fields: {sorted(missing)}"
             )
 
     @staticmethod
@@ -971,9 +830,7 @@ class DuckDBParquetBackend:
     ) -> tuple[_ArchivePartition, ...]:
         raw_partitions = manifest.get("partitions")
         if not isinstance(raw_partitions, Mapping) or not raw_partitions:
-            raise DatasetRegistrationError(
-                f"Manifest for {logical_name!r} has no partitions"
-            )
+            raise DatasetRegistrationError(f"Manifest for {logical_name!r} has no partitions")
         result: list[_ArchivePartition] = []
         seen: set[Path] = set()
         for raw_key in sorted(raw_partitions, key=str):
@@ -996,17 +853,11 @@ class DuckDBParquetBackend:
                     f"Manifest partition {raw_key!r} has no relative_path"
                 )
             if isinstance(rows, bool) or not isinstance(rows, int) or rows < 0:
-                raise DatasetRegistrationError(
-                    f"Manifest partition {raw_key!r} has invalid rows"
-                )
+                raise DatasetRegistrationError(f"Manifest partition {raw_key!r} has invalid rows")
             if isinstance(size, bool) or not isinstance(size, int) or size < 0:
-                raise DatasetRegistrationError(
-                    f"Manifest partition {raw_key!r} has invalid bytes"
-                )
+                raise DatasetRegistrationError(f"Manifest partition {raw_key!r} has invalid bytes")
             if not isinstance(sha256, str) or len(sha256) != 64:
-                raise DatasetRegistrationError(
-                    f"Manifest partition {raw_key!r} has invalid sha256"
-                )
+                raise DatasetRegistrationError(f"Manifest partition {raw_key!r} has invalid sha256")
             path = (data_dir / relative).resolve()
             if not path.is_relative_to(data_dir):
                 raise DatasetRegistrationError(
@@ -1043,9 +894,7 @@ class DuckDBParquetBackend:
                 )
             for field in catalog.schema:
                 stored = file_schema.field(field.name)
-                if not DuckDBParquetBackend._archive_type_compatible(
-                    stored.type, field.type
-                ):
+                if not DuckDBParquetBackend._archive_type_compatible(stored.type, field.type):
                     raise SchemaMismatchError(
                         f"Parquet partition {path} field {field.name!r} has type "
                         f"{stored.type}, expected archive-compatible {field.type}"
@@ -1071,9 +920,7 @@ class DuckDBParquetBackend:
     @staticmethod
     def _generic_files(dataset: RegisteredDataset) -> tuple[Path, ...]:
         source = dataset.source
-        if not isinstance(source, tuple) or not all(
-            isinstance(path, Path) for path in source
-        ):
+        if not isinstance(source, tuple) or not all(isinstance(path, Path) for path in source):
             raise SchemaMismatchError("Invalid generic Parquet dataset source")
         return source
 

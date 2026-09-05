@@ -20,7 +20,6 @@ if str(ROOT.parent) not in sys.path:
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES  # noqa: E402
 from quant_data.backends.tushare_catalog import (  # noqa: E402
     DisclosureSemantics,
-    EventSemantics,
     MembershipSemantics,
     ObservationSemantics,
     TUSHARE_DATASETS,
@@ -42,14 +41,10 @@ class DatasetReference:
 
     name: str
     fields: tuple[tuple[str, str], ...]
-    table_time_column: str
+    source_time_column: str
     instrument_column: str
-    table_identity_columns: tuple[str, ...]
-    panel_time_column: str | None
-
-    @property
-    def panel_compatible(self) -> bool:
-        return self.panel_time_column is not None
+    identity_columns: tuple[str, ...]
+    panel_time_column: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,16 +56,14 @@ class DatasetNotes:
     fields: dict[str, str]
 
 
-def _add_reference(
-    references: dict[str, DatasetReference], reference: DatasetReference
-) -> None:
+def _add_reference(references: dict[str, DatasetReference], reference: DatasetReference) -> None:
     if reference.name in references:
         raise CatalogError(f"Duplicate initialized dataset: {reference.name!r}")
     field_names = {name for name, _ in reference.fields}
     required_columns = {
-        reference.table_time_column,
+        reference.source_time_column,
         reference.instrument_column,
-        *reference.table_identity_columns,
+        *reference.identity_columns,
     }
     missing_columns = required_columns.difference(field_names)
     if missing_columns:
@@ -98,14 +91,10 @@ def collect_references() -> tuple[DatasetReference, ...]:
             DatasetReference(
                 name=clickhouse_spec.name,
                 fields=fields,
-                table_time_column=clickhouse_spec.time_column,
+                source_time_column=clickhouse_spec.time_column,
                 instrument_column=clickhouse_spec.instrument_column,
-                table_identity_columns=(),
-                panel_time_column=(
-                    clickhouse_spec.time_column
-                    if clickhouse_spec.panel_compatible
-                    else None
-                ),
+                identity_columns=(),
+                panel_time_column=clickhouse_spec.time_column,
             ),
         )
 
@@ -118,29 +107,24 @@ def collect_references() -> tuple[DatasetReference, ...]:
             )
         semantics = catalog.semantics
         if isinstance(semantics, DisclosureSemantics):
-            table_time_column = semantics.period_column
-            panel_time_column: str | None = semantics.panel_time_column
+            source_time_column = semantics.period_column
+            panel_time_column: str = semantics.panel_time_column
         elif isinstance(semantics, MembershipSemantics):
-            table_time_column = semantics.table_time_column
+            source_time_column = semantics.source_time_column
             panel_time_column = semantics.panel_time_column
         elif isinstance(semantics, ObservationSemantics):
-            table_time_column = semantics.table_time_column
+            source_time_column = semantics.source_time_column
             panel_time_column = semantics.panel_time_column
-        elif isinstance(semantics, EventSemantics):
-            table_time_column = semantics.table_time_column
-            panel_time_column = None
         else:  # pragma: no cover - exhaustive catalog guard
-            raise CatalogError(
-                f"Unsupported semantics for dataset {tushare_spec.name!r}"
-            )
+            raise CatalogError(f"Unsupported semantics for dataset {tushare_spec.name!r}")
         _add_reference(
             references,
             DatasetReference(
                 name=tushare_spec.name,
                 fields=tuple((field.name, str(field.type)) for field in catalog.schema),
-                table_time_column=table_time_column,
+                source_time_column=source_time_column,
                 instrument_column=catalog.instrument_column,
-                table_identity_columns=semantics.identity_columns,
+                identity_columns=semantics.identity_columns,
                 panel_time_column=panel_time_column,
             ),
         )
@@ -150,8 +134,7 @@ def collect_references() -> tuple[DatasetReference, ...]:
     extra = set(references).difference(initialized_names)
     if missing or extra:
         raise CatalogError(
-            "Initialized dataset mismatch: "
-            f"missing={sorted(missing)}, extra={sorted(extra)}"
+            f"Initialized dataset mismatch: missing={sorted(missing)}, extra={sorted(extra)}"
         )
     return tuple(references[name] for name in initialized_names)
 
@@ -235,36 +218,12 @@ def _anchor(dataset_name: str) -> str:
     return "dataset-" + dataset_name.replace("_", "-")
 
 
-def _unique(values: tuple[str, ...]) -> tuple[str, ...]:
-    result: list[str] = []
-    for value in values:
-        if value not in result:
-            result.append(value)
-    return tuple(result)
-
-
-def _code_list(values: tuple[str, ...]) -> str:
-    return "、".join(f"`{value}`" for value in values)
-
-
 def _field_role(reference: DatasetReference, field_name: str) -> str:
     if field_name == reference.instrument_column:
-        if reference.panel_compatible:
-            return "`get_panel()` 列键；`get_table()` 自动证券键"
-        return "`get_table()` 自动证券键"
-    if field_name == reference.table_time_column:
-        if reference.panel_time_column == field_name:
-            return "`get_panel()` 索引；`get_table()` 自动时间键"
-        if reference.panel_compatible:
-            return "`get_table()` 自动时间键；`get_panel()` 可请求值"
-        return "`get_table()` 自动时间键"
-    if field_name in reference.table_identity_columns:
-        if reference.panel_compatible:
-            return "`get_table()` 自动身份列；`get_panel()` 可请求值"
-        return "`get_table()` 自动身份列"
-    if reference.panel_compatible:
-        return "`get_panel()` / `get_table()` 可请求值"
-    return "`get_table()` 可请求值"
+        return "`get_panel()` 列键"
+    if field_name == reference.panel_time_column:
+        return "`get_panel()` 索引"
+    return "`get_panel()` 可请求值"
 
 
 def render_catalog(
@@ -279,33 +238,23 @@ def render_catalog(
         "# 默认数据集",
         "",
         "本手册列出 `initialize.py` 注册的全部数据集及其可用字段。使用者通过",
-        "`get_panel()` 获取 `time × instrument` 宽表，通过 `get_table()` 获取 Arrow 长表。",
+        "`get_panel()` 获取 `time × instrument` 宽表。",
         "数据集、字段、类型和键来自源码；字段说明在",
         "`tools/dataset_descriptions.toml` 中人工维护。",
         "",
-        "字段表中的自动键无需、也不应放入 `fields` 参数；长表身份列会由",
-        "`get_table()` 自动返回，其余标为“可请求值”的字段可以放入 `fields`。",
+        "面板索引和列键无需、也不应放入 `fields` 参数；",
+        "标为“可请求值”的字段可以放入 `fields`。",
         "",
         "## 数据集索引",
         "",
-        "| 数据集 | `get_panel()` | `get_table()` |",
-        "| --- | --- | --- |",
+        "| 数据集 | `get_panel()` |",
+        "| --- | --- |",
     ]
     for reference in references:
-        panel = "宽表" if reference.panel_compatible else "不支持"
-        lines.append(
-            f"| [`{reference.name}`](#{_anchor(reference.name)}) | {panel} | 长表 |"
-        )
+        lines.append(f"| [`{reference.name}`](#{_anchor(reference.name)}) | 宽表 |")
 
     for reference in references:
         note = notes[reference.name]
-        automatic_table_columns = _unique(
-            (
-                reference.table_time_column,
-                reference.instrument_column,
-                *reference.table_identity_columns,
-            )
-        )
         lines.extend(
             [
                 "",
@@ -316,18 +265,12 @@ def render_catalog(
                 "",
             ]
         )
-        if reference.panel_compatible:
-            lines.append(
-                f"- `get_panel()`：支持；按 `{reference.panel_time_column} × "
-                f"{reference.instrument_column}` 返回每个请求字段的宽表。"
-            )
-        else:
-            lines.append("- `get_panel()`：不支持；该数据集存在一对多事件。")
+        lines.append(
+            f"- `get_panel()`：按 `{reference.panel_time_column} × "
+            f"{reference.instrument_column}` 返回每个请求字段的宽表。"
+        )
         lines.extend(
             [
-                "- `get_table()`：支持；自动返回 "
-                + _code_list(automatic_table_columns)
-                + "，再附加请求字段。",
                 "",
                 "| 字段 | 类型 | 使用方式 | 说明 |",
                 "| --- | --- | --- | --- |",

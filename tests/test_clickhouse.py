@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -24,13 +24,9 @@ CLICKHOUSE_TYPES = {
     "date": "Date",
     "exg": "UInt8",
     "date_time": "DateTime64(3, 'Asia/Shanghai')",
-    "time_int": "Int32",
     "close": "Nullable(Float64)",
-    "price": "Nullable(Float64)",
     "volume": "Nullable(Int64)",
     "hfq": "Nullable(Float64)",
-    "side": "FixedString(1)",
-    "seqno": "UInt64",
 }
 SUFFIX_EXPRESSION = (
     "concat(`_q`.`code`, multiIf(`_q`.`exg` = 1, '.SZ', "
@@ -199,7 +195,7 @@ def test_daily_accepts_suffixed_instruments(tmp_path: Path) -> None:
         )
     )
 
-    table = client.get_table(
+    table = client.get_panel(
         "daily",
         ["close"],
         start="2026-03-02",
@@ -207,7 +203,7 @@ def test_daily_accepts_suffixed_instruments(tmp_path: Path) -> None:
         instruments=["000001.SZ"],
     )
 
-    assert table["code"].to_pylist() == ["000001.SZ"]
+    assert list(table["close"].columns) == ["000001.SZ"]
     sql, parameters, _ = fake.calls[-1]
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
     assert "000001.SZ" not in sql
@@ -252,7 +248,7 @@ def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) ->
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
 
 
-def test_index_daily_supports_panel_and_table_with_suffixes(tmp_path: Path) -> None:
+def test_index_daily_supports_panel_with_suffixes(tmp_path: Path) -> None:
     result = pa.table(
         {
             "date": pa.array([date(2026, 3, 2), date(2026, 3, 2)]),
@@ -272,7 +268,7 @@ def test_index_daily_supports_panel_and_table_with_suffixes(tmp_path: Path) -> N
     )
 
     with pytest.raises(InvalidQueryError, match="requires instrument identifiers"):
-        client.get_table(
+        client.get_panel(
             "minghu_index_daily",
             ["close"],
             start="2026-03-02",
@@ -298,17 +294,6 @@ def test_index_daily_supports_panel_and_table_with_suffixes(tmp_path: Path) -> N
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in panel_sql
     assert panel_parameters["instruments"] == instruments
 
-    table = client.get_table(
-        "minghu_index_daily",
-        ["close"],
-        start="2026-03-02",
-        end="2026-03-02",
-        instruments=instruments,
-    )
-    assert table.column_names == ["date", "code", "close"]
-    assert table["code"].to_pylist() == ["000001.SH", "399001.SZ"]
-    assert table.schema.metadata[b"quant_data.adjusted"] == b"false"
-
 
 def test_daily_can_return_raw_prices_and_hides_factor(tmp_path: Path) -> None:
     result = pa.table(
@@ -329,14 +314,14 @@ def test_daily_can_return_raw_prices_and_hides_factor(tmp_path: Path) -> None:
             time_column="date",
         )
     )
-    table = client.get_table("daily", ["close", "volume"], adjusted=False)
-    assert table.column_names == ["date", "code", "close", "volume"]
-    assert table["code"].to_pylist() == ["000001.SZ"]
-    assert table["close"].to_pylist() == [10.3]
-    assert table["volume"].to_pylist() == [100]
+    table = client.get_panel("daily", ["close", "volume"], adjusted=False)
+    assert list(table) == ["close", "volume"]
+    assert list(table["close"].columns) == ["000001.SZ"]
+    assert table["close"]["000001.SZ"].tolist() == [10.3]
+    assert table["volume"]["000001.SZ"].tolist() == [100]
     assert "`hfq`" not in fake.calls[-1][0]
-    assert table.schema.metadata[b"quant_data.parameters"].find(b"False") >= 0
-    assert table.schema.metadata[b"quant_data.adjusted"] == b"false"
+    assert table["close"].attrs["parameters"]["adjusted"] is False
+    assert table["close"].attrs["adjusted"] is False
 
 
 def test_daily_adjustment_preserves_null_factor(tmp_path: Path) -> None:
@@ -357,8 +342,8 @@ def test_daily_adjustment_preserves_null_factor(tmp_path: Path) -> None:
             time_column="date",
         )
     )
-    table = client.get_table("daily", ["close"])
-    assert table["close"].to_pylist() == [None]
+    table = client.get_panel("daily", ["close"])
+    assert table["close"].isna().all().all()
 
 
 def test_m1_requires_range_and_pushes_partition_filter(tmp_path: Path) -> None:
@@ -382,135 +367,21 @@ def test_m1_requires_range_and_pushes_partition_filter(tmp_path: Path) -> None:
         )
     )
     with pytest.raises(InvalidQueryError, match="requires both start and end"):
-        client.get_table("minghu_m1", ["close"], start="2026-03-02")
+        client.get_panel("minghu_m1", ["close"], start="2026-03-02")
 
-    client.get_table(
+    client.get_panel(
         "minghu_m1",
         ["close"],
         start="2026-03-02 09:30",
         end="2026-03-02 09:31",
         instruments=["x'); DROP TABLE stock_base.m1; --.SZ"],
-        limit=10,
     )
     sql, parameters, _ = fake.calls[-1]
     assert "`_q`.`date` >= {partition_start:Date}" in sql
-    assert "LIMIT {limit:UInt64}" in sql
+    assert "LIMIT" not in sql
     assert "DROP TABLE" not in sql
     assert parameters["instruments"] == ["x'); DROP TABLE stock_base.m1; --.SZ"]
     assert parameters["partition_start"] == date(2026, 3, 2)
-
-
-def test_tick_table_preserves_duplicate_times_and_blocks_panel(tmp_path: Path) -> None:
-    timestamps = pa.array(
-        [
-            datetime(2026, 3, 2, 9, 30, 0, 1000),
-            datetime(2026, 3, 2, 9, 30, 0, 1000),
-        ],
-        type=pa.timestamp("ms", tz="Asia/Shanghai"),
-    )
-    result = pa.table(
-        {
-            "date_time": timestamps,
-            "code": ["000001.SZ", "000001.SZ"],
-            "price": [10.1, 10.2],
-            "side": ["B", "S"],
-            "seqno": pa.array([1, 2], type=pa.uint64()),
-        }
-    )
-    client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
-            name="minghu_zb",
-            connection="minghu",
-            table="stock_base.zb",
-            time_column="date_time",
-            partition_column="date",
-            order_columns=("date_time", "code", "seqno"),
-            panel_compatible=False,
-        )
-    )
-    table = client.get_table(
-        "minghu_zb",
-        ["price", "side", "seqno"],
-        start="2026-03-02 09:30:00",
-        end="2026-03-02 09:31:00",
-    )
-    assert table.num_rows == 2
-    assert table["seqno"].to_pylist() == [1, 2]
-    sql = fake.calls[-1][0]
-    assert "toString(`_q`.`side`) AS `side`" in sql
-    assert sql.endswith("ORDER BY `_q`.`date_time`, `_q`.`code`, `_q`.`seqno`")
-
-    with pytest.raises(InvalidQueryError, match="use get_table"):
-        client.get_panel(
-            "minghu_zb",
-            ["price"],
-            start="2026-03-02 09:30:00",
-            end="2026-03-02 09:31:00",
-        )
-
-
-def test_tk_table_requires_range_preserves_rows_and_blocks_panel(tmp_path: Path) -> None:
-    timestamps = pa.array(
-        [
-            datetime(2026, 3, 2, 9, 30, 0),
-            datetime(2026, 3, 2, 9, 30, 0),
-        ],
-        type=pa.timestamp("s", tz="Asia/Shanghai"),
-    )
-    result = pa.table(
-        {
-            "date_time": timestamps,
-            "code": ["000001.SZ", "000001.SZ"],
-            "close": [10.1, 10.2],
-        }
-    )
-    client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
-            name="minghu_tk",
-            connection="minghu",
-            table="stock_base.tk",
-            time_column="date_time",
-            partition_column="date",
-            order_columns=("date_time", "code", "time_int"),
-            panel_compatible=False,
-        )
-    )
-
-    with pytest.raises(InvalidQueryError, match="requires both start and end"):
-        client.get_table("minghu_tk", ["close"], start="2026-03-02 09:30:00")
-
-    table = client.get_table(
-        "minghu_tk",
-        ["close"],
-        start="2026-03-02 09:30:00",
-        end="2026-03-02 09:30:01",
-        instruments=["000001.SZ"],
-    )
-    assert table.num_rows == 2
-    assert table["code"].to_pylist() == ["000001.SZ", "000001.SZ"]
-    assert table["close"].to_pylist() == [10.1, 10.2]
-
-    sql, parameters, _ = fake.calls[-1]
-    assert "FROM `stock_base`.`tk` AS `_q`" in sql
-    assert f"{SUFFIX_EXPRESSION} AS `code`" in sql
-    assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
-    assert "`_q`.`date` >= {partition_start:Date}" in sql
-    assert "`_q`.`date` <= {partition_end:Date}" in sql
-    assert sql.endswith("ORDER BY `_q`.`date_time`, `_q`.`code`, `_q`.`time_int`")
-    assert parameters["instruments"] == ["000001.SZ"]
-    assert parameters["partition_start"] == date(2026, 3, 2)
-
-    scan_count = len(fake.calls)
-    with pytest.raises(InvalidQueryError, match="use get_table"):
-        client.get_panel(
-            "minghu_tk",
-            ["close"],
-            start="2026-03-02 09:30:00",
-            end="2026-03-02 09:30:01",
-        )
-    assert len(fake.calls) == scan_count
 
 
 def test_remote_audit_is_sanitized(tmp_path: Path) -> None:
@@ -531,7 +402,7 @@ def test_remote_audit_is_sanitized(tmp_path: Path) -> None:
             time_column="date",
         )
     )
-    client.get_table("daily", ["close"])
+    client.get_panel("daily", ["close"])
     audit_text = next((tmp_path / "audit").rglob("*.json")).read_text()
     audit = json.loads(audit_text)
     assert audit["source"]["backend"] == "clickhouse"
@@ -562,7 +433,7 @@ def test_missing_password_environment_variable(
         )
     )
     with pytest.raises(BackendConnectionError, match="is not set"):
-        client.get_table("daily", ["close"])
+        client.get_panel("daily", ["close"])
 
 
 def test_custom_table_falls_back_to_remote_describe(tmp_path: Path) -> None:
@@ -585,8 +456,8 @@ def test_custom_table_falls_back_to_remote_describe(tmp_path: Path) -> None:
 
     assert [call[0] for call in fake.calls] == ["DESCRIBE TABLE `custom`.`daily`"]
     assert len(factory.calls) == 1
-    table = client.get_table("custom_daily", ["close"])
-    assert table["close"].to_pylist() == [10.3]
+    table = client.get_panel("custom_daily", ["close"])
+    assert table["close"]["000001.SZ"].tolist() == [10.3]
 
     audit_text = next((tmp_path / "audit").rglob("*.json")).read_text()
     audit = json.loads(audit_text)

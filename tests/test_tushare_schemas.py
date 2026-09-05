@@ -27,10 +27,6 @@ EXPECTED_SCHEMA_SIGNATURES = {
         4,
         "da9c2a4118fc8e1557a9caf047506753fbe29234e326af97b55d09a77321e638",
     ),
-    "stk_holdertrade": (
-        13,
-        "d41653cbf397d7d6d86f1703993795d59ff1bc3915bedfa500aaf2148f2c54c8",
-    ),
     "industry_member": (
         11,
         "2742e39b99573f99c9b5869a9e0c562f432c24194409546c49e261dadfccd40a",

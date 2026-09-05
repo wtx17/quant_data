@@ -72,10 +72,7 @@ def write_archive(
     range_end: str = "20241231",
 ) -> Path:
     schema = _archive_schema(dataset)
-    normalized = [
-        {field.name: row.get(field.name) for field in schema}
-        for row in rows
-    ]
+    normalized = [{field.name: row.get(field.name) for field in schema} for row in rows]
     table = pa.Table.from_pylist(normalized, schema=schema)
     dataset_dir = root / dataset
     dataset_dir.mkdir(parents=True)
@@ -112,9 +109,7 @@ def write_daily_basic_archive(
     dataset_dir = root / "daily_basic"
     partitions: dict[str, dict[str, object]] = {}
     for trade_date, rows in sorted(rows_by_date.items()):
-        normalized = [
-            {field.name: row.get(field.name) for field in schema} for row in rows
-        ]
+        normalized = [{field.name: row.get(field.name) for field in schema} for row in rows]
         table = pa.Table.from_pylist(normalized, schema=schema)
         relative_path = Path("daily_basic") / "trade_date" / trade_date / "data.parquet"
         parquet_path = root / relative_path
@@ -215,7 +210,7 @@ def test_local_daily_basic_reads_date_partitions_without_api_calls(
     client, calendar, factory = make_client(tmp_path)
     client.register(local_spec(root, "daily_basic"))
 
-    table = client.get_table(
+    table = client.get_panel(
         "daily_basic",
         ["close", "limit_status"],
         start="2024-01-02",
@@ -230,18 +225,9 @@ def test_local_daily_basic_reads_date_partitions_without_api_calls(
         instruments=["000001.SZ", "600000.SH"],
     )["turnover_rate"]
 
-    assert table.column_names == [
-        "trade_date",
-        "ts_code",
-        "close",
-        "limit_status",
-    ]
-    assert table["trade_date"].to_pylist() == [
-        date(2024, 1, 2),
-        date(2024, 1, 3),
-    ]
-    assert table["close"].to_pylist() == pytest.approx([10.0, 11.0])
-    assert table["limit_status"].to_pylist() == [1, 0]
+    assert list(table["close"].index) == [date(2024, 1, 2), date(2024, 1, 3)]
+    assert table["close"]["600000.SH"].tolist() == pytest.approx([10.0, 11.0])
+    assert table["limit_status"]["600000.SH"].tolist() == [1, 0]
     assert list(panel.index) == [date(2024, 1, 2), date(2024, 1, 3)]
     assert list(panel.columns) == ["000001.SZ", "600000.SH"]
     assert panel.loc[date(2024, 1, 2), "000001.SZ"] == pytest.approx(2.1)
@@ -250,73 +236,10 @@ def test_local_daily_basic_reads_date_partitions_without_api_calls(
     assert calendar.calls == []
     assert factory.calls == 0
 
-    audits = [
-        json.loads(path.read_text()) for path in (tmp_path / "audit").rglob("*.json")
-    ]
+    audits = [json.loads(path.read_text()) for path in (tmp_path / "audit").rglob("*.json")]
     assert {audit["source"]["backend"] for audit in audits} == {"parquet"}
     assert all("selected_api" not in audit["source"] for audit in audits)
     assert all("calendar_api" not in audit["source"] for audit in audits)
-
-
-def test_local_table_retains_revisions_and_uses_archive_bounds(tmp_path: Path) -> None:
-    root = tmp_path / "archive"
-    write_archive(
-        root,
-        "income",
-        [
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240420",
-                "f_ann_date": "20240420",
-                "end_date": "20240331",
-                "report_type": "1",
-                "comp_type": "1",
-                "end_type": "1",
-                "update_flag": "0",
-                "total_revenue": 10.0,
-            },
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240430",
-                "f_ann_date": "20240430",
-                "end_date": "20240331",
-                "report_type": "1",
-                "comp_type": "1",
-                "end_type": "1",
-                "update_flag": "1",
-                "total_revenue": 11.0,
-            },
-        ],
-    )
-    client, calendar, factory = make_client(tmp_path)
-    client.register(local_spec(root, "income", fetch_buffer_days=30))
-
-    table = client.get_table(
-        "income",
-        ["total_revenue"],
-        instruments=["600000.SH"],
-    )
-
-    assert table["total_revenue"].to_pylist() == [10.0, 11.0]
-    assert table.schema.field("end_date").type == pa.date32()
-    assert table.column_names == [
-        "end_date",
-        "ts_code",
-        "ann_date",
-        "f_ann_date",
-        "report_type",
-        "comp_type",
-        "end_type",
-        "update_flag",
-        "total_revenue",
-    ]
-    assert calendar.calls == []
-    assert factory.calls == 0
-    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
-    assert audit["parameters"]["effective_start"].startswith("2024-01-01")
-    assert audit["parameters"]["effective_end"].startswith("2024-12-31")
-    assert audit["source"]["format"] == "tushare-archive"
-    assert "selected_api" not in audit["source"]
 
 
 def test_local_pit_panel_only_fetches_trade_calendar(tmp_path: Path) -> None:
@@ -412,12 +335,6 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
     default_client, _, _ = make_client(tmp_path / "default")
     default_client.register(local_spec(root, "income", fetch_buffer_days=30))
 
-    default_table = default_client.get_table(
-        "income",
-        ["total_revenue"],
-        start="2022-12-31",
-        end="2022-12-31",
-    )
     default_panel = default_client.get_panel(
         "income",
         ["total_revenue"],
@@ -425,13 +342,8 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
         end="2023-10-10",
     )["total_revenue"]
 
-    assert default_table["report_type"].to_pylist() == ["1"]
-    assert default_panel.loc[pd.Timestamp("2023-10-09"), "300180.SZ"] == pytest.approx(
-        423.0
-    )
-    default_audit = json.loads(
-        next((tmp_path / "default" / "audit").rglob("*.json")).read_text()
-    )
+    assert default_panel.loc[pd.Timestamp("2023-10-09"), "300180.SZ"] == pytest.approx(423.0)
+    default_audit = json.loads(next((tmp_path / "default" / "audit").rglob("*.json")).read_text())
     assert default_audit["source"]["fixed_params"]["report_type"] == "1"
 
     override_client, _, _ = make_client(tmp_path / "override")
@@ -444,18 +356,17 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
             fixed_params={"report_type": "2"},
         )
     )
-    override_table = override_client.get_table(
+    override_table = override_client.get_panel(
         "income_single_quarter",
         ["total_revenue"],
-        start="2022-12-31",
-        end="2022-12-31",
+        start="2023-10-09",
+        end="2023-10-10",
     )
 
-    assert override_table["report_type"].to_pylist() == ["2"]
-    assert override_table["total_revenue"].to_pylist() == [91.0]
+    assert override_table["total_revenue"].loc[pd.Timestamp("2023-10-09"), "300180.SZ"] == 91.0
 
 
-def test_local_membership_table_and_panel_match_interval_semantics(tmp_path: Path) -> None:
+def test_local_membership_panel_match_interval_semantics(tmp_path: Path) -> None:
     root = tmp_path / "archive"
     write_archive(
         root,
@@ -492,13 +403,6 @@ def test_local_membership_table_and_panel_match_interval_semantics(tmp_path: Pat
     client, calendar, _ = make_client(tmp_path)
     client.register(local_spec(root, "ci_index_member"))
 
-    table = client.get_table(
-        "ci_index_member",
-        ["l1_name"],
-        start="2024-01-02",
-        end="2024-01-08",
-        instruments=["600000.SH"],
-    )
     panel = client.get_panel(
         "ci_index_member",
         ["l1_name"],
@@ -507,8 +411,6 @@ def test_local_membership_table_and_panel_match_interval_semantics(tmp_path: Pat
         instruments=["600000.SH"],
     )["l1_name"]
 
-    assert table.num_rows == 2
-    assert "date" not in table.column_names
     assert panel.loc[date(2024, 1, 2), "600000.SH"] == "old"
     assert panel.loc[date(2024, 1, 4), "600000.SH"] == "new"
     assert {api for api, _ in calendar.calls} == {"trade_cal"}
@@ -516,51 +418,8 @@ def test_local_membership_table_and_panel_match_interval_semantics(tmp_path: Pat
 
 def test_local_fixed_params_map_or_fail_at_registration(tmp_path: Path) -> None:
     root = tmp_path / "archive"
-    write_archive(
-        root,
-        "stk_holdertrade",
-        [
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240422",
-                "holder_name": "Alice",
-                "holder_type": "G",
-                "in_de": "IN",
-                "change_vol": 100.0,
-                "begin_date": "20240401",
-                "close_date": "20240420",
-            },
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240422",
-                "holder_name": "Bob",
-                "holder_type": "P",
-                "in_de": "DE",
-                "change_vol": 50.0,
-                "begin_date": "20240402",
-                "close_date": "20240420",
-            },
-        ],
-    )
     write_archive(root, "cashflow", [])
     client, _, _ = make_client(tmp_path)
-    client.register(
-        local_spec(
-            root,
-            "stk_holdertrade",
-            fixed_params={"trade_type": "IN"},
-        )
-    )
-
-    table = client.get_table(
-        "stk_holdertrade",
-        ["change_vol"],
-        start="2024-04-20",
-        end="2024-04-23",
-    )
-
-    assert table.num_rows == 1
-    assert table["in_de"].to_pylist() == ["IN"]
     with pytest.raises(DatasetRegistrationError, match="is_calc"):
         client.register(
             local_spec(
@@ -578,7 +437,7 @@ def test_local_snapshot_rejects_explicit_and_pit_buffer_overflow(tmp_path: Path)
     client.register(local_spec(root, "income", fetch_buffer_days=30))
 
     with pytest.raises(InvalidQueryError, match="starts at"):
-        client.get_table(
+        client.get_panel(
             "income",
             ["total_revenue"],
             start="2023-12-31",
@@ -626,15 +485,13 @@ def test_local_initialization_registers_standard_names_without_token(
         tushare_token_env="MISSING_LOCAL_CALENDAR_TOKEN",
     )
 
-    table = client.get_table("income", ["total_revenue"])
-    assert table.num_rows == 0
-    daily = client.get_table(
+    daily = client.get_panel(
         "daily_basic",
         ["close"],
         start="2024-07-01",
         end="2024-07-01",
     )
-    assert daily.num_rows == 0
+    assert daily["close"].empty
     with pytest.raises(BackendConnectionError, match="MISSING_LOCAL_CALENDAR_TOKEN"):
         client.get_panel(
             "income",
@@ -660,11 +517,10 @@ def test_initialization_can_mix_local_and_remote_tushare_datasets(
         tushare_connection="mixed",
         tushare_token_env="MISSING_MIXED_TUSHARE_TOKEN",
     ) as client:
-        local_table = client.get_table("income", ["total_revenue"])
-        assert local_table.num_rows == 0
+        assert isinstance(client._datasets["income"].spec, TushareParquetDatasetSpec)
 
         with pytest.raises(BackendConnectionError, match="MISSING_MIXED_TUSHARE_TOKEN"):
-            client.get_table(
+            client.get_panel(
                 "balancesheet",
                 ["total_assets"],
                 start="2024-03-31",
@@ -695,3 +551,39 @@ def test_mixed_initialization_rejects_invalid_remote_selection(
             tushare_data_dir=data_dir,
             tushare_remote_datasets=remote_datasets,  # type: ignore[arg-type]
         )
+
+
+def test_local_pit_preserves_revisions_and_requested_identity_fields(tmp_path: Path) -> None:
+    root = tmp_path / "archive"
+    write_archive(
+        root,
+        "income",
+        [
+            {
+                "ts_code": "600000.SH",
+                "ann_date": announcement,
+                "f_ann_date": announcement,
+                "end_date": "20240331",
+                "report_type": "1",
+                "update_flag": revision,
+                "total_revenue": value,
+            }
+            for announcement, revision, value in [("20240422", "0", 10.0), ("20240424", "1", 11.0)]
+        ],
+    )
+    client, calendar, _ = make_client(tmp_path)
+    client.register(local_spec(root, "income", fetch_buffer_days=30))
+    panels = client.get_panel(
+        "income",
+        ["total_revenue", "ann_date", "update_flag", "end_date"],
+        start="2024-04-22",
+        end="2024-04-25",
+        instruments=["600000.SH"],
+    )
+    assert panels["total_revenue"].loc[pd.Timestamp("2024-04-22"), "600000.SH"] == 10.0
+    assert panels["total_revenue"].loc[pd.Timestamp("2024-04-24"), "600000.SH"] == 11.0
+    assert panels["update_flag"].loc[pd.Timestamp("2024-04-24"), "600000.SH"] == "1"
+    assert pd.Timestamp(
+        panels["ann_date"].loc[pd.Timestamp("2024-04-24"), "600000.SH"]
+    ) == pd.Timestamp("2024-04-24")
+    assert {api for api, _ in calendar.calls} == {"trade_cal"}

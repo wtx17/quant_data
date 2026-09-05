@@ -168,7 +168,7 @@ def test_panel_rejects_unknown_universe_and_audits_failure(
     assert audit["parameters"]["universe"] == "csi1000"
 
 
-@pytest.mark.parametrize("method_name", ["get_panel", "get_table"])
+@pytest.mark.parametrize("method_name", ["get_panel"])
 def test_query_rejects_bare_string_instruments_and_audits_failure(
     tmp_path: Path,
     sample_files: Path,
@@ -183,19 +183,6 @@ def test_query_rejects_bare_string_instruments_and_audits_failure(
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert audit["status"] == "failed"
     assert audit["parameters"]["instruments"] == "000001.SZ"
-
-
-def test_get_table_returns_arrow_with_metadata(tmp_path: Path, sample_files: Path) -> None:
-    client = make_client(tmp_path, sample_files)
-    result = client.get_table(
-        "daily", ["close"], start="2026-01-05", instruments=["000001.SZ"], limit=1
-    )
-    assert result.column_names == ["time", "ts_code", "close"]
-    assert result.num_rows == 1
-    assert result.schema.metadata[b"quant_data.dataset"] == b"daily"
-    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
-    assert audit["operation"] == "table"
-    assert audit["result_shapes"] == {"table": [1, 3]}
 
 
 def test_dataset_without_factor_rejects_explicit_adjustment(
@@ -292,3 +279,18 @@ def test_sql_special_characters_are_values_not_sql(tmp_path: Path) -> None:
     )
     result = client.get_panel("special", ['odd"field'], instruments=["x'); DROP TABLE source; --"])
     assert result['odd"field'].iloc[0, 0] == 7
+
+
+@pytest.mark.parametrize("frequency", [None, "1s"])
+def test_custom_parquet_frequency_remains_optional_metadata(
+    tmp_path: Path, frequency: str | None
+) -> None:
+    path = tmp_path / "observations.parquet"
+    times = [pd.Timestamp("2026-01-05 09:30:01"), pd.Timestamp("2026-01-05 09:30:02")]
+    write_table(path, {"time": times, "ts_code": ["000001.SZ"] * 2, "close": [1.0, 2.0]})
+    with DataClient(tmp_path / "audit") as client:
+        client.register(DatasetSpec("custom", [path], frequency=frequency))
+        panel = client.get_panel("custom", ["close"])["close"]
+    assert list(panel.index) == times
+    assert panel["000001.SZ"].tolist() == [1.0, 2.0]
+    assert panel.attrs["frequency"] == frequency

@@ -8,7 +8,7 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from typing import Any, Callable, Literal, Mapping, cast
+from typing import Any, Callable, Mapping, cast
 
 import pandas as pd
 import pyarrow as pa
@@ -34,8 +34,6 @@ from .tushare_catalog import (
     DisclosureSemantics,
     MembershipQuery,
     MembershipSemantics,
-    ObservationSemantics,
-    PeriodQuery,
     TradeDateQuery,
     TushareApiRoute,
     TUSHARE_DATASETS,
@@ -43,7 +41,6 @@ from .tushare_catalog import (
 )
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_QUARTER_ENDS = ((3, 31), (6, 30), (9, 30), (12, 31))
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,16 +153,13 @@ class TushareBackend:
         """
 
         if connection not in self._configs:
-            raise DatasetRegistrationError(
-                f"Tushare connection {connection!r} is not configured"
-            )
+            raise DatasetRegistrationError(f"Tushare connection {connection!r} is not configured")
         return self._fetch_calendar(connection, exchange, start, end)
 
     def normalize_snapshot_query(
         self,
         dataset: RegisteredDataset,
         query: DataQuery,
-        mode: Literal["panel", "table"],
     ) -> DataQuery:
         """Return a remote query unchanged.
 
@@ -174,7 +168,7 @@ class TushareBackend:
         client and the local Parquet implementation.
         """
 
-        del dataset, mode
+        del dataset
         return query
 
     def prepare(self, definition: DatasetDefinition) -> RegisteredDataset:
@@ -237,7 +231,7 @@ class TushareBackend:
         dataset
             Prepared Tushare dataset.
         query
-            Normalized fields, closed time range, stock universe, and limit.
+            Normalized fields, closed time range, stock universe.
 
         Returns
         -------
@@ -256,23 +250,25 @@ class TushareBackend:
 
         Notes
         -----
-        Quarterly APIs are called per report period. Membership datasets return
-        raw effective-dated intervals; only panel queries expand them.
+        Observation datasets use this scan. Disclosure and membership panels
+        use their dedicated semantic scans.
         """
 
         spec, source, catalog = self._state(dataset)
-        selected = self.table_columns(dataset, query.fields)
+        selected = (
+            dataset.contract.panel_time_column,
+            dataset.contract.instrument_column,
+            *query.fields,
+        )
         if query.instruments == ():
             return self._empty_arrow(catalog.schema, selected)
         route = self._select_route(catalog, query.instruments)
         client = self._client(source.connection)
         remote_fields = self._remote_columns(selected, catalog)
         trade_dates: tuple[date, ...] | None = None
-        if isinstance(route.table_query, TradeDateQuery):
+        if isinstance(route.query_shape, TradeDateQuery):
             if query.start is None or query.end is None:
-                raise InvalidQueryError(
-                    f"Dataset {spec.name!r} requires both start and end"
-                )
+                raise InvalidQueryError(f"Dataset {spec.name!r} requires both start and end")
             trade_dates = tuple(
                 self.fetch_calendar(
                     source.connection,
@@ -281,7 +277,7 @@ class TushareBackend:
                     query.end,
                 )
             )
-        frames = self._fetch_table_frames(
+        frames = self._fetch_route_frames(
             client,
             source.fixed_params,
             route,
@@ -290,27 +286,18 @@ class TushareBackend:
             trade_dates=trade_dates,
         )
         frame = self._normalize_remote_frames(frames, catalog, remote_fields, route)
-        if isinstance(route.table_query, TradeDateQuery):
+        if isinstance(route.query_shape, TradeDateQuery):
             frame = self._filter_instruments(
                 frame,
                 catalog.instrument_column,
                 query.instruments,
             )
         semantics = catalog.semantics
-        if isinstance(semantics, DisclosureSemantics):
-            frame = self._filter_time(frame, semantics.period_column, query)
-        elif isinstance(semantics, MembershipSemantics):
-            frame = self._filter_membership_overlap(frame, semantics, query)
-        else:
-            frame = self._filter_time(frame, semantics.table_time_column, query)
-        frame = self._sort_by(frame, semantics.table_order)
-        if query.limit is not None:
-            frame = frame.head(query.limit)
+        frame = self._filter_time(frame, dataset.contract.panel_time_column, query)
+        frame = self._sort_by(frame, semantics.source_order)
         return self._frame_to_arrow(frame, catalog.schema, selected)
 
-    def scan_disclosure_events(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_disclosure_events(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Fetch disclosure events required by a point-in-time panel.
 
         Parameters
@@ -350,11 +337,9 @@ class TushareBackend:
             )
         semantics = catalog.semantics
         if not isinstance(semantics, DisclosureSemantics):
-            raise InvalidQueryError(
-                f"Tushare dataset {catalog.name!r} is not disclosure data"
-            )
+            raise InvalidQueryError(f"Tushare dataset {catalog.name!r} is not disclosure data")
         route = self._select_route(catalog, query.instruments)
-        if route.disclosure_query is None:
+        if not isinstance(route.query_shape, DateRangeQuery):
             raise InvalidQueryError(
                 f"Tushare api {route.api_name!r} cannot serve a point-in-time panel"
             )
@@ -375,14 +360,11 @@ class TushareBackend:
             fetch_start,
             query.end,
             query.instruments,
-            None,
         )
         frames = self._fetch_disclosure_route_frames(
             client, source.fixed_params, route, fetch_query, remote_fields
         )
-        frame = self._normalize_remote_frames(
-            frames, catalog, remote_fields, route
-        )
+        frame = self._normalize_remote_frames(frames, catalog, remote_fields, route)
         frame = self._filter_time(frame, semantics.disclosure_column, fetch_query)
         frame = self._sort_by(
             frame,
@@ -423,16 +405,12 @@ class TushareBackend:
 
         spec, source, _ = self._state(dataset)
         if query.start is None or query.end is None:
-            raise InvalidQueryError(
-                f"Dataset {spec.name!r} panel requires both start and end"
-            )
+            raise InvalidQueryError(f"Dataset {spec.name!r} panel requires both start and end")
         start = query.start - timedelta(days=spec.fetch_buffer_days)
         end = query.end + timedelta(days=spec.fetch_margin_days)
         return self._fetch_calendar(source.connection, spec.calendar_exchange, start, end)
 
-    def pit_panel_semantics(
-        self, dataset: RegisteredDataset
-    ) -> tuple[str, str, tuple[str, ...]]:
+    def pit_panel_semantics(self, dataset: RegisteredDataset) -> tuple[str, str, tuple[str, ...]]:
         """Return disclosure, report-period, and revision precedence columns.
 
         Parameters
@@ -449,9 +427,7 @@ class TushareBackend:
         _, _, catalog = self._state(dataset)
         semantics = catalog.semantics
         if not isinstance(semantics, DisclosureSemantics):
-            raise SchemaMismatchError(
-                f"Tushare dataset {catalog.name!r} is not disclosure data"
-            )
+            raise SchemaMismatchError(f"Tushare dataset {catalog.name!r} is not disclosure data")
         return (
             semantics.disclosure_column,
             semantics.period_column,
@@ -482,16 +458,11 @@ class TushareBackend:
             "schema_hash": source.schema_hash,
             "fixed_params": {str(key): str(value) for key, value in source.fixed_params.items()},
         }
-        if any(
-            isinstance(route.table_query, TradeDateQuery)
-            for route in catalog.routes
-        ):
+        if any(isinstance(route.query_shape, TradeDateQuery) for route in catalog.routes):
             result["calendar_api"] = "trade_cal"
         return result
 
-    def route_name(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> str | None:
+    def route_name(self, dataset: RegisteredDataset, query: DataQuery) -> str | None:
         """Return the deterministic data API selected for audit metadata."""
 
         _, _, catalog = self._state(dataset)
@@ -507,36 +478,15 @@ class TushareBackend:
             return "disclosure"
         if isinstance(catalog.semantics, MembershipSemantics):
             return "membership"
-        if isinstance(catalog.semantics, ObservationSemantics):
-            return "observation"
-        return "event"
+        return "observation"
 
-    def table_columns(
-        self, dataset: RegisteredDataset, fields: tuple[str, ...]
-    ) -> tuple[str, ...]:
-        """Return ordered table keys, automatic identity columns, and fields."""
-
-        contract = dataset.contract
-        return self._unique_columns(
-            (
-                contract.table_time_column,
-                contract.instrument_column,
-                *contract.table_identity_columns,
-                *fields,
-            )
-        )
-
-    def scan_membership_panel(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_membership_panel(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Expand raw membership intervals over the requested trading calendar."""
 
         spec, source, catalog = self._state(dataset)
         semantics = catalog.semantics
         if not isinstance(semantics, MembershipSemantics):
-            raise SchemaMismatchError(
-                f"Tushare dataset {catalog.name!r} is not membership data"
-            )
+            raise SchemaMismatchError(f"Tushare dataset {catalog.name!r} is not membership data")
         if query.start is None or query.end is None:
             raise InvalidQueryError(
                 f"Dataset {spec.name!r} membership panel requires both start and end"
@@ -555,7 +505,7 @@ class TushareBackend:
         if query.instruments == ():
             frames: list[pd.DataFrame] = []
         else:
-            frames = self._fetch_table_frames(
+            frames = self._fetch_route_frames(
                 self._client(source.connection),
                 source.fixed_params,
                 route,
@@ -645,8 +595,7 @@ class TushareBackend:
         if catalog is None:
             supported = ", ".join(sorted(TUSHARE_DATASETS))
             raise DatasetRegistrationError(
-                f"Unsupported Tushare dataset {dataset_name!r}; "
-                f"supported datasets: {supported}"
+                f"Unsupported Tushare dataset {dataset_name!r}; supported datasets: {supported}"
             )
         return catalog
 
@@ -658,50 +607,22 @@ class TushareBackend:
         semantics = catalog.semantics
         if isinstance(semantics, DisclosureSemantics):
             return DatasetContract(
-                table_time_column=semantics.period_column,
+                source_time_column=semantics.period_column,
                 instrument_column=catalog.instrument_column,
-                table_identity_columns=semantics.identity_columns,
-                table_frequency=semantics.table_frequency,
                 panel_time_column=semantics.panel_time_column,
                 panel_frequency=semantics.panel_frequency,
                 timezone=definition.timezone,
                 version=definition.version,
-                panel_requires_time_range=True,
-            )
-        if isinstance(semantics, MembershipSemantics):
-            return DatasetContract(
-                table_time_column=semantics.table_time_column,
-                instrument_column=catalog.instrument_column,
-                table_identity_columns=semantics.identity_columns,
-                panel_time_column=semantics.panel_time_column,
-                panel_frequency=semantics.panel_frequency,
-                timezone=definition.timezone,
-                version=definition.version,
-                table_requires_time_range=True,
-                panel_requires_time_range=True,
-            )
-        if isinstance(semantics, ObservationSemantics):
-            return DatasetContract(
-                table_time_column=semantics.table_time_column,
-                instrument_column=catalog.instrument_column,
-                table_identity_columns=semantics.identity_columns,
-                table_frequency=semantics.table_frequency,
-                panel_time_column=semantics.panel_time_column,
-                panel_frequency=semantics.panel_frequency,
-                timezone=definition.timezone,
-                version=definition.version,
-                table_requires_time_range=True,
                 panel_requires_time_range=True,
             )
         return DatasetContract(
-            table_time_column=semantics.table_time_column,
+            source_time_column=semantics.source_time_column,
             instrument_column=catalog.instrument_column,
-            table_identity_columns=semantics.identity_columns,
-            table_frequency=semantics.table_frequency,
+            panel_time_column=semantics.panel_time_column,
+            panel_frequency=semantics.panel_frequency,
             timezone=definition.timezone,
             version=definition.version,
-            panel_compatible=False,
-            table_requires_time_range=True,
+            panel_requires_time_range=True,
         )
 
     @staticmethod
@@ -712,14 +633,10 @@ class TushareBackend:
         if not isinstance(definition.fixed_params, Mapping):
             raise DatasetRegistrationError("Tushare fixed_params must be a mapping")
         invalid_param_keys = [
-            key
-            for key in definition.fixed_params
-            if not isinstance(key, str) or not key
+            key for key in definition.fixed_params if not isinstance(key, str) or not key
         ]
         if invalid_param_keys:
-            raise DatasetRegistrationError(
-                "Tushare fixed_params keys must be non-empty strings"
-            )
+            raise DatasetRegistrationError("Tushare fixed_params keys must be non-empty strings")
         schema_names = set(catalog.schema.names)
         semantics = catalog.semantics
         required = {catalog.instrument_column}
@@ -730,51 +647,41 @@ class TushareBackend:
                     semantics.disclosure_column,
                     *semantics.identity_columns,
                     *semantics.revision_order,
-                    *semantics.table_order,
+                    *semantics.source_order,
                 }
             )
         elif isinstance(semantics, MembershipSemantics):
             required.update(
                 {
-                    semantics.table_time_column,
+                    semantics.source_time_column,
                     semantics.interval_start_column,
                     semantics.interval_end_column,
                     *semantics.identity_columns,
-                    *semantics.table_order,
+                    *semantics.source_order,
                 }
             )
         else:
             required.update(
                 {
-                    semantics.table_time_column,
+                    semantics.source_time_column,
                     *semantics.identity_columns,
-                    *semantics.table_order,
+                    *semantics.source_order,
                 }
             )
         missing = required.difference(schema_names)
         if missing:
             raise DatasetRegistrationError(
-                f"Tushare dataset {catalog.name!r} is missing configured columns: "
-                f"{sorted(missing)}"
+                f"Tushare dataset {catalog.name!r} is missing configured columns: {sorted(missing)}"
             )
         reserved = {"fields"}
         for route in catalog.routes:
             reserved.add(route.instrument_param)
-            query_shapes: tuple[object, ...] = (
-                route.table_query,
-                route.disclosure_query,
-            )
-            for query_shape in query_shapes:
-                if isinstance(query_shape, PeriodQuery):
-                    reserved.add(query_shape.period_param)
-                elif isinstance(query_shape, DateRangeQuery):
-                    reserved.update(
-                        {query_shape.start_param, query_shape.end_param}
-                    )
-                elif isinstance(query_shape, TradeDateQuery):
-                    reserved.add(query_shape.date_param)
-                # Membership status is intentionally user-fixable. Without an
-                # override the backend queries both current and historical rows.
+            query_shape = route.query_shape
+            if isinstance(query_shape, DateRangeQuery):
+                reserved.update({query_shape.start_param, query_shape.end_param})
+            elif isinstance(query_shape, TradeDateQuery):
+                reserved.add(query_shape.date_param)
+            # Membership status is user-fixable; otherwise fetch current and history.
         conflicts = reserved.intersection(definition.fixed_params)
         if conflicts:
             raise DatasetRegistrationError(
@@ -797,9 +704,7 @@ class TushareBackend:
     ) -> tuple[TushareDatasetSpec, TushareSource, TushareDatasetCatalog]:
         spec = dataset.spec
         source = dataset.source
-        if not isinstance(spec, TushareDatasetSpec) or not isinstance(
-            source, TushareSource
-        ):
+        if not isinstance(spec, TushareDatasetSpec) or not isinstance(source, TushareSource):
             raise SchemaMismatchError("Invalid Tushare registered dataset")
         return spec, source, self._catalog(source.dataset)
 
@@ -808,11 +713,7 @@ class TushareBackend:
         catalog: TushareDatasetCatalog,
         instruments: tuple[str, ...] | None,
     ) -> TushareApiRoute:
-        allowed = (
-            {"whole_market", "both"}
-            if instruments is None
-            else {"instrument_only", "both"}
-        )
+        allowed = {"whole_market", "both"} if instruments is None else {"instrument_only", "both"}
         for route in catalog.routes:
             if route.universe in allowed:
                 return route
@@ -837,15 +738,15 @@ class TushareBackend:
         columns = list(selected)
         semantics = catalog.semantics
         if isinstance(semantics, DisclosureSemantics):
-            internal = (*semantics.revision_order, *semantics.table_order)
+            internal = (*semantics.revision_order, *semantics.source_order)
         else:
-            internal = semantics.table_order
+            internal = semantics.source_order
         for column in internal:
             if column not in columns:
                 columns.append(column)
         return tuple(columns)
 
-    def _fetch_table_frames(
+    def _fetch_route_frames(
         self,
         client: Any,
         fixed_params: Mapping[str, object],
@@ -855,23 +756,17 @@ class TushareBackend:
         *,
         trade_dates: tuple[date, ...] | None = None,
     ) -> list[pd.DataFrame]:
-        """Execute one catalog route without changing logical table semantics."""
+        """Fetch observation or membership rows for panel construction."""
 
         if query.instruments == ():
             return []
         instruments: tuple[str | None, ...] = (
             query.instruments if query.instruments is not None else (None,)
         )
-        shape = route.table_query
-        periods: tuple[str | None, ...] = (None,)
+        shape = route.query_shape
         statuses: tuple[str | None, ...] = (None,)
         dates: tuple[date | None, ...] = (None,)
-        if isinstance(shape, PeriodQuery):
-            resolved = self._periods(query.start, query.end)
-            if resolved == ():
-                return []
-            periods = resolved if resolved is not None else (None,)
-        elif isinstance(shape, TradeDateQuery):
+        if isinstance(shape, TradeDateQuery):
             if trade_dates is None:
                 raise SchemaMismatchError(
                     f"Tushare api {route.api_name!r} requires resolved trading dates"
@@ -879,45 +774,33 @@ class TushareBackend:
             instruments = (None,)
             dates = trade_dates
         elif isinstance(shape, MembershipQuery):
-            statuses = (
-                (None,)
-                if shape.status_param in fixed_params
-                else tuple(shape.status_values)
-            )
+            statuses = (None,) if shape.status_param in fixed_params else tuple(shape.status_values)
 
         frames: list[pd.DataFrame] = []
         for instrument in instruments:
-            for period in periods:
-                for status in statuses:
-                    for trade_date in dates:
-                        params = self._route_params(
-                            fixed_params,
-                            route,
-                            query,
-                            fields,
-                            period=period,
-                            membership_status=status,
-                            trade_date=trade_date,
+            for status in statuses:
+                for trade_date in dates:
+                    params = self._route_params(
+                        fixed_params,
+                        route,
+                        fields,
+                        membership_status=status,
+                        trade_date=trade_date,
+                    )
+                    if instrument is not None:
+                        params[route.instrument_param] = instrument
+                    frame = self._call_api(client, route.api_name, params)
+                    if isinstance(shape, TradeDateQuery) and len(frame) >= shape.max_rows:
+                        rendered_date = (
+                            trade_date.isoformat() if trade_date is not None else "unknown"
                         )
-                        if instrument is not None:
-                            params[route.instrument_param] = instrument
-                        frame = self._call_api(client, route.api_name, params)
-                        if (
-                            isinstance(shape, TradeDateQuery)
-                            and len(frame) >= shape.max_rows
-                        ):
-                            rendered_date = (
-                                trade_date.isoformat()
-                                if trade_date is not None
-                                else "unknown"
-                            )
-                            raise RemoteQueryError(
-                                f"Tushare api {route.api_name!r} returned "
-                                f"{len(frame)} rows for {rendered_date}; "
-                                f"the result may be truncated at the "
-                                f"{shape.max_rows}-row API limit"
-                            )
-                        frames.append(frame)
+                        raise RemoteQueryError(
+                            f"Tushare api {route.api_name!r} returned "
+                            f"{len(frame)} rows for {rendered_date}; "
+                            f"the result may be truncated at the "
+                            f"{shape.max_rows}-row API limit"
+                        )
+                    frames.append(frame)
         return frames
 
     def _fetch_disclosure_route_frames(
@@ -930,11 +813,9 @@ class TushareBackend:
     ) -> list[pd.DataFrame]:
         """Fetch disclosure events through the route chosen for the universe."""
 
-        shape = route.disclosure_query
-        if shape is None:
-            raise InvalidQueryError(
-                f"Tushare api {route.api_name!r} has no disclosure query"
-            )
+        shape = route.query_shape
+        if not isinstance(shape, DateRangeQuery):
+            raise InvalidQueryError(f"Tushare api {route.api_name!r} has no disclosure query")
         if query.instruments == ():
             return []
         instruments: tuple[str | None, ...] = (
@@ -957,24 +838,15 @@ class TushareBackend:
     def _route_params(
         fixed_params: Mapping[str, object],
         route: TushareApiRoute,
-        query: DataQuery,
         fields: tuple[str, ...],
         *,
-        period: str | None,
         membership_status: str | None,
         trade_date: date | None,
     ) -> dict[str, object]:
         params = dict(fixed_params)
         params["fields"] = ",".join(fields)
-        shape = route.table_query
-        if isinstance(shape, PeriodQuery) and period is not None:
-            params[shape.period_param] = period
-        elif isinstance(shape, DateRangeQuery):
-            if query.start is not None:
-                params[shape.start_param] = query.start.strftime("%Y%m%d")
-            if query.end is not None:
-                params[shape.end_param] = query.end.strftime("%Y%m%d")
-        elif isinstance(shape, TradeDateQuery) and trade_date is not None:
+        shape = route.query_shape
+        if isinstance(shape, TradeDateQuery) and trade_date is not None:
             params[shape.date_param] = trade_date.strftime("%Y%m%d")
         elif isinstance(shape, MembershipQuery) and membership_status is not None:
             params[shape.status_param] = membership_status
@@ -1040,12 +912,9 @@ class TushareBackend:
         }
         frame = self._call_api(client, "trade_cal", params)
         if "cal_date" not in frame.columns:
-            raise RemoteQueryError(
-                "Tushare trade_cal result is missing the 'cal_date' column"
-            )
+            raise RemoteQueryError("Tushare trade_cal result is missing the 'cal_date' column")
         days = [
-            datetime.strptime(str(value), "%Y%m%d").date()
-            for value in frame["cal_date"].tolist()
+            datetime.strptime(str(value), "%Y%m%d").date() for value in frame["cal_date"].tolist()
         ]
         days.sort()
         return days
@@ -1064,8 +933,7 @@ class TushareBackend:
             missing = set(columns).difference(current.columns)
             if missing:
                 raise SchemaMismatchError(
-                    f"Tushare api {route.api_name!r} result is missing columns: "
-                    f"{sorted(missing)}"
+                    f"Tushare api {route.api_name!r} result is missing columns: {sorted(missing)}"
                 )
             selected = current.loc[:, list(columns)].copy()
             normalized.append(self._coerce_frame(selected, catalog.schema))
@@ -1098,11 +966,7 @@ class TushareBackend:
                 continue
             raw_end = row[semantics.interval_end_column]
             interval_start = max(cast(date, raw_start), panel_start)
-            interval_end = (
-                panel_end
-                if pd.isna(raw_end)
-                else min(cast(date, raw_end), panel_end)
-            )
+            interval_end = panel_end if pd.isna(raw_end) else min(cast(date, raw_end), panel_end)
             active = [day for day in sessions if interval_start <= day <= interval_end]
             if not active:
                 continue
@@ -1124,9 +988,7 @@ class TushareBackend:
             instrument_column,
             *precedence,
         ]
-        expanded = expanded.sort_values(
-            sort_columns, kind="mergesort", na_position="first"
-        )
+        expanded = expanded.sort_values(sort_columns, kind="mergesort", na_position="first")
         keys = [semantics.panel_time_column, instrument_column]
         winners: list[pd.Series] = []
         for _, group in expanded.groupby(keys, sort=False, dropna=False):
@@ -1136,9 +998,7 @@ class TushareBackend:
                 for column in precedence:
                     value = latest[column]
                     tied = tied.loc[
-                        tied[column].isna()
-                        if pd.isna(value)
-                        else tied[column].eq(value)
+                        tied[column].isna() if pd.isna(value) else tied[column].eq(value)
                     ]
             else:
                 tied = group
@@ -1156,10 +1016,7 @@ class TushareBackend:
     @staticmethod
     def _empty_arrow(schema: pa.Schema, selected: tuple[str, ...]) -> pa.Table:
         return pa.table(
-            {
-                column: pa.array([], type=schema.field(column).type)
-                for column in selected
-            }
+            {column: pa.array([], type=schema.field(column).type) for column in selected}
         )
 
     @staticmethod
@@ -1170,18 +1027,13 @@ class TushareBackend:
         selected: tuple[str, ...],
     ) -> pa.Table:
         fields = [
-            pa.field(column, pa.date32())
-            if column == panel_time_column
-            else schema.field(column)
+            pa.field(column, pa.date32()) if column == panel_time_column else schema.field(column)
             for column in selected
         ]
         selected_schema = pa.schema(fields)
         if frame.empty:
             return pa.table(
-                {
-                    field.name: pa.array([], type=field.type)
-                    for field in selected_schema
-                }
+                {field.name: pa.array([], type=field.type) for field in selected_schema}
             )
         try:
             return pa.Table.from_pandas(
@@ -1200,9 +1052,7 @@ class TushareBackend:
             if field.name not in frame.columns:
                 continue
             if pa.types.is_date32(field.type):
-                frame[field.name] = TushareBackend._coerce_yyyymmdd(
-                    frame[field.name], field.name
-                )
+                frame[field.name] = TushareBackend._coerce_yyyymmdd(frame[field.name], field.name)
             elif pa.types.is_string(field.type):
                 frame[field.name] = frame[field.name].astype("string")
             elif pa.types.is_integer(field.type):
@@ -1269,20 +1119,12 @@ class TushareBackend:
             return frame
         if query.start is not None:
             start = pd.Timestamp(query.start.date())
-            interval_ends = pd.to_datetime(
-                frame[semantics.interval_end_column]
-            )
-            frame = frame.loc[
-                interval_ends.isna() | (interval_ends >= start)
-            ]
+            interval_ends = pd.to_datetime(frame[semantics.interval_end_column])
+            frame = frame.loc[interval_ends.isna() | (interval_ends >= start)]
         if query.end is not None:
             end = pd.Timestamp(query.end.date())
-            interval_starts = pd.to_datetime(
-                frame[semantics.interval_start_column]
-            )
-            frame = frame.loc[
-                interval_starts.notna() & (interval_starts <= end)
-            ]
+            interval_starts = pd.to_datetime(frame[semantics.interval_start_column])
+            frame = frame.loc[interval_starts.notna() & (interval_starts <= end)]
         return frame
 
     @staticmethod
@@ -1292,9 +1134,7 @@ class TushareBackend:
         available = [column for column in columns if column in frame.columns]
         if not available:
             return frame
-        return frame.sort_values(
-            available, kind="mergesort", na_position="last"
-        )
+        return frame.sort_values(available, kind="mergesort", na_position="last")
 
     @staticmethod
     def _frame_to_arrow(
@@ -1305,10 +1145,7 @@ class TushareBackend:
         selected_schema = pa.schema([schema.field(column) for column in selected])
         if frame.empty:
             return pa.table(
-                {
-                    field.name: pa.array([], type=field.type)
-                    for field in selected_schema
-                }
+                {field.name: pa.array([], type=field.type) for field in selected_schema}
             )
         try:
             return pa.Table.from_pandas(
@@ -1317,23 +1154,7 @@ class TushareBackend:
                 preserve_index=False,
             )
         except (pa.ArrowException, ValueError, TypeError) as exc:
-            raise SchemaMismatchError(
-                f"Unable to convert Tushare result to Arrow: {exc}"
-            ) from exc
-
-    @staticmethod
-    def _periods(start: datetime | None, end: datetime | None) -> tuple[str, ...] | None:
-        if start is None or end is None:
-            return None
-        start_date = start.date()
-        end_date = end.date()
-        periods: list[str] = []
-        for year in range(start_date.year, end_date.year + 1):
-            for month, day in _QUARTER_ENDS:
-                current = date(year, month, day)
-                if start_date <= current <= end_date:
-                    periods.append(current.strftime("%Y%m%d"))
-        return tuple(periods)
+            raise SchemaMismatchError(f"Unable to convert Tushare result to Arrow: {exc}") from exc
 
     @staticmethod
     def _close_client(client: Any) -> None:

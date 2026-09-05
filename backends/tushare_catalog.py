@@ -14,13 +14,6 @@ RouteUniverse: TypeAlias = Literal["instrument_only", "whole_market", "both"]
 
 
 @dataclass(frozen=True, slots=True)
-class PeriodQuery:
-    """Describe a report-period API query."""
-
-    period_param: str = "period"
-
-
-@dataclass(frozen=True, slots=True)
 class DateRangeQuery:
     """Describe a closed remote date-range API query."""
 
@@ -37,11 +30,6 @@ class TradeDateQuery:
 
 
 @dataclass(frozen=True, slots=True)
-class UnboundedQuery:
-    """Describe an API whose table rows are filtered locally."""
-
-
-@dataclass(frozen=True, slots=True)
 class MembershipQuery:
     """Describe the paired current/history membership requests."""
 
@@ -49,9 +37,7 @@ class MembershipQuery:
     status_values: tuple[str, ...] = ("Y", "N")
 
 
-TableQuery: TypeAlias = (
-    PeriodQuery | DateRangeQuery | TradeDateQuery | UnboundedQuery | MembershipQuery
-)
+QueryShape: TypeAlias = DateRangeQuery | TradeDateQuery | MembershipQuery
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,8 +46,7 @@ class TushareApiRoute:
 
     api_name: str
     universe: RouteUniverse
-    table_query: TableQuery
-    disclosure_query: DateRangeQuery | None = None
+    query_shape: QueryShape
     instrument_param: str = "ts_code"
 
 
@@ -73,8 +58,7 @@ class DisclosureSemantics:
     disclosure_column: str
     identity_columns: tuple[str, ...]
     revision_order: tuple[str, ...]
-    table_order: tuple[str, ...]
-    table_frequency: str | None = "q"
+    source_order: tuple[str, ...]
     panel_time_column: str = "trade_date"
     panel_frequency: str = "d"
 
@@ -86,8 +70,8 @@ class MembershipSemantics:
     interval_start_column: str
     interval_end_column: str
     identity_columns: tuple[str, ...]
-    table_order: tuple[str, ...]
-    table_time_column: str = "in_date"
+    source_order: tuple[str, ...]
+    source_time_column: str = "in_date"
     panel_time_column: str = "date"
     panel_frequency: str = "d"
 
@@ -96,27 +80,14 @@ class MembershipSemantics:
 class ObservationSemantics:
     """Describe unique time/instrument observations that can be pivoted."""
 
-    table_time_column: str
+    source_time_column: str
     identity_columns: tuple[str, ...]
-    table_order: tuple[str, ...]
-    table_frequency: str | None = "d"
+    source_order: tuple[str, ...]
     panel_time_column: str = "trade_date"
     panel_frequency: str = "d"
 
 
-@dataclass(frozen=True, slots=True)
-class EventSemantics:
-    """Describe a long event stream that cannot be pivoted."""
-
-    table_time_column: str
-    identity_columns: tuple[str, ...]
-    table_order: tuple[str, ...]
-    table_frequency: str | None = "d"
-
-
-TushareSemantics: TypeAlias = (
-    DisclosureSemantics | MembershipSemantics | ObservationSemantics | EventSemantics
-)
+TushareSemantics: TypeAlias = DisclosureSemantics | MembershipSemantics | ObservationSemantics
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,7 +119,7 @@ def build_tushare_catalogs(
             disclosure_column=disclosure_column,
             identity_columns=identity_columns,
             revision_order=revision_order,
-            table_order=_unique(
+            source_order=_unique(
                 (
                     "end_date",
                     "ts_code",
@@ -165,22 +136,20 @@ def build_tushare_catalogs(
                 TushareApiRoute(
                     api_name=name,
                     universe="instrument_only",
-                    table_query=PeriodQuery(),
-                    disclosure_query=disclosure_query,
+                    query_shape=disclosure_query,
                 ),
                 TushareApiRoute(
                     api_name=f"{name}_vip",
                     universe="whole_market",
-                    table_query=PeriodQuery(),
-                    disclosure_query=disclosure_query,
+                    query_shape=disclosure_query,
                 ),
             ),
         )
 
     observation_semantics = ObservationSemantics(
-        table_time_column="trade_date",
+        source_time_column="trade_date",
         identity_columns=(),
-        table_order=("trade_date", "ts_code"),
+        source_order=("trade_date", "ts_code"),
     )
     catalogs = {
         "daily_basic": TushareDatasetCatalog(
@@ -191,7 +160,7 @@ def build_tushare_catalogs(
                 TushareApiRoute(
                     api_name="daily_basic",
                     universe="both",
-                    table_query=TradeDateQuery(),
+                    query_shape=TradeDateQuery(),
                 ),
             ),
         ),
@@ -259,8 +228,7 @@ def build_tushare_catalogs(
         disclosure_column="ann_date",
         identity_columns=("ann_date",),
         revision_order=("ann_date",),
-        table_order=("end_date", "ts_code", "ann_date"),
-        table_frequency=None,
+        source_order=("end_date", "ts_code", "ann_date"),
     )
     catalogs["stk_holdernumber"] = TushareDatasetCatalog(
         name="stk_holdernumber",
@@ -270,8 +238,7 @@ def build_tushare_catalogs(
             TushareApiRoute(
                 api_name="stk_holdernumber",
                 universe="both",
-                table_query=UnboundedQuery(),
-                disclosure_query=DateRangeQuery(),
+                query_shape=DateRangeQuery(),
             ),
         ),
     )
@@ -281,7 +248,7 @@ def build_tushare_catalogs(
         interval_start_column="in_date",
         interval_end_column="out_date",
         identity_columns=("l1_code", "l2_code", "l3_code", "out_date", "is_new"),
-        table_order=("in_date", "ts_code", "out_date", "l3_code", "is_new"),
+        source_order=("in_date", "ts_code", "out_date", "l3_code", "is_new"),
     )
     for name in ("ci_index_member", "index_member_all"):
         catalogs[name] = TushareDatasetCatalog(
@@ -292,40 +259,11 @@ def build_tushare_catalogs(
                 TushareApiRoute(
                     api_name=name,
                     universe="both",
-                    table_query=MembershipQuery(),
+                    query_shape=MembershipQuery(),
                 ),
             ),
         )
 
-    event_semantics = EventSemantics(
-        table_time_column="ann_date",
-        identity_columns=(
-            "holder_name",
-            "holder_type",
-            "in_de",
-            "begin_date",
-            "close_date",
-        ),
-        table_order=(
-            "ann_date",
-            "ts_code",
-            "holder_name",
-            "begin_date",
-            "close_date",
-        ),
-    )
-    catalogs["stk_holdertrade"] = TushareDatasetCatalog(
-        name="stk_holdertrade",
-        schema=schemas["stk_holdertrade"],
-        semantics=event_semantics,
-        routes=(
-            TushareApiRoute(
-                api_name="stk_holdertrade",
-                universe="both",
-                table_query=DateRangeQuery(),
-            ),
-        ),
-    )
     return catalogs
 
 
@@ -343,15 +281,12 @@ TUSHARE_DATASETS = build_tushare_catalogs(TUSHARE_SCHEMAS)
 __all__ = [
     "DateRangeQuery",
     "DisclosureSemantics",
-    "EventSemantics",
     "MembershipQuery",
     "MembershipSemantics",
     "ObservationSemantics",
-    "PeriodQuery",
     "TradeDateQuery",
     "TushareApiRoute",
     "TushareDatasetCatalog",
     "TUSHARE_DATASETS",
-    "UnboundedQuery",
     "build_tushare_catalogs",
 ]

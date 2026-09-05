@@ -127,239 +127,6 @@ description = "分钟成交额。"
 [datasets.minghu_m1.fields.date]
 description = "日期"
 
-[datasets.minghu_tk]
-title = "明湖盘口快照"
-summary = "明湖汇`stock_base.tk`表描述。可能在同一秒内出现多行，只支持 `get_table()`；查询以 `time_int` 排序。"
-
-[datasets.minghu_tk.fields.code]
-description = "证券代码"
-
-[datasets.minghu_tk.fields.date_time]
-description = "日期详情, 业务时间, 精确到百分之一秒"
-
-[datasets.minghu_tk.fields.time_int]
-description = "date_time日期详情整形"
-
-[datasets.minghu_tk.fields.exg]
-description = "交易所编码：1 为深市，2 为沪市，3 为北交所。"
-
-[datasets.minghu_tk.fields.date]
-description = "日期"
-
-[datasets.minghu_tk.fields.pclose]
-description = "昨收价"
-
-[datasets.minghu_tk.fields.open]
-description = "开始价"
-
-[datasets.minghu_tk.fields.high]
-description = "最高价"
-
-[datasets.minghu_tk.fields.low]
-description = "最低价"
-
-[datasets.minghu_tk.fields.last]
-description = "最新价"
-
-[datasets.minghu_tk.fields.total_volume]
-description = "成交总量"
-
-[datasets.minghu_tk.fields.total_value]
-description = "成交总金额"
-
-[datasets.minghu_tk.fields.bid1]
-description = "买 1 档委托价。"
-
-[datasets.minghu_tk.fields.bid2]
-description = "买 2 档委托价。"
-
-[datasets.minghu_tk.fields.bid3]
-description = "买 3 档委托价。"
-
-[datasets.minghu_tk.fields.bid4]
-description = "买 4 档委托价。"
-
-[datasets.minghu_tk.fields.bid5]
-description = "买 5 档委托价。"
-
-[datasets.minghu_tk.fields.bid6]
-description = "买 6 档委托价。"
-
-[datasets.minghu_tk.fields.bid7]
-description = "买 7 档委托价。"
-
-[datasets.minghu_tk.fields.bid8]
-description = "买 8 档委托价。"
-
-[datasets.minghu_tk.fields.bid9]
-description = "买 9 档委托价。"
-
-[datasets.minghu_tk.fields.bid10]
-description = "买 10 档委托价。"
-
-[datasets.minghu_tk.fields.bidv1]
-description = "买 1 档委托量。"
-
-[datasets.minghu_tk.fields.bidv2]
-description = "买 2 档委托量。"
-
-[datasets.minghu_tk.fields.bidv3]
-description = "买 3 档委托量。"
-
-[datasets.minghu_tk.fields.bidv4]
-description = "买 4 档委托量。"
-
-[datasets.minghu_tk.fields.bidv5]
-description = "买 5 档委托量。"
-
-[datasets.minghu_tk.fields.bidv6]
-description = "买 6 档委托量。"
-
-[datasets.minghu_tk.fields.bidv7]
-description = "买 7 档委托量。"
-
-[datasets.minghu_tk.fields.bidv8]
-description = "买 8 档委托量。"
-
-[datasets.minghu_tk.fields.bidv9]
-description = "买 9 档委托量。"
-
-[datasets.minghu_tk.fields.bidv10]
-description = "买 10 档委托量。"
-
-[datasets.minghu_tk.fields.ask1]
-description = "卖 1 档委托价。"
-
-[datasets.minghu_tk.fields.ask2]
-description = "卖 2 档委托价。"
-
-[datasets.minghu_tk.fields.ask3]
-description = "卖 3 档委托价。"
-
-[datasets.minghu_tk.fields.ask4]
-description = "卖 4 档委托价。"
-
-[datasets.minghu_tk.fields.ask5]
-description = "卖 5 档委托价。"
-
-[datasets.minghu_tk.fields.ask6]
-description = "卖 6 档委托价。"
-
-[datasets.minghu_tk.fields.ask7]
-description = "卖 7 档委托价。"
-
-[datasets.minghu_tk.fields.ask8]
-description = "卖 8 档委托价。"
-
-[datasets.minghu_tk.fields.ask9]
-description = "卖 9 档委托价。"
-
-[datasets.minghu_tk.fields.ask10]
-description = "卖 10 档委托价。"
-
-[datasets.minghu_tk.fields.askv1]
-description = "卖 1 档委托量。"
-
-[datasets.minghu_tk.fields.askv2]
-description = "卖 2 档委托量。"
-
-[datasets.minghu_tk.fields.askv3]
-description = "卖 3 档委托量。"
-
-[datasets.minghu_tk.fields.askv4]
-description = "卖 4 档委托量。"
-
-[datasets.minghu_tk.fields.askv5]
-description = "卖 5 档委托量。"
-
-[datasets.minghu_tk.fields.askv6]
-description = "卖 6 档委托量。"
-
-[datasets.minghu_tk.fields.askv7]
-description = "卖 7 档委托量。"
-
-[datasets.minghu_tk.fields.askv8]
-description = "卖 8 档委托量。"
-
-[datasets.minghu_tk.fields.askv9]
-description = "卖 9 档委托量。"
-
-[datasets.minghu_tk.fields.askv10]
-description = "卖 10 档委托量。"
-
-[datasets.minghu_tk.fields.num_trades]
-description = "成交笔数"
-
-[datasets.minghu_tk.fields.trading_phase_code]
-description = "交易阶段代码。"
-
-[datasets.minghu_tk.fields.close]
-description = "收盘价"
-
-[datasets.minghu_tk.fields.ztprice]
-description = "涨停价。"
-
-[datasets.minghu_tk.fields.dtprice]
-description = "跌停价。"
-
-[datasets.minghu_zb]
-title = "明湖逐笔事件"
-summary = "明湖汇`stock_base.zb`表描述。只支持 `get_table()`。"
-
-[datasets.minghu_zb.fields.code]
-description = "证券代码"
-
-[datasets.minghu_zb.fields.date]
-description = "日期"
-
-[datasets.minghu_zb.fields.date_time]
-description = "日期详情,业务时间,精确到百分之一秒"
-
-[datasets.minghu_zb.fields.exg]
-description = "交易所编码：1 为深市，2 为沪市，3 为北交所。"
-
-[datasets.minghu_zb.fields.time_int]
-description = "date_time日期详情整形"
-
-[datasets.minghu_zb.fields.price]
-description = "价格"
-
-[datasets.minghu_zb.fields.volume]
-description = "委托数量"
-
-[datasets.minghu_zb.fields.side]
-description = "买卖标志,B-买单,S-卖单,G-借入,F-借出"
-
-[datasets.minghu_zb.fields.type]
-description = "订单类别,沪市为A-新增委托订单,D-删除委托订单,即撤单,深市为1-市价,2-限价,U - 本方最优"
-
-[datasets.minghu_zb.fields.trade_flag]
-description = "成交单子的内外盘标志:B-沪市外盘,主动买,S-沪市内盘,主动卖,N-沪市未知,F-深市成交,4-深市撤单"
-
-[datasets.minghu_zb.fields.chno]
-description = "频道代码，通道"
-
-[datasets.minghu_zb.fields.bidno]
-description = "成交单子的买方委托编号"
-
-[datasets.minghu_zb.fields.askno]
-description = "成交单子的卖方委托编号"
-
-[datasets.minghu_zb.fields.ordno]
-description = "委托单子的编号,sh的order_no,sz的app_seq_num,sz的成交单子也有,sh的成交单子无,默认为0"
-
-[datasets.minghu_zb.fields.seqno]
-description = "序列号,要求连续递增唯一,sh的业务序列号biz_idx,sz的委托索引app_seq_num"
-
-[datasets.minghu_zb.fields.ctype]
-description = "type,side,flag的合并, 1是新增限价委托,2是新增市价委托,3是新增本方最优,4是撤单,5是成交"
-
-[datasets.minghu_zb.fields.cbidno]
-description = "合并的成交单子的买方委托编号"
-
-[datasets.minghu_zb.fields.caskno]
-description = "合并的成交单子的买方委托编号"
-
 [datasets.daily_basic]
 title = "Tushare 每日基本面指标"
 summary = "全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，本地直接扫描范围内的日期分区，`get_panel()` 以 `trade_date × ts_code` 构造宽表。"
@@ -423,7 +190,7 @@ description = "收盘涨跌状态：0 平盘，1 上涨，2 涨停，3 一字涨
 
 [datasets.income]
 title = "Tushare 利润表"
-summary = "利润表逻辑数据集。`get_table()` 按报告期保留全部公告与修订；`get_panel()` 以 `f_ann_date` 对齐交易日并构造 PIT 状态。"
+summary = "利润表逻辑数据集。`get_panel()` 以 `f_ann_date` 对齐交易日并构造 PIT 状态。"
 
 [datasets.income.fields.ts_code]
 description = "带交易所后缀的证券代码。"
@@ -2143,7 +1910,7 @@ description = "股东户数。"
 
 [datasets.ci_index_member]
 title = "Tushare 中信行业成分"
-summary = "`get_table()` 保留 `in_date`/`out_date` 原始区间，`get_panel()` 才将中信行业成分区间展开到开市日。"
+summary = "`get_panel()` 将中信行业成分区间展开到开市日。"
 
 [datasets.ci_index_member.fields.l1_code]
 description = "一级行业代码。"
@@ -2180,7 +1947,7 @@ description = "当前成分与历史成分标记。"
 
 [datasets.index_member_all]
 title = "Tushare 申万行业成分"
-summary = "`get_table()` 保留 `in_date`/`out_date` 原始区间，`get_panel()` 才将申万行业成分区间展开到开市日。"
+summary = "`get_panel()` 将申万行业成分区间展开到开市日。"
 
 [datasets.index_member_all.fields.l1_code]
 description = "一级行业代码。"
@@ -2214,46 +1981,3 @@ description = "移出行业成分的日期；空值表示仍在成分中。"
 
 [datasets.index_member_all.fields.is_new]
 description = "当前成分与历史成分标记。"
-
-[datasets.stk_holdertrade]
-title = "Tushare 股东增减持"
-summary = "股东增减持为一对多事件长表，默认以公告日为时间并只支持 `get_table()`。"
-
-[datasets.stk_holdertrade.fields.ts_code]
-description = "带交易所后缀的证券代码。"
-
-[datasets.stk_holdertrade.fields.ann_date]
-description = "增减持事件公告日期。"
-
-[datasets.stk_holdertrade.fields.holder_name]
-description = "股东名称。"
-
-[datasets.stk_holdertrade.fields.holder_type]
-description = "股东类型。"
-
-[datasets.stk_holdertrade.fields.in_de]
-description = "变动方向：增持或减持。"
-
-[datasets.stk_holdertrade.fields.change_vol]
-description = "本次增减持股数。"
-
-[datasets.stk_holdertrade.fields.change_ratio]
-description = "本次变动比例（%）。"
-
-[datasets.stk_holdertrade.fields.after_share]
-description = "变动后持股数。"
-
-[datasets.stk_holdertrade.fields.after_ratio]
-description = "变动后持股比例（%）。"
-
-[datasets.stk_holdertrade.fields.avg_price]
-description = "本次增减持均价。"
-
-[datasets.stk_holdertrade.fields.total_share]
-description = "本次变动合计股数。"
-
-[datasets.stk_holdertrade.fields.begin_date]
-description = "增减持区间开始日期。"
-
-[datasets.stk_holdertrade.fields.close_date]
-description = "增减持区间结束日期。"

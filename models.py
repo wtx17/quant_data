@@ -120,9 +120,6 @@ class ClickHouseDatasetSpec:
         IANA timezone used to localize or convert query bounds.
     version
         Optional dataset version stored in result metadata.
-    panel_compatible
-        Whether the table has at most one observation per time/instrument key
-        and can therefore be returned by ``get_panel``.
     require_time_range
         Explicitly require both ``start`` and ``end``. ``None`` derives the
         requirement from ``partition_column``.
@@ -144,7 +141,6 @@ class ClickHouseDatasetSpec:
     frequency: str | None = None
     timezone: str | None = "Asia/Shanghai"
     version: str | None = None
-    panel_compatible: bool = True
     require_time_range: bool | None = None
     backend: str = field(default="clickhouse", init=False)
 
@@ -182,7 +178,7 @@ class TushareDatasetSpec:
         this only when registering an alias or a fixed-parameter view.
     fixed_params
         Constant API parameters added to every request. Backend-managed
-        parameters such as fields, dates, periods, and instruments are
+        parameters such as fields, dates, and instruments are
         reserved.
     timezone
         IANA timezone used to interpret query bounds.
@@ -276,58 +272,26 @@ class TushareParquetDatasetSpec:
 
 
 DatasetDefinition = (
-    DatasetSpec
-    | ClickHouseDatasetSpec
-    | TushareDatasetSpec
-    | TushareParquetDatasetSpec
+    DatasetSpec | ClickHouseDatasetSpec | TushareDatasetSpec | TushareParquetDatasetSpec
 )
 
 
 @dataclass(frozen=True, slots=True)
 class DatasetContract:
-    """Describe the prepared query and result contract for one dataset.
+    """Prepared panel contract derived by the backend during registration.
 
-    Parameters
-    ----------
-    table_time_column
-        Time key used by :meth:`quant_data.DataClient.get_table` and its range
-        filter.
-    instrument_column
-        Security identifier used by both table and panel queries.
-    table_identity_columns
-        Backend-declared columns returned automatically after the two table
-        keys so repeated event or revision rows remain distinguishable.
-    table_frequency, panel_frequency
-        Optional method-specific frequencies recorded in result metadata.
-    panel_time_column
-        Output index name for panel queries, or ``None`` when panels are not
-        supported.
-    timezone
-        IANA timezone used to interpret public query bounds.
-    version
-        Optional dataset version copied to query metadata.
-    panel_compatible
-        Whether panel queries are supported.
-    table_requires_time_range, panel_requires_time_range
-        Whether the corresponding method requires both time bounds.
-
-    Notes
-    -----
-    Backends derive this immutable contract during registration. It prevents
-    backend-specific public specifications from becoming a second source of
-    truth for catalog-owned keys and temporal semantics.
+    ``source_time_column`` identifies source observations (the report period
+    for disclosures); ``panel_time_column`` names the output index.
+    Frequency is optional metadata, not a sampling restriction.
     """
 
-    table_time_column: str
+    source_time_column: str
     instrument_column: str
-    table_identity_columns: tuple[str, ...] = ()
-    table_frequency: str | None = None
-    panel_time_column: str | None = None
+    panel_time_column: str
     panel_frequency: str | None = None
     timezone: str | None = None
     version: str | None = None
-    panel_compatible: bool = True
-    table_requires_time_range: bool = False
+
     panel_requires_time_range: bool = False
 
 
@@ -394,15 +358,12 @@ class DataQuery:
     instruments
         Requested instruments in caller order, ``None`` for all instruments,
         or an empty tuple for a guaranteed empty result.
-    limit
-        Optional positive row limit for long-table queries.
     """
 
     fields: tuple[str, ...]
     start: datetime | None = None
     end: datetime | None = None
     instruments: tuple[str, ...] | None = None
-    limit: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -443,7 +404,7 @@ class QueryAudit:
     framework_version
         Package version that executed the query.
     operation
-        ``"panel"`` or ``"table"``.
+        Always ``"panel"``.
 
     Notes
     -----

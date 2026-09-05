@@ -1,7 +1,7 @@
 """Storage backend protocol."""
 
 from datetime import date
-from typing import Literal, Protocol
+from typing import Protocol
 
 import pyarrow as pa
 
@@ -43,7 +43,7 @@ class DataBackend(Protocol):
         dataset
             Prepared dataset returned by :meth:`prepare`.
         query
-            Validated field, time, instrument, and limit request.
+            Validated field, time, and instrument request.
 
         Returns
         -------
@@ -83,30 +83,22 @@ class TushareSemanticBackend(Protocol):
 
         ...
 
-    def scan_disclosure_events(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_disclosure_events(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Return disclosure events needed to construct a PIT panel."""
 
         ...
 
-    def trade_calendar(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> list[date]:
+    def trade_calendar(self, dataset: RegisteredDataset, query: DataQuery) -> list[date]:
         """Return trading sessions required by a panel query."""
 
         ...
 
-    def pit_panel_semantics(
-        self, dataset: RegisteredDataset
-    ) -> tuple[str, str, tuple[str, ...]]:
+    def pit_panel_semantics(self, dataset: RegisteredDataset) -> tuple[str, str, tuple[str, ...]]:
         """Return disclosure, period, and revision-order columns."""
 
         ...
 
-    def scan_membership_panel(
-        self, dataset: RegisteredDataset, query: DataQuery
-    ) -> pa.Table:
+    def scan_membership_panel(self, dataset: RegisteredDataset, query: DataQuery) -> pa.Table:
         """Expand effective-dated membership rows over a trading calendar."""
 
         ...
@@ -115,7 +107,6 @@ class TushareSemanticBackend(Protocol):
         self,
         dataset: RegisteredDataset,
         query: DataQuery,
-        mode: Literal["panel", "table"],
     ) -> DataQuery:
         """Apply and validate snapshot boundaries for a query."""
 

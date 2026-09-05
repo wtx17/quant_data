@@ -51,22 +51,19 @@ CSV 行序即面板列序；预期数量为沪深 300、上证 50、中证 500�
 - `add_tushare_connection(name: str, config: TushareConfig) -> None`
 - `register(spec: DatasetDefinition) -> None`
 - `get_panel(dataset, fields, start=None, end=None, instruments=None, adjusted=None, *, universe: str | None = None) -> dict[str, pd.DataFrame]`
-- `get_table(dataset, fields, start=None, end=None, instruments=None, limit=None, adjusted=None) -> pa.Table`
 - `close() -> None`
 - `__enter__() -> DataClient`
 - `__exit__(exc_type, exc_value, traceback) -> None`
 
 关键内部入口：
 
-- `_execute(mode, dataset, fields, start, end, instruments, limit, adjusted, universe)`
+- `_execute(dataset, fields, start, end, instruments, adjusted, universe)`
 - `_build_tushare_disclosure_panels(dataset_name, dataset, query, record, backend)`
 - `_build_panels(table, dataset_name, dataset, query, record, apply_adjustment)`
-- `_prepare_query(mode, dataset, fields, start, end, instruments, limit) -> DataQuery`
+- `_prepare_query(dataset, fields, start, end, instruments) -> DataQuery`
 - `_resolve_adjustment(dataset, adjusted) -> bool`
 - `_adjust_prices(table, dataset) -> pa.Table`
 - `_validate_table_keys(table, dataset, *, time_column, instrument_column)`
-- `_table_columns(dataset, fields) -> tuple[str, ...]`
-- `_attach_table_metadata(table, query_id, dataset, parameters) -> pa.Table`
 
 ### `models.py`
 
@@ -74,21 +71,21 @@ CSV 行序即面板列序；预期数量为沪深 300、上证 50、中证 500�
 
 - `DatasetSpec(name, paths, time_column="time", instrument_column="ts_code", frequency=None, timezone=None, version=None, backend="parquet")`
 - `ClickHouseConfig(host, port=8123, username=None, password=None, password_env=None, secure=False, connect_timeout=10, query_timeout=300)`
-- `ClickHouseDatasetSpec(name, connection, table, time_column, instrument_column="code", partition_column=None, order_columns=(), frequency=None, timezone="Asia/Shanghai", version=None, panel_compatible=True, require_time_range=None)`；`backend="clickhouse"`
+- `ClickHouseDatasetSpec(name, connection, table, time_column, instrument_column="code", partition_column=None, order_columns=(), frequency=None, timezone="Asia/Shanghai", version=None, require_time_range=None)`；`backend="clickhouse"`
 - `TushareConfig(token=None, token_env="TUSHARE_TOKEN")`
 - `TushareDatasetSpec(name, connection, dataset=None, fixed_params=<factory>, timezone="Asia/Shanghai", version=None, disclosure_lag=0, calendar_exchange="SSE", fetch_buffer_days=180, fetch_margin_days=31)`；`backend="tushare"`
 - `TushareParquetDatasetSpec(name, data_dir, calendar_connection, dataset=None, fixed_params=<factory>, timezone="Asia/Shanghai", version=None, disclosure_lag=0, calendar_exchange="SSE", fetch_buffer_days=180, fetch_margin_days=31)`；`backend="parquet"`
-- `DatasetContract(table_time_column, instrument_column, table_identity_columns=(), table_frequency=None, panel_time_column=None, panel_frequency=None, timezone=None, version=None, panel_compatible=True, table_requires_time_range=False, panel_requires_time_range=False)`
+- `DatasetContract(source_time_column, instrument_column, panel_time_column, panel_frequency=None, timezone=None, version=None, panel_requires_time_range=False)`
 - `RegisteredDataset(spec, schema, source, contract, adjustment=None)`
 - `PriceAdjustment(factor_column, fields, default=True)`
-- `DataQuery(fields, start=None, end=None, instruments=None, limit=None)`
+- `DataQuery(fields, start=None, end=None, instruments=None)`
 - `FileFingerprint(path, size, mtime_ns)`
 - `QueryAudit(query_id, dataset, fields, parameters, started_at, framework_version, operation="panel", ...)`
 - `DatasetDefinition = DatasetSpec | ClickHouseDatasetSpec | TushareDatasetSpec | TushareParquetDatasetSpec`
 
 ### `initialize.py`
 
-- `_ClickHouseRegistration(name, table, time_column, partition_column=None, order_columns=(), frequency=None, panel_compatible=True)`
+- `_ClickHouseRegistration(name, table, time_column, partition_column=None, order_columns=(), frequency=None)`
 - `clickhouse_dataset_specs(connection="minghu") -> tuple[ClickHouseDatasetSpec, ...]`
 - `tushare_dataset_specs(connection="tushare") -> tuple[TushareDatasetSpec, ...]`
 - `tushare_parquet_dataset_specs(data_dir, calendar_connection="tushare") -> tuple[TushareParquetDatasetSpec, ...]`
@@ -112,14 +109,12 @@ Tushare 注册集合：
 - `minghu_daily -> stock_base.daily`
 - `minghu_index_daily -> index_base.daily`
 - `minghu_m1 -> stock_base.m1`
-- `minghu_tk -> stock_base.tk`
-- `minghu_zb -> stock_base.zb`
 
 默认 Tushare 数据集：
 
 - `daily_basic`
 - `income`, `balancesheet`, `cashflow`, `fina_indicator`, `express`, `forecast`
-- `stk_holdernumber`, `ci_index_member`, `index_member_all`, `stk_holdertrade`
+- `stk_holdernumber`, `ci_index_member`, `index_member_all`
 
 ### `audit.py`
 
@@ -160,7 +155,7 @@ Tushare 注册集合：
 - `trade_calendar(dataset, query) -> list[date]`
 - `pit_panel_semantics(dataset) -> tuple[str, str, tuple[str, ...]]`
 - `scan_membership_panel(dataset, query) -> pa.Table`
-- `normalize_snapshot_query(dataset, query, mode) -> DataQuery`
+- `normalize_snapshot_query(dataset, query) -> DataQuery`
 
 ### `backends/parquet.py`
 
@@ -170,7 +165,7 @@ Tushare 注册集合：
 - `prepare(definition) -> RegisteredDataset`
 - `scan(dataset, query) -> pa.Table`
 - `fingerprint(dataset) -> dict[str, object]`
-- `normalize_snapshot_query(dataset, query, mode) -> DataQuery`
+- `normalize_snapshot_query(dataset, query) -> DataQuery`
 - `panel_kind(dataset) -> str`
 - `scan_disclosure_events(dataset, query) -> pa.Table`
 - `trade_calendar(dataset, query) -> list[date]`
@@ -184,7 +179,7 @@ Tushare 注册集合：
 - `_ArchivePartition(key, relative_path, path, rows, bytes, sha256)`
 - `_TushareParquetSource(data_dir, manifest_path, manifest_version, dataset, schema_hash, range_start, range_end, updated_at, fixed_params, partitions)`
 - `_prepare_generic(definition)`, `_prepare_tushare(definition)`
-- `_read_archive_frame(dataset, query, columns, *, date_column=None, membership=None, order_columns=(), limit=None)`
+- `_read_archive_frame(dataset, query, columns, *, date_column=None, membership=None, order_columns=())`
 - `_validate_manifest_fields(manifest, catalog)`
 - `_resolve_manifest_partitions(data_dir, manifest, catalog, logical_name)`
 - `_archive_type_compatible(stored, public) -> bool`
@@ -226,31 +221,28 @@ Tushare 注册集合：
 - `TUSHARE_SCHEMAS: dict[str, pa.Schema]`
 
 物理 schema：`daily_basic`, `income`, `balancesheet`, `cashflow`, `fina_indicator`,
-`express`, `forecast`, `stk_holdernumber`, `stk_holdertrade`, `industry_member`。
+`express`, `forecast`, `stk_holdernumber`, `industry_member`。
 
 ### `backends/tushare_catalog.py`
 
 查询形状：
 
-- `PeriodQuery(period_param="period")`
 - `DateRangeQuery(start_param="start_date", end_param="end_date")`
 - `TradeDateQuery(date_param="trade_date", max_rows=6000)`
-- `UnboundedQuery()`
 - `MembershipQuery(status_param="is_new", status_values=("Y", "N"))`
 
 Catalog 对象：
 
-- `TushareApiRoute(api_name, universe, table_query, disclosure_query=None, instrument_param="ts_code")`
-- `DisclosureSemantics(period_column, disclosure_column, identity_columns, revision_order, table_order, table_frequency="q", panel_time_column="trade_date", panel_frequency="d")`
-- `MembershipSemantics(interval_start_column, interval_end_column, identity_columns, table_order, table_time_column="in_date", panel_time_column="date", panel_frequency="d")`
-- `ObservationSemantics(table_time_column, identity_columns, table_order, table_frequency="d", panel_time_column="trade_date", panel_frequency="d")`
-- `EventSemantics(table_time_column, identity_columns, table_order, table_frequency="d")`
+- `TushareApiRoute(api_name, universe, query_shape, instrument_param="ts_code")`
+- `DisclosureSemantics(period_column, disclosure_column, identity_columns, revision_order, source_order, panel_time_column="trade_date", panel_frequency="d")`
+- `MembershipSemantics(interval_start_column, interval_end_column, identity_columns, source_order, source_time_column="in_date", panel_time_column="date", panel_frequency="d")`
+- `ObservationSemantics(source_time_column, identity_columns, source_order, panel_time_column="trade_date", panel_frequency="d")`
 - `TushareDatasetCatalog(name, schema, semantics, routes, instrument_column="ts_code")`
 - `build_tushare_catalogs(schemas) -> dict[str, TushareDatasetCatalog]`
 - `TUSHARE_DATASETS`
 
 - `daily_basic` 使用 `ObservationSemantics` 和 `TradeDateQuery`；键为
-  `trade_date × ts_code`，表和面板查询都要求闭区间。
+  `trade_date × ts_code`，面板查询要求闭区间。
 - `ci_index_member` 和 `index_member_all` 共用 `industry_member` schema。
 
 ### `backends/tushare.py`
@@ -270,24 +262,22 @@ Catalog 对象：
 - `pit_panel_semantics(dataset) -> tuple[str, str, tuple[str, ...]]`
 - `route_name(dataset, query) -> str | None`
 - `panel_kind(dataset) -> str`
-- `table_columns(dataset, fields) -> tuple[str, ...]`
 - `scan_membership_panel(dataset, query) -> pa.Table`
-- `normalize_snapshot_query(dataset, query, mode) -> DataQuery`
+- `normalize_snapshot_query(dataset, query) -> DataQuery`
 - `fingerprint(dataset) -> dict[str, object]`
 - `close() -> None`
 
 关键内部入口：
 
 - `_select_route(catalog, instruments) -> TushareApiRoute`
-- `_fetch_table_frames(client, fixed_params, route, query, fields, *, trade_dates=None)`
+- `_fetch_route_frames(client, fixed_params, route, query, fields, *, trade_dates=None)`
 - `_fetch_disclosure_route_frames(client, fixed_params, route, query, fields)`
-- `_route_params(fixed_params, route, query, fields, *, period, membership_status, trade_date)`
+- `_route_params(fixed_params, route, fields, *, membership_status, trade_date)`
 - `_normalize_remote_frames(frames, catalog, columns, route) -> pd.DataFrame`
 - `_filter_instruments(frame, instrument_column, instruments) -> pd.DataFrame`
 - `_expand_membership_panel(frame, semantics, instrument_column, query, calendar, columns)`
 - `_coerce_frame(frame, schema) -> pd.DataFrame`
 - `_frame_to_arrow(frame, schema, selected) -> pa.Table`
-- `_periods(start, end) -> tuple[str, ...] | None`
 
 ## Transform
 
@@ -309,7 +299,7 @@ Catalog 对象：
 ### `tools/generate_dataset_catalog.py`
 
 - `CatalogError(RuntimeError)`
-- `DatasetReference(name, fields, table_time_column, instrument_column, table_identity_columns, panel_time_column)`；属性 `panel_compatible`
+- `DatasetReference(name, fields, source_time_column, instrument_column, identity_columns, panel_time_column)`
 - `DatasetNotes(title, summary, fields)`
 - `collect_references() -> tuple[DatasetReference, ...]`
 - `load_notes(references) -> dict[str, DatasetNotes]`
@@ -319,7 +309,7 @@ Catalog 对象：
 - `main() -> int`
 
 内部校验和渲染辅助：`_add_reference`, `_nonempty_text`, `_field_role`,
-`_escape_cell`, `_anchor`, `_unique`, `_code_list`。
+`_escape_cell`, `_anchor`。
 
 输入：源码 catalog 和 `tools/dataset_descriptions.toml`。输出：`DATASETS.md`。
 

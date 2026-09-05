@@ -53,17 +53,12 @@ class FakeTushareClient:
             start = _parse_date(params["start_date"])
             end = _parse_date(params["end_date"])
             days = [day for day in CALENDAR if start <= day <= end]
-            return pd.DataFrame(
-                {"cal_date": [day.strftime("%Y%m%d") for day in days]}
-            )
+            return pd.DataFrame({"cal_date": [day.strftime("%Y%m%d") for day in days]})
 
         frame = self.data[api_name].copy()
         instrument = params.get("ts_code")
         if instrument is not None:
             frame = frame.loc[frame["ts_code"] == instrument]
-        period = params.get("period")
-        if period is not None:
-            frame = frame.loc[frame["end_date"].astype(str) == str(period)]
         start = params.get("start_date")
         end = params.get("end_date")
         disclosure_column = "f_ann_date" if "f_ann_date" in frame else "ann_date"
@@ -165,107 +160,13 @@ def test_registration_is_offline_and_token_is_resolved_on_query(
     client.register(TushareDatasetSpec(name="income", connection="ts"))
 
     with pytest.raises(BackendConnectionError, match="MISSING_TUSHARE_TOKEN"):
-        client.get_table(
+        client.get_panel(
             "income",
             ["total_revenue"],
             start="2024-03-31",
             end="2024-03-31",
             instruments=["600000.SH"],
         )
-
-
-def test_table_uses_standard_route_and_retains_all_revisions(tmp_path: Path) -> None:
-    data = {
-        "income": income_rows(
-            [
-                {
-                    "ts_code": "600000.SH",
-                    "ann_date": "20240420",
-                    "f_ann_date": "20240420",
-                    "end_date": "20240331",
-                    "update_flag": 0,
-                    "total_revenue": 10.0,
-                },
-                {
-                    "ts_code": "600000.SH",
-                    "ann_date": "20240430",
-                    "f_ann_date": "20240430",
-                    "end_date": "20240331",
-                    "update_flag": 1,
-                    "total_revenue": 11.0,
-                },
-            ]
-        )
-    }
-    client, fake, _ = make_client(tmp_path, data)
-    register_income(client)
-
-    table = client.get_table(
-        "income",
-        ["total_revenue"],
-        start="2024-03-31",
-        end="2024-03-31",
-        instruments=["600000.SH"],
-    )
-
-    assert table["total_revenue"].to_pylist() == [10.0, 11.0]
-    assert table.column_names == [
-        "end_date",
-        "ts_code",
-        "ann_date",
-        "f_ann_date",
-        "report_type",
-        "comp_type",
-        "end_type",
-        "update_flag",
-        "total_revenue",
-    ]
-    data_calls = [(api, params) for api, params in fake.calls if api != "trade_cal"]
-    assert [api for api, _ in data_calls] == ["income"]
-    assert data_calls[0][1]["period"] == "20240331"
-    assert data_calls[0][1]["ts_code"] == "600000.SH"
-
-
-def test_whole_market_table_uses_vip_route(tmp_path: Path) -> None:
-    data = {
-        "income_vip": income_rows(
-            [
-                {
-                    "ts_code": "600000.SH",
-                    "ann_date": "20240420",
-                    "f_ann_date": "20240420",
-                    "end_date": "20240331",
-                    "total_revenue": 10.0,
-                },
-                {
-                    "ts_code": "000004.SZ",
-                    "ann_date": "20240421",
-                    "f_ann_date": "20240421",
-                    "end_date": "20240331",
-                    "total_revenue": 8.0,
-                },
-            ]
-        )
-    }
-    client, fake, _ = make_client(tmp_path, data)
-    register_income(client)
-
-    table = client.get_table(
-        "income",
-        ["total_revenue"],
-        start="2024-03-31",
-        end="2024-03-31",
-        instruments=None,
-    )
-
-    assert sorted(table["ts_code"].to_pylist()) == ["000004.SZ", "600000.SH"]
-    calls = [(api, params) for api, params in fake.calls if api != "trade_cal"]
-    assert [api for api, _ in calls] == ["income_vip"]
-    assert "ts_code" not in calls[0][1]
-    audit_path = next((tmp_path / "audit").rglob("*.json"))
-    audit = json.loads(audit_path.read_text())
-    assert audit["source"]["selected_api"] == "income_vip"
-    assert audit["parameters"]["data_api"] == "income_vip"
 
 
 def test_route_failure_does_not_fallback(tmp_path: Path) -> None:
@@ -277,7 +178,7 @@ def test_route_failure_does_not_fallback(tmp_path: Path) -> None:
     register_income(client)
 
     with pytest.raises(RemoteQueryError, match="income"):
-        client.get_table(
+        client.get_panel(
             "income",
             ["total_revenue"],
             start="2024-03-31",
@@ -579,60 +480,47 @@ def test_disclosure_panel_requires_closed_range(tmp_path: Path) -> None:
         )
 
 
-def test_event_dataset_is_lossless_table_only(tmp_path: Path) -> None:
-    trades = pd.DataFrame(
-        [
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240422",
-                "holder_name": "Alice",
-                "holder_type": "G",
-                "in_de": "IN",
-                "begin_date": "20240401",
-                "close_date": "20240420",
-                "change_vol": 100.0,
-            },
-            {
-                "ts_code": "600000.SH",
-                "ann_date": "20240422",
-                "holder_name": "Bob",
-                "holder_type": "P",
-                "in_de": "DE",
-                "begin_date": "20240402",
-                "close_date": "20240420",
-                "change_vol": 50.0,
-            },
-        ]
-    )
-    client, fake, _ = make_client(tmp_path, {"stk_holdertrade": trades})
-    client.register(TushareDatasetSpec(name="stk_holdertrade", connection="ts"))
+@pytest.mark.parametrize(
+    ("dataset", "field"),
+    [
+        ("income", "total_revenue"),
+        ("balancesheet", "total_assets"),
+        ("cashflow", "n_cashflow_act"),
+        ("fina_indicator", "roe"),
+        ("express", "revenue"),
+        ("forecast", "p_change_min"),
+        ("stk_holdernumber", "holder_num"),
+    ],
+)
+def test_all_disclosure_datasets_preserve_pit_revisions(
+    tmp_path: Path, dataset: str, field: str
+) -> None:
+    from quant_data.backends.tushare_catalog import TUSHARE_DATASETS
 
-    table = client.get_table(
-        "stk_holdertrade",
-        ["change_vol"],
-        start="2024-04-20",
-        end="2024-04-23",
-        instruments=["600000.SH"],
-    )
+    schema = TUSHARE_DATASETS[dataset].schema
+    rows = []
+    for announcement, value in [("20240422", 10.0), ("20240424", 11.0)]:
+        row = dict.fromkeys(schema.names)
+        row.update(ts_code="600000.SH", ann_date=announcement, end_date="20240331")
+        if "f_ann_date" in row:
+            row["f_ann_date"] = announcement
+        row[field] = value
+        rows.append(row)
+    client, fake, _ = make_client(tmp_path, {dataset: pd.DataFrame(rows)})
+    client.register(TushareDatasetSpec(name=dataset, connection="ts", fetch_buffer_days=30))
 
-    assert table.num_rows == 2
-    assert table.column_names == [
-        "ann_date",
-        "ts_code",
-        "holder_name",
-        "holder_type",
-        "in_de",
-        "begin_date",
-        "close_date",
-        "change_vol",
-    ]
-    data_call_count = len([api for api, _ in fake.calls if api == "stk_holdertrade"])
-    with pytest.raises(InvalidQueryError, match="cannot be pivoted"):
-        client.get_panel(
-            "stk_holdertrade",
-            ["change_vol"],
-            start="2024-04-20",
-            end="2024-04-23",
-            instruments=["600000.SH"],
-        )
-    assert len([api for api, _ in fake.calls if api == "stk_holdertrade"]) == data_call_count
+    panel = client.get_panel(
+        dataset,
+        [field],
+        start="2024-04-22",
+        end="2024-04-25",
+        instruments=["600000.SH", "MISSING.SZ"],
+    )[field]
+
+    assert panel.loc[pd.Timestamp("2024-04-22"), "600000.SH"] == 10.0
+    assert panel.loc[pd.Timestamp("2024-04-24"), "600000.SH"] == 11.0
+    assert panel["MISSING.SZ"].isna().all()
+    calls = [params for api, params in fake.calls if api == dataset]
+    assert len(calls) == 2
+    assert all("period" not in params for params in calls)
+    assert all(params["start_date"] == "20240323" for params in calls)

@@ -5,27 +5,26 @@
 `quant_data` 是量化研究数据访问库，统一读取本地 Parquet、ClickHouse 和 Tushare。
 
 - `DataClient.get_panel()` 返回 `time × instrument` 的 Pandas 宽表。
-- `DataClient.get_table()` 返回保留事件、修订和身份列的 Arrow 长表。
 - `get_panel(universe=...)` 支持 `hs300`、`sz50`、`zz500`、`zz1000` 四个包内
   版本化股票池快照。
 - ClickHouse 支持内置 Minghu 表和自定义表。
 - Tushare 支持远端 API，以及带 manifest 的本地 Parquet 快照。
-- Tushare `daily_basic` 支持普通日频长表和宽表；远端查询按交易日逐日获取。
+- Tushare `daily_basic` 支持普通日频宽表；远端查询按交易日逐日获取。
 - Tushare 财务披露数据支持交易日对齐的 point-in-time 面板。
-- 行业成分支持有效区间展开；一对多事件只支持长表。
+- 行业成分支持有效区间展开。
 - 每次查询都写入不含凭据的 JSON 审计记录。
 
 默认数据集和字段见 `DATASETS.md`，由 `initialize.py` 统一注册。
 
 ## 运行环境
 
-- Python：`>=3.11`；当前验证环境为 Python `3.11.14`。
-- 环境：`conda activate quant_data`。
+- Python：`>=3.11`
+- 环境：`conda activate qt`。
 - 非交互 shell：
 
 ```bash
 source /opt/anaconda3/etc/profile.d/conda.sh
-conda activate quant_data
+conda activate qt
 ```
 
 conda 环境已经配置好以下环境变量：
@@ -36,7 +35,7 @@ conda 环境已经配置好以下环境变量：
 
 ## 测试环境
 
-默认使用 `quant_data` Conda 环境，从仓库根目录执行。
+默认使用 `qt` Conda 环境，从仓库根目录执行。
 
 安全的离线测试：
 
@@ -82,8 +81,8 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
 
 - `DATASETS.md` 由 `tools/generate_dataset_catalog.py` 生成，不要手工修改。
 - `get_panel()` 的 `universe` 只接受 `hs300`、`sz50`、`zz500`、`zz1000`（忽略
-  大小写和首尾空白），与 `instruments` 互斥；`get_table()` 不支持 `universe`。
-  两个查询方法都必须拒绝裸字符串形式的 `instruments`，单证券也应放入列表。
+  大小写和首尾空白），与 `instruments` 互斥。
+  查询方法必须拒绝裸字符串形式的 `instruments`，单证券也应放入列表。
 - 四个股票池是固定快照，不是历史时点成分。`hs300`、`sz50`、`zz500` 的快照日期为
   `2026-07-20`，`zz1000` 的快照日期为 `2026-07-28`；即使查询更早数据，也使用
   对应的固定成分列表，不要将其描述为 point-in-time 股票池。
@@ -102,13 +101,14 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
   - 重新生成 `DATASETS.md`
 - 修改 ClickHouse 内置字段时，同步更新 `backends/clickhouse_catalog.py` 和集成校验。
 - 保持 schema 字段顺序稳定；顺序参与 Tushare schema hash。
-- `daily_basic` 的 `get_table()` 和 `get_panel()` 都要求闭区间 `start/end`。远端先通过
+- `daily_basic` 的 `get_panel()` 要求闭区间 `start/end`。远端先通过
   `trade_cal` 获取开市日，再逐日调用 `daily_basic(trade_date=...)`；即使指定
   `instruments` 也不要同时向 API 发送 `ts_code`，而应在合并后本地过滤。
 - `daily_basic` 单日返回达到 6000 行时必须报错，不能把可能被 API 截断的数据当作完整结果。
 - 配置 `tushare_data_dir` 后，全部 Tushare 数据集（包括 `daily_basic`）默认注册为
   本地数据源；只有 `tushare_remote_datasets` 指定的数据集使用远端 API。
-- `get_table()` 必须保留自动键和身份列；不要把事件数据强制透视为面板。
+- 内部扫描仍使用 Arrow 长表；保留财务 PIT 的公告、修订及行业成分的有效区间。
+- 自定义数据源不要求声明频率，也不检查分钟及以上粒度。
 - 不要在审计、异常、日志或 `repr` 中写入密码和 token。
 - 不要在未确认兼容策略时放宽 Tushare Parquet manifest 和分区 schema 校验。
 

@@ -798,41 +798,6 @@ TUSHARE_SCHEMAS: dict[str, pa.Schema] = {
             ]
         ),
     ),
-    "stk_holdertrade": _schema(
-        _strings(
-            [
-                "ts_code",
-            ]
-        ),
-        _dates(
-            [
-                "ann_date",
-            ]
-        ),
-        _strings(
-            [
-                "holder_name",
-                "holder_type",
-                "in_de",
-            ]
-        ),
-        _floats(
-            [
-                "change_vol",
-                "change_ratio",
-                "after_share",
-                "after_ratio",
-                "avg_price",
-                "total_share",
-            ]
-        ),
-        _dates(
-            [
-                "begin_date",
-                "close_date",
-            ]
-        ),
-    ),
     "industry_member": _schema(
         _strings(
             [

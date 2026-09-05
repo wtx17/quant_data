@@ -34,20 +34,15 @@ def test_minghu_catalog_matches_remote_schema() -> None:
         port=int(os.getenv("MINGHU_CLICKHOUSE_PORT", "8123")),
         username=os.environ["MINGHU_CLICKHOUSE_USERNAME"],
         password=os.environ["MINGHU_CLICKHOUSE_PASSWORD"],
-        secure=os.getenv("MINGHU_CLICKHOUSE_SECURE", "").lower()
-        in {"1", "true", "yes", "y", "on"},
+        secure=os.getenv("MINGHU_CLICKHOUSE_SECURE", "").lower() in {"1", "true", "yes", "y", "on"},
     )
     try:
         for table, expected in MINGHU_TABLE_COLUMN_TYPES.items():
             quoted_table = ".".join(f"`{part}`" for part in table.split("."))
-            description = client.query_arrow(
-                f"DESCRIBE TABLE {quoted_table}", use_strings=True
-            )
+            description = client.query_arrow(f"DESCRIBE TABLE {quoted_table}", use_strings=True)
             names = description.column("name").to_pylist()
             types = description.column("type").to_pylist()
-            actual = tuple(
-                (str(name), str(type_name)) for name, type_name in zip(names, types)
-            )
+            actual = tuple((str(name), str(type_name)) for name, type_name in zip(names, types))
             assert actual == expected, f"Schema drift detected for {table}"
     finally:
         client.close()
@@ -95,61 +90,35 @@ def test_minghu_tables_smoke(tmp_path: Path) -> None:
                 frequency="1min",
             )
         )
-        data.register(
-            ClickHouseDatasetSpec(
-                name="minghu_tk",
-                connection="minghu",
-                table="stock_base.tk",
-                time_column="date_time",
-                partition_column="date",
-                order_columns=("date_time", "code", "time_int"),
-                panel_compatible=False,
-            )
+        daily = data.get_panel(
+            "daily",
+            ["close"],
+            start=query_date,
+            end=query_date,
+            instruments=["000001.SZ"],
         )
-        data.register(
-            ClickHouseDatasetSpec(
-                name="zb",
-                connection="minghu",
-                table="stock_base.zb",
-                time_column="date_time",
-                partition_column="date",
-                order_columns=("date_time", "code", "seqno"),
-                panel_compatible=False,
-            )
+        index_daily = data.get_panel(
+            "minghu_index_daily",
+            ["close", "volume"],
+            start=query_date,
+            end=query_date,
+            instruments=["000001.SH"],
         )
-
-        daily = data.get_table("daily", ["close"], start=query_date, end=query_date, limit=5)
-        index_daily = data.get_table(
-            "minghu_index_daily", ["close", "volume"], start=query_date, end=query_date, limit=5
-        )
-        m1 = data.get_table(
+        m1 = data.get_panel(
             "m1",
             ["close", "volume"],
             start=f"{query_date} 09:30:00",
             end=f"{query_date} 09:31:00",
-            limit=5,
-        )
-        tk = data.get_table(
-            "minghu_tk",
-            ["last", "total_volume"],
-            start=f"{query_date} 09:30:00",
-            end=f"{query_date} 09:30:01",
-            limit=5,
-        )
-        zb = data.get_table(
-            "zb",
-            ["price", "volume", "side", "seqno"],
-            start=f"{query_date} 09:30:00",
-            end=f"{query_date} 09:30:01",
-            limit=5,
+            instruments=["000001.SZ"],
         )
 
-    assert daily.column_names == ["date", "code", "close"]
-    assert index_daily.column_names == ["date", "code", "close", "volume"]
-    assert m1.column_names == ["date_time", "code", "close", "volume"]
-    assert tk.column_names == ["date_time", "code", "last", "total_volume"]
-    assert zb.column_names == ["date_time", "code", "price", "volume", "side", "seqno"]
-    for table in (daily, index_daily, m1, tk, zb):
-        codes = table["code"].to_pylist()
-        if codes:
-            assert all(code.endswith(CODE_SUFFIXES) for code in codes)
+    for panels, index_name, instrument in (
+        (daily, "date", "000001.SZ"),
+        (index_daily, "date", "000001.SH"),
+        (m1, "date_time", "000001.SZ"),
+    ):
+        assert "close" in panels
+        for panel in panels.values():
+            assert panel.index.name == index_name
+            assert list(panel.columns) == [instrument]
+            assert not panel.empty

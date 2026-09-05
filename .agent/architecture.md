@@ -8,14 +8,14 @@ DatasetSpec
     -> Backend.prepare()
     -> RegisteredDataset(schema, source, contract, adjustment)
 
-get_panel()/get_table()
+get_panel()
     -> 审计初始化与数据集契约检查
     -> get_panel() 命名股票池快照展开
     -> 通用参数规范化
     -> Backend.scan() 或 Tushare 语义扫描
     -> Arrow 长表校验
     -> 调价 / PIT / 区间展开 / 普通透视
-    -> Pandas 面板或 Arrow 长表
+    -> Pandas 面板
     -> 审计落盘
 ```
 
@@ -45,7 +45,7 @@ Catalog 负责静态 schema 和数据语义。
 
 - 普通 `DatasetSpec`：递归解析 Parquet，合并 Arrow schema，通过 DuckDB 投影和过滤。
 - `TushareParquetDatasetSpec`：读取 `_manifest.json` 和分区，复用远端 Tushare catalog。
-- 本地 Tushare 表查询不调用数据 API；披露和成分面板只通过 Tushare 获取
+- 本地 Tushare 扫描不调用数据 API；披露和成分面板只通过 Tushare 获取
   `trade_cal`，普通观测面板保持全本地。
 - 本地 `daily_basic` 按查询闭区间裁剪 `trade_date` 分区，再通过一次 DuckDB
   扫描读取；不复用远端逐交易日请求逻辑。
@@ -76,12 +76,10 @@ Catalog 负责静态 schema 和数据语义。
 
 ## 数据语义
 
-### 长表
+### 内部扫描
 
-- 输出顺序：时间键、证券键、catalog 身份列、请求字段。
-- 财务披露长表保留全部公告和修订。
-- 行业成分长表保留原始有效区间。
-- 股东增减持等一对多事件只支持长表。
+- Arrow 长表仅作为面板构建的中间数据。
+- 财务披露扫描保留公告和修订，行业成分扫描保留有效区间。
 
 ### 普通面板
 
@@ -116,14 +114,13 @@ Catalog 负责静态 schema 和数据语义。
 ## 不变量
 
 - `RegisteredDataset.schema` 是查询字段和类型的运行时事实来源。
-- `DatasetContract` 是键、频率、时间范围要求和面板能力的事实来源。
+- `DatasetContract` 是源键、面板键、频率元数据和时间范围要求的事实来源。
 - 注册名称唯一；重复注册替换旧 prepared state。
 - 查询边界闭区间；需要分区或 PIT 的数据集要求同时提供起止时间。
 - `TradeDateQuery` 数据集也必须同时提供起止时间；不能退化为可能受行数上限影响的无界查询。
 - 所有成功和失败查询都必须写审计记录。
 - 审计 fingerprint 只能包含经过清洗的来源信息。
-- `get_panel()` 的 `universe` 与 `instruments` 互斥；`get_table()` 不接受
-  `universe`，两个方法都不接受裸字符串 `instruments`。
+- `get_panel()` 的 `universe` 与 `instruments` 互斥；不接受裸字符串 `instruments`。
 - 内置股票池是随包发布的固定快照，不随查询日期变化，也不从外部路径或网络自动刷新。
 - 内置 catalog、生成文档和 schema 签名测试必须同步。
 - 配置 Tushare 归档目录后，全部逻辑数据集默认使用本地快照；仅

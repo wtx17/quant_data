@@ -211,23 +211,15 @@ class ClickHouseBackend:
             )
         requires_time_range = bool(
             definition.require_time_range is True
-            or (
-                definition.require_time_range is None
-                and definition.partition_column is not None
-            )
+            or (definition.require_time_range is None and definition.partition_column is not None)
         )
         contract = DatasetContract(
-            table_time_column=definition.time_column,
+            source_time_column=definition.time_column,
             instrument_column=definition.instrument_column,
-            table_frequency=definition.frequency,
-            panel_time_column=(
-                definition.time_column if definition.panel_compatible else None
-            ),
-            panel_frequency=(definition.frequency if definition.panel_compatible else None),
+            panel_time_column=definition.time_column,
+            panel_frequency=definition.frequency,
             timezone=definition.timezone,
             version=definition.version,
-            panel_compatible=definition.panel_compatible,
-            table_requires_time_range=requires_time_range,
             panel_requires_time_range=requires_time_range,
         )
         return RegisteredDataset(
@@ -264,7 +256,7 @@ class ClickHouseBackend:
 
         Notes
         -----
-        Time, partition, instrument, and limit values are bound parameters.
+        Time, partition, and instrument values are bound parameters.
         Minghu ``code`` values are projected and filtered with their ``.SZ``,
         ``.SH``, or ``.BJ`` suffix derived from ``exg``.
         """
@@ -335,9 +327,6 @@ class ClickHouseBackend:
         sql += " ORDER BY " + ", ".join(
             _qualified_identifier(item, _QUERY_TABLE_ALIAS) for item in order_columns
         )
-        if query.limit is not None:
-            sql += " LIMIT {limit:UInt64}"
-            parameters["limit"] = query.limit
         try:
             return client.query_arrow(sql, parameters=parameters, use_strings=True)
         except Exception as exc:
@@ -436,14 +425,10 @@ class ClickHouseBackend:
     ) -> dict[str, str]:
         client = self._client(definition.connection)
         try:
-            description = client.query_arrow(
-                f"DESCRIBE TABLE {quoted_table}", use_strings=True
-            )
+            description = client.query_arrow(f"DESCRIBE TABLE {quoted_table}", use_strings=True)
             names = description.column("name").to_pylist()
             types = description.column("type").to_pylist()
-            return {
-                str(name): str(type_name) for name, type_name in zip(names, types)
-            }
+            return {str(name): str(type_name) for name, type_name in zip(names, types)}
         except Exception as exc:
             raise RemoteQueryError(
                 f"Unable to inspect ClickHouse table {definition.table!r}: {exc}"
@@ -457,11 +442,7 @@ class ClickHouseBackend:
     def _suffixed_code_expression(table_alias: str) -> str:
         code = _qualified_identifier("code", table_alias)
         exchange = _qualified_identifier("exg", table_alias)
-        suffix = (
-            f"multiIf({exchange} = 1, '.SZ', "
-            f"{exchange} = 2, '.SH', "
-            f"{exchange} = 3, '.BJ', '')"
-        )
+        suffix = f"multiIf({exchange} = 1, '.SZ', {exchange} = 2, '.SH', {exchange} = 3, '.BJ', '')"
         return f"concat({code}, {suffix})"
 
     @staticmethod
@@ -522,12 +503,18 @@ class ClickHouseBackend:
         datetime_match = re.fullmatch(r"DateTime(?:\('([^']+)'\))?", value)
         if datetime_match:
             return pa.timestamp("s", tz=datetime_match.group(1))
-        datetime64_match = re.fullmatch(
-            r"DateTime64\((\d+)(?:,\s*'([^']+)')?\)", value
-        )
+        datetime64_match = re.fullmatch(r"DateTime64\((\d+)(?:,\s*'([^']+)')?\)", value)
         if datetime64_match:
             precision = int(datetime64_match.group(1))
-            unit = "s" if precision == 0 else "ms" if precision <= 3 else "us" if precision <= 6 else "ns"
+            unit = (
+                "s"
+                if precision == 0
+                else "ms"
+                if precision <= 3
+                else "us"
+                if precision <= 6
+                else "ns"
+            )
             return pa.timestamp(unit, tz=datetime64_match.group(2))
 
         decimal_match = re.fullmatch(r"Decimal(?:128|256)?\((\d+),\s*(\d+)\)", value)

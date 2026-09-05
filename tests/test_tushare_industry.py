@@ -230,35 +230,6 @@ def test_index_member_all_whole_industry_query_does_not_send_ts_code(tmp_path: P
     assert all(params["l3_code"] == "850531.SI" for params in member_calls)
 
 
-def test_membership_table_preserves_raw_intervals(tmp_path: Path) -> None:
-    client, fake = make_client(tmp_path)
-    client.register(TushareDatasetSpec(name="ci_index_member", connection="ts"))
-
-    table = client.get_table(
-        "ci_index_member",
-        fields=["l1_name"],
-        start="2024-01-02",
-        end="2024-01-08",
-        instruments=["600000.SH"],
-    )
-
-    assert "date" not in table.column_names
-    assert table.column_names == [
-        "in_date",
-        "ts_code",
-        "l1_code",
-        "l2_code",
-        "l3_code",
-        "out_date",
-        "is_new",
-        "l1_name",
-    ]
-    assert table.num_rows == 2
-    assert table["in_date"].to_pylist() == [date(2020, 1, 1), date(2024, 1, 4)]
-    member_calls = [params for api, params in fake.calls if api == "ci_index_member"]
-    assert {params["is_new"] for params in member_calls} == {"Y", "N"}
-
-
 def test_fixed_membership_status_uses_one_request(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
     client.register(
@@ -270,15 +241,15 @@ def test_fixed_membership_status_uses_one_request(tmp_path: Path) -> None:
         )
     )
 
-    table = client.get_table(
+    table = client.get_panel(
         "current_members",
-        fields=["l1_name"],
+        fields=["l1_name", "is_new"],
         start="2024-01-02",
         end="2024-01-08",
         instruments=None,
     )
 
-    assert set(table["is_new"].to_pylist()) == {"Y"}
+    assert set(table["is_new"].stack().tolist()) == {"Y"}
     member_calls = [params for api, params in fake.calls if api == "ci_index_member"]
     assert len(member_calls) == 1
     assert member_calls[0]["is_new"] == "Y"

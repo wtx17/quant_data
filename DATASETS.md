@@ -3,937 +3,800 @@
 # 默认数据集
 
 本手册列出 `initialize.py` 注册的全部数据集及其可用字段。使用者通过
-`get_panel()` 获取 `time × instrument` 宽表，通过 `get_table()` 获取 Arrow 长表。
+`get_panel()` 获取 `time × instrument` 宽表。
 数据集、字段、类型和键来自源码；字段说明在
 `tools/dataset_descriptions.toml` 中人工维护。
 
-字段表中的自动键无需、也不应放入 `fields` 参数；长表身份列会由
-`get_table()` 自动返回，其余标为“可请求值”的字段可以放入 `fields`。
+面板索引和列键无需、也不应放入 `fields` 参数；
+标为“可请求值”的字段可以放入 `fields`。
 
 ## 数据集索引
 
-| 数据集 | `get_panel()` | `get_table()` |
-| --- | --- | --- |
-| [`minghu_daily`](#dataset-minghu-daily) | 宽表 | 长表 |
-| [`minghu_index_daily`](#dataset-minghu-index-daily) | 宽表 | 长表 |
-| [`minghu_m1`](#dataset-minghu-m1) | 宽表 | 长表 |
-| [`minghu_tk`](#dataset-minghu-tk) | 不支持 | 长表 |
-| [`minghu_zb`](#dataset-minghu-zb) | 不支持 | 长表 |
-| [`daily_basic`](#dataset-daily-basic) | 宽表 | 长表 |
-| [`income`](#dataset-income) | 宽表 | 长表 |
-| [`balancesheet`](#dataset-balancesheet) | 宽表 | 长表 |
-| [`cashflow`](#dataset-cashflow) | 宽表 | 长表 |
-| [`fina_indicator`](#dataset-fina-indicator) | 宽表 | 长表 |
-| [`express`](#dataset-express) | 宽表 | 长表 |
-| [`forecast`](#dataset-forecast) | 宽表 | 长表 |
-| [`stk_holdernumber`](#dataset-stk-holdernumber) | 宽表 | 长表 |
-| [`ci_index_member`](#dataset-ci-index-member) | 宽表 | 长表 |
-| [`index_member_all`](#dataset-index-member-all) | 宽表 | 长表 |
-| [`stk_holdertrade`](#dataset-stk-holdertrade) | 不支持 | 长表 |
+| 数据集 | `get_panel()` |
+| --- | --- |
+| [`minghu_daily`](#dataset-minghu-daily) | 宽表 |
+| [`minghu_index_daily`](#dataset-minghu-index-daily) | 宽表 |
+| [`minghu_m1`](#dataset-minghu-m1) | 宽表 |
+| [`daily_basic`](#dataset-daily-basic) | 宽表 |
+| [`income`](#dataset-income) | 宽表 |
+| [`balancesheet`](#dataset-balancesheet) | 宽表 |
+| [`cashflow`](#dataset-cashflow) | 宽表 |
+| [`fina_indicator`](#dataset-fina-indicator) | 宽表 |
+| [`express`](#dataset-express) | 宽表 |
+| [`forecast`](#dataset-forecast) | 宽表 |
+| [`stk_holdernumber`](#dataset-stk-holdernumber) | 宽表 |
+| [`ci_index_member`](#dataset-ci-index-member) | 宽表 |
+| [`index_member_all`](#dataset-index-member-all) | 宽表 |
 
 <a id="dataset-minghu-daily"></a>
 ## `minghu_daily`：明湖股票日线
 
 明湖汇`stock_base.daily`表描述。以 `date × code` 为键。使用`get_panel()`方法取宽表时，价格字段默认乘以 `hfq`；成交量、成交额、涨跌额和涨跌幅保持原值；股票编号自动附上交易所后缀（此点对所有明湖汇数据都一样）。
 
-- `get_panel()`：支持；按 `date × code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `date`、`code`，再附加请求字段。
+- `get_panel()`：按 `date × code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `code` | `String` | `get_panel()` 列键；`get_table()` 自动证券键 | 证券代码；返回时依据 `exg` 自动补 `.SZ`、`.SH` 或 `.BJ`。 |
-| `date` | `Date` | `get_panel()` 索引；`get_table()` 自动时间键 | 交易日期。 |
-| `exg` | `UInt8` | `get_panel()` / `get_table()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
-| `open` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 开盘价；默认按 `hfq` 后复权。 |
-| `high` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 最高价；默认按 `hfq` 后复权。 |
-| `low` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 最低价；默认按 `hfq` 后复权。 |
-| `close` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 收盘价；默认按 `hfq` 后复权。 |
-| `pclose` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 昨收价 |
-| `change` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 涨跌额 |
-| `pct_chg` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 涨跌幅（未复权） |
-| `volume` | `Nullable(Int64)` | `get_panel()` / `get_table()` 可请求值 | 成交量（股） |
-| `amount` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 成交额 |
-| `hfq` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 复权因子 |
-| `ztprice` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 涨停价。 |
-| `dtprice` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 跌停价。 |
-| `omax_op` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 集合可申报最大价格 |
-| `omin_op` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 集合可申报最小价格 |
+| `code` | `String` | `get_panel()` 列键 | 证券代码；返回时依据 `exg` 自动补 `.SZ`、`.SH` 或 `.BJ`。 |
+| `date` | `Date` | `get_panel()` 索引 | 交易日期。 |
+| `exg` | `UInt8` | `get_panel()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
+| `open` | `Nullable(Float64)` | `get_panel()` 可请求值 | 开盘价；默认按 `hfq` 后复权。 |
+| `high` | `Nullable(Float64)` | `get_panel()` 可请求值 | 最高价；默认按 `hfq` 后复权。 |
+| `low` | `Nullable(Float64)` | `get_panel()` 可请求值 | 最低价；默认按 `hfq` 后复权。 |
+| `close` | `Nullable(Float64)` | `get_panel()` 可请求值 | 收盘价；默认按 `hfq` 后复权。 |
+| `pclose` | `Nullable(Float64)` | `get_panel()` 可请求值 | 昨收价 |
+| `change` | `Nullable(Float64)` | `get_panel()` 可请求值 | 涨跌额 |
+| `pct_chg` | `Nullable(Float64)` | `get_panel()` 可请求值 | 涨跌幅（未复权） |
+| `volume` | `Nullable(Int64)` | `get_panel()` 可请求值 | 成交量（股） |
+| `amount` | `Nullable(Float64)` | `get_panel()` 可请求值 | 成交额 |
+| `hfq` | `Nullable(Float64)` | `get_panel()` 可请求值 | 复权因子 |
+| `ztprice` | `Nullable(Float64)` | `get_panel()` 可请求值 | 涨停价。 |
+| `dtprice` | `Nullable(Float64)` | `get_panel()` 可请求值 | 跌停价。 |
+| `omax_op` | `Nullable(Float64)` | `get_panel()` 可请求值 | 集合可申报最大价格 |
+| `omin_op` | `Nullable(Float64)` | `get_panel()` 可请求值 | 集合可申报最小价格 |
 
 <a id="dataset-minghu-index-daily"></a>
 ## `minghu_index_daily`：明湖指数日线
 
 明湖汇`index_base.daily`表描述。以 `date × code` 为键，没有价格复权因子，始终返回数据库原值。
 
-- `get_panel()`：支持；按 `date × code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `date`、`code`，再附加请求字段。
+- `get_panel()`：按 `date × code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `code` | `String` | `get_panel()` 列键；`get_table()` 自动证券键 | 证券代码，本表涵盖了 A 股市场的核心宽基与综合指数，包括上证指数（000001）、深证成指（399001）、深证综指（399106）、深证A指（399107）、创业板指（399006）、创业板综（399102）、中小板指（399005）、科创50（000688）、北证50（899050），以及跨市场的沪深300（000300/399300）、中证500（399905）、中证500等权（000982）和中证1000（000852）指数。 |
-| `date` | `Date` | `get_panel()` 索引；`get_table()` 自动时间键 | 交易日期。 |
-| `exg` | `UInt8` | `get_panel()` / `get_table()` 可请求值 | 交易所编码：1 为深市，2 为沪市 |
-| `open` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 开盘价 |
-| `high` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 最高价 |
-| `low` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 最低价 |
-| `close` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 收盘价 |
-| `pclose` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 昨收价 |
-| `volume` | `Nullable(Int64)` | `get_panel()` / `get_table()` 可请求值 | 成交量（股） |
-| `amount` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 成交额 |
+| `code` | `String` | `get_panel()` 列键 | 证券代码，本表涵盖了 A 股市场的核心宽基与综合指数，包括上证指数（000001）、深证成指（399001）、深证综指（399106）、深证A指（399107）、创业板指（399006）、创业板综（399102）、中小板指（399005）、科创50（000688）、北证50（899050），以及跨市场的沪深300（000300/399300）、中证500（399905）、中证500等权（000982）和中证1000（000852）指数。 |
+| `date` | `Date` | `get_panel()` 索引 | 交易日期。 |
+| `exg` | `UInt8` | `get_panel()` 可请求值 | 交易所编码：1 为深市，2 为沪市 |
+| `open` | `Nullable(Float64)` | `get_panel()` 可请求值 | 开盘价 |
+| `high` | `Nullable(Float64)` | `get_panel()` 可请求值 | 最高价 |
+| `low` | `Nullable(Float64)` | `get_panel()` 可请求值 | 最低价 |
+| `close` | `Nullable(Float64)` | `get_panel()` 可请求值 | 收盘价 |
+| `pclose` | `Nullable(Float64)` | `get_panel()` 可请求值 | 昨收价 |
+| `volume` | `Nullable(Int64)` | `get_panel()` 可请求值 | 成交量（股） |
+| `amount` | `Nullable(Float64)` | `get_panel()` 可请求值 | 成交额 |
 
 <a id="dataset-minghu-m1"></a>
 ## `minghu_m1`：明湖一分钟线
 
-明湖汇`stock_base.m1`表描述。查询必须同时给出 `start` 和 `end`。
+明湖汇`stock_base.m1`表描述。查询必须同时给出 `start` 和 `end`，其中价格字段都未复权
 
-- `get_panel()`：支持；按 `date_time × code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `date_time`、`code`，再附加请求字段。
-
-| 字段 | 类型 | 使用方式 | 说明 |
-| --- | --- | --- | --- |
-| `code` | `String` | `get_panel()` 列键；`get_table()` 自动证券键 | 证券代码 |
-| `date_time` | `DateTime('Asia/Shanghai')` | `get_panel()` 索引；`get_table()` 自动时间键 | 日期详情 |
-| `exg` | `UInt8` | `get_panel()` / `get_table()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
-| `time_int` | `Int32` | `get_panel()` / `get_table()` 可请求值 | 日期详情整形 |
-| `open` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟开盘价。 |
-| `close` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟收盘价。 |
-| `high` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟最高价。 |
-| `low` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟最低价。 |
-| `volume` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟成交量。 |
-| `amount` | `Nullable(Float64)` | `get_panel()` / `get_table()` 可请求值 | 分钟成交额。 |
-| `date` | `Date` | `get_panel()` / `get_table()` 可请求值 | 日期 |
-
-<a id="dataset-minghu-tk"></a>
-## `minghu_tk`：明湖盘口快照
-
-明湖汇`stock_base.tk`表描述。可能在同一秒内出现多行，只支持 `get_table()`；查询以 `time_int` 排序。
-
-- `get_panel()`：不支持；该数据集存在一对多事件。
-- `get_table()`：支持；自动返回 `date_time`、`code`，再附加请求字段。
+- `get_panel()`：按 `date_time × code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `code` | `String` | `get_table()` 自动证券键 | 证券代码 |
-| `date_time` | `DateTime('Asia/Shanghai')` | `get_table()` 自动时间键 | 日期详情, 业务时间, 精确到百分之一秒 |
-| `time_int` | `Int32` | `get_table()` 可请求值 | date_time日期详情整形 |
-| `exg` | `UInt8` | `get_table()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
-| `date` | `Date` | `get_table()` 可请求值 | 日期 |
-| `pclose` | `Nullable(Float64)` | `get_table()` 可请求值 | 昨收价 |
-| `open` | `Nullable(Float64)` | `get_table()` 可请求值 | 开始价 |
-| `high` | `Nullable(Float64)` | `get_table()` 可请求值 | 最高价 |
-| `low` | `Nullable(Float64)` | `get_table()` 可请求值 | 最低价 |
-| `last` | `Nullable(Float64)` | `get_table()` 可请求值 | 最新价 |
-| `total_volume` | `Nullable(Int64)` | `get_table()` 可请求值 | 成交总量 |
-| `total_value` | `Nullable(Float64)` | `get_table()` 可请求值 | 成交总金额 |
-| `bid1` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 1 档委托价。 |
-| `bid2` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 2 档委托价。 |
-| `bid3` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 3 档委托价。 |
-| `bid4` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 4 档委托价。 |
-| `bid5` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 5 档委托价。 |
-| `bid6` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 6 档委托价。 |
-| `bid7` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 7 档委托价。 |
-| `bid8` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 8 档委托价。 |
-| `bid9` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 9 档委托价。 |
-| `bid10` | `Nullable(Float64)` | `get_table()` 可请求值 | 买 10 档委托价。 |
-| `bidv1` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 1 档委托量。 |
-| `bidv2` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 2 档委托量。 |
-| `bidv3` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 3 档委托量。 |
-| `bidv4` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 4 档委托量。 |
-| `bidv5` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 5 档委托量。 |
-| `bidv6` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 6 档委托量。 |
-| `bidv7` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 7 档委托量。 |
-| `bidv8` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 8 档委托量。 |
-| `bidv9` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 9 档委托量。 |
-| `bidv10` | `Nullable(Int64)` | `get_table()` 可请求值 | 买 10 档委托量。 |
-| `ask1` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 1 档委托价。 |
-| `ask2` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 2 档委托价。 |
-| `ask3` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 3 档委托价。 |
-| `ask4` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 4 档委托价。 |
-| `ask5` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 5 档委托价。 |
-| `ask6` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 6 档委托价。 |
-| `ask7` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 7 档委托价。 |
-| `ask8` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 8 档委托价。 |
-| `ask9` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 9 档委托价。 |
-| `ask10` | `Nullable(Float64)` | `get_table()` 可请求值 | 卖 10 档委托价。 |
-| `askv1` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 1 档委托量。 |
-| `askv2` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 2 档委托量。 |
-| `askv3` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 3 档委托量。 |
-| `askv4` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 4 档委托量。 |
-| `askv5` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 5 档委托量。 |
-| `askv6` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 6 档委托量。 |
-| `askv7` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 7 档委托量。 |
-| `askv8` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 8 档委托量。 |
-| `askv9` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 9 档委托量。 |
-| `askv10` | `Nullable(Int64)` | `get_table()` 可请求值 | 卖 10 档委托量。 |
-| `num_trades` | `Nullable(Int64)` | `get_table()` 可请求值 | 成交笔数 |
-| `trading_phase_code` | `Nullable(String)` | `get_table()` 可请求值 | 交易阶段代码。 |
-| `close` | `Nullable(Float64)` | `get_table()` 可请求值 | 收盘价 |
-| `ztprice` | `Nullable(Float64)` | `get_table()` 可请求值 | 涨停价。 |
-| `dtprice` | `Nullable(Float64)` | `get_table()` 可请求值 | 跌停价。 |
-
-<a id="dataset-minghu-zb"></a>
-## `minghu_zb`：明湖逐笔事件
-
-明湖汇`stock_base.zb`表描述。只支持 `get_table()`。
-
-- `get_panel()`：不支持；该数据集存在一对多事件。
-- `get_table()`：支持；自动返回 `date_time`、`code`，再附加请求字段。
-
-| 字段 | 类型 | 使用方式 | 说明 |
-| --- | --- | --- | --- |
-| `code` | `String` | `get_table()` 自动证券键 | 证券代码 |
-| `date` | `Date` | `get_table()` 可请求值 | 日期 |
-| `date_time` | `DateTime64(3, 'Asia/Shanghai')` | `get_table()` 自动时间键 | 日期详情,业务时间,精确到百分之一秒 |
-| `exg` | `UInt8` | `get_table()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
-| `time_int` | `Int32` | `get_table()` 可请求值 | date_time日期详情整形 |
-| `price` | `Nullable(Float64)` | `get_table()` 可请求值 | 价格 |
-| `volume` | `Nullable(Int64)` | `get_table()` 可请求值 | 委托数量 |
-| `side` | `FixedString(1)` | `get_table()` 可请求值 | 买卖标志,B-买单,S-卖单,G-借入,F-借出 |
-| `type` | `FixedString(1)` | `get_table()` 可请求值 | 订单类别,沪市为A-新增委托订单,D-删除委托订单,即撤单,深市为1-市价,2-限价,U - 本方最优 |
-| `trade_flag` | `FixedString(1)` | `get_table()` 可请求值 | 成交单子的内外盘标志:B-沪市外盘,主动买,S-沪市内盘,主动卖,N-沪市未知,F-深市成交,4-深市撤单 |
-| `chno` | `UInt64` | `get_table()` 可请求值 | 频道代码，通道 |
-| `bidno` | `Nullable(Int64)` | `get_table()` 可请求值 | 成交单子的买方委托编号 |
-| `askno` | `Nullable(Int64)` | `get_table()` 可请求值 | 成交单子的卖方委托编号 |
-| `ordno` | `Nullable(Int64)` | `get_table()` 可请求值 | 委托单子的编号,sh的order_no,sz的app_seq_num,sz的成交单子也有,sh的成交单子无,默认为0 |
-| `seqno` | `UInt64` | `get_table()` 可请求值 | 序列号,要求连续递增唯一,sh的业务序列号biz_idx,sz的委托索引app_seq_num |
-| `ctype` | `FixedString(1)` | `get_table()` 可请求值 | type,side,flag的合并, 1是新增限价委托,2是新增市价委托,3是新增本方最优,4是撤单,5是成交 |
-| `cbidno` | `Nullable(Int64)` | `get_table()` 可请求值 | 合并的成交单子的买方委托编号 |
-| `caskno` | `Nullable(Int64)` | `get_table()` 可请求值 | 合并的成交单子的买方委托编号 |
+| `code` | `String` | `get_panel()` 列键 | 证券代码 |
+| `date_time` | `DateTime('Asia/Shanghai')` | `get_panel()` 索引 | 日期详情 |
+| `exg` | `UInt8` | `get_panel()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
+| `time_int` | `Int32` | `get_panel()` 可请求值 | 日期详情整形 |
+| `open` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟开盘价。 |
+| `close` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟收盘价。 |
+| `high` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟最高价。 |
+| `low` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟最低价。 |
+| `volume` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟成交量。 |
+| `amount` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟成交额。 |
+| `date` | `Date` | `get_panel()` 可请求值 | 日期 |
 
 <a id="dataset-daily-basic"></a>
 ## `daily_basic`：Tushare 每日基本面指标
 
 全市场每日基本面指标。查询必须同时给出 `start` 和 `end`；远端按交易日逐日获取，本地直接扫描范围内的日期分区，`get_panel()` 以 `trade_date × ts_code` 构造宽表。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `trade_date`、`ts_code`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `trade_date` | `date32[day]` | `get_panel()` 索引；`get_table()` 自动时间键 | 交易日期。 |
-| `close` | `double` | `get_panel()` / `get_table()` 可请求值 | 当日收盘价。 |
-| `turnover_rate` | `double` | `get_panel()` / `get_table()` 可请求值 | 换手率（成交量/无限售流通股数）。 |
-| `turnover_rate_f` | `double` | `get_panel()` / `get_table()` 可请求值 | 自由流通股换手率（成交量/自由流通股数）。 |
-| `volume_ratio` | `double` | `get_panel()` / `get_table()` 可请求值 | 量比（成交量/平均成交量）。 |
-| `pe` | `double` | `get_panel()` / `get_table()` 可请求值 | 市盈率（总市值/净利润）；亏损时为空。 |
-| `pe_ttm` | `double` | `get_panel()` / `get_table()` 可请求值 | 滚动市盈率（总市值/最近十二个月净利润）；亏损时为空。 |
-| `pb` | `double` | `get_panel()` / `get_table()` 可请求值 | 市净率（总市值/扣除其他权益工具后的净资产）。 |
-| `ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 市销率（总市值/最新年报营业收入）。 |
-| `ps_ttm` | `double` | `get_panel()` / `get_table()` 可请求值 | 滚动市销率（总市值/最近十二个月营业收入）。 |
-| `dv_ratio` | `double` | `get_panel()` / `get_table()` 可请求值 | 股息率（%）；派现除息日发生在上一年度期间。 |
-| `dv_ttm` | `double` | `get_panel()` / `get_table()` 可请求值 | 最近十二个月股息率（%）。 |
-| `total_share` | `double` | `get_panel()` / `get_table()` 可请求值 | 总股本（万股）。 |
-| `float_share` | `double` | `get_panel()` / `get_table()` 可请求值 | 流通股本（万股）。 |
-| `free_share` | `double` | `get_panel()` / `get_table()` 可请求值 | 自由流通股本（万股）。 |
-| `total_mv` | `double` | `get_panel()` / `get_table()` 可请求值 | 总市值（万元）。 |
-| `circ_mv` | `double` | `get_panel()` / `get_table()` 可请求值 | 流通市值（万元）。 |
-| `limit_status` | `int64` | `get_panel()` / `get_table()` 可请求值 | 收盘涨跌状态：0 平盘，1 上涨，2 涨停，3 一字涨停，4 下跌，5 跌停，6 一字跌停。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `trade_date` | `date32[day]` | `get_panel()` 索引 | 交易日期。 |
+| `close` | `double` | `get_panel()` 可请求值 | 当日收盘价。 |
+| `turnover_rate` | `double` | `get_panel()` 可请求值 | 换手率（成交量/无限售流通股数）。 |
+| `turnover_rate_f` | `double` | `get_panel()` 可请求值 | 自由流通股换手率（成交量/自由流通股数）。 |
+| `volume_ratio` | `double` | `get_panel()` 可请求值 | 量比（成交量/平均成交量）。 |
+| `pe` | `double` | `get_panel()` 可请求值 | 市盈率（总市值/净利润）；亏损时为空。 |
+| `pe_ttm` | `double` | `get_panel()` 可请求值 | 滚动市盈率（总市值/最近十二个月净利润）；亏损时为空。 |
+| `pb` | `double` | `get_panel()` 可请求值 | 市净率（总市值/扣除其他权益工具后的净资产）。 |
+| `ps` | `double` | `get_panel()` 可请求值 | 市销率（总市值/最新年报营业收入）。 |
+| `ps_ttm` | `double` | `get_panel()` 可请求值 | 滚动市销率（总市值/最近十二个月营业收入）。 |
+| `dv_ratio` | `double` | `get_panel()` 可请求值 | 股息率（%）；派现除息日发生在上一年度期间。 |
+| `dv_ttm` | `double` | `get_panel()` 可请求值 | 最近十二个月股息率（%）。 |
+| `total_share` | `double` | `get_panel()` 可请求值 | 总股本（万股）。 |
+| `float_share` | `double` | `get_panel()` 可请求值 | 流通股本（万股）。 |
+| `free_share` | `double` | `get_panel()` 可请求值 | 自由流通股本（万股）。 |
+| `total_mv` | `double` | `get_panel()` 可请求值 | 总市值（万元）。 |
+| `circ_mv` | `double` | `get_panel()` 可请求值 | 流通市值（万元）。 |
+| `limit_status` | `int64` | `get_panel()` 可请求值 | 收盘涨跌状态：0 平盘，1 上涨，2 涨停，3 一字涨停，4 下跌，5 跌停，6 一字跌停。 |
 
 <a id="dataset-income"></a>
 ## `income`：Tushare 利润表
 
-利润表逻辑数据集。`get_table()` 按报告期保留全部公告与修订；`get_panel()` 以 `f_ann_date` 对齐交易日并构造 PIT 状态。
+利润表逻辑数据集。`get_panel()` 以 `f_ann_date` 对齐交易日并构造 PIT 状态。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`f_ann_date`、`report_type`、`comp_type`、`end_type`、`update_flag`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期。 |
-| `f_ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 实际披露日期，也是利润表 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 财务报告期。 |
-| `report_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告类型。 |
-| `comp_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公司类型。 |
-| `end_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告期类型。 |
-| `basic_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 基本每股收益。 |
-| `diluted_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释每股收益。 |
-| `total_revenue` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业总收入。 |
-| `revenue` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业收入。 |
-| `int_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 利息收入（银行业务）。 |
-| `prem_earned` | `double` | `get_panel()` / `get_table()` 可请求值 | 已赚保费（保险业务）。 |
-| `comm_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 手续费及佣金收入。 |
-| `n_commis_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 手续费及佣金净收入。 |
-| `n_oth_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他经营净收益。 |
-| `n_oth_b_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他业务净收益。 |
-| `prem_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 保险业务收入。 |
-| `out_prem` | `double` | `get_panel()` / `get_table()` 可请求值 | 分出保费。 |
-| `une_prem_reser` | `double` | `get_panel()` / `get_table()` 可请求值 | 未到期责任准备金。 |
-| `reins_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 摊回分保收入。 |
-| `n_sec_tb_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 代理买卖证券业务净收入。 |
-| `n_sec_uw_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 证券承销业务净收入。 |
-| `n_asset_mg_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 受托客户资产管理业务净收入。 |
-| `oth_b_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他业务收入。 |
-| `fv_value_chg_gain` | `double` | `get_panel()` / `get_table()` 可请求值 | 公允价值变动收益。 |
-| `invest_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资收益。 |
-| `ass_invest_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 对联营和合营企业的投资收益。 |
-| `forex_gain` | `double` | `get_panel()` / `get_table()` 可请求值 | 汇兑收益。 |
-| `total_cogs` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业总成本。 |
-| `oper_cost` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业成本。 |
-| `int_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 利息支出。 |
-| `comm_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 手续费及佣金支出。 |
-| `biz_tax_surchg` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业税金及附加。 |
-| `sell_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售费用。 |
-| `admin_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 管理费用。 |
-| `fin_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用。 |
-| `assets_impair_loss` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产减值损失。 |
-| `prem_refund` | `double` | `get_panel()` / `get_table()` 可请求值 | 退保金。 |
-| `compens_payout` | `double` | `get_panel()` / `get_table()` 可请求值 | 赔付总支出。 |
-| `reser_insur_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取保险责任准备金。 |
-| `div_payt` | `double` | `get_panel()` / `get_table()` 可请求值 | 保户红利支出。 |
-| `reins_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 分保费用。 |
-| `oper_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业支出。 |
-| `compens_payout_refu` | `double` | `get_panel()` / `get_table()` 可请求值 | 摊回赔付支出。 |
-| `insur_reser_refu` | `double` | `get_panel()` / `get_table()` 可请求值 | 摊回保险责任准备金。 |
-| `reins_cost_refund` | `double` | `get_panel()` / `get_table()` 可请求值 | 摊回分保费用。 |
-| `other_bus_cost` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他业务成本。 |
-| `operate_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润。 |
-| `non_oper_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业外收入。 |
-| `non_oper_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业外支出。 |
-| `nca_disploss` | `double` | `get_panel()` / `get_table()` 可请求值 | 非流动资产处置损失。 |
-| `total_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 利润总额。 |
-| `income_tax` | `double` | `get_panel()` / `get_table()` 可请求值 | 所得税费用。 |
-| `n_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润（含少数股东损益）。 |
-| `n_income_attr_p` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属于母公司股东的净利润。 |
-| `minority_gain` | `double` | `get_panel()` / `get_table()` 可请求值 | 少数股东损益。 |
-| `oth_compr_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他综合收益。 |
-| `t_compr_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 综合收益总额。 |
-| `compr_inc_attr_p` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属于母公司股东的综合收益。 |
-| `compr_inc_attr_m_s` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属于少数股东的综合收益。 |
-| `ebit` | `double` | `get_panel()` / `get_table()` 可请求值 | 息税前利润。 |
-| `ebitda` | `double` | `get_panel()` / `get_table()` 可请求值 | 息税折旧摊销前利润。 |
-| `insurance_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 保险合同费用。 |
-| `undist_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 年初未分配利润。 |
-| `distable_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 可供分配利润。 |
-| `rd_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 研发费用。 |
-| `fin_exp_int_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用中的利息支出。 |
-| `fin_exp_int_inc` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用中的利息收入。 |
-| `transfer_surplus_rese` | `double` | `get_panel()` / `get_table()` 可请求值 | 盈余公积转入。 |
-| `transfer_housing_imprest` | `double` | `get_panel()` / `get_table()` 可请求值 | 住房周转金转入。 |
-| `transfer_oth` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他转入。 |
-| `adj_lossgain` | `double` | `get_panel()` / `get_table()` 可请求值 | 调整以前年度损益。 |
-| `withdra_legal_surplus` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取法定盈余公积。 |
-| `withdra_legal_pubfund` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取法定公益金。 |
-| `withdra_biz_devfund` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取企业发展基金。 |
-| `withdra_rese_fund` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取储备基金。 |
-| `withdra_oth_ersu` | `double` | `get_panel()` / `get_table()` 可请求值 | 提取任意盈余公积。 |
-| `workers_welfare` | `double` | `get_panel()` / `get_table()` 可请求值 | 职工奖金福利。 |
-| `distr_profit_shrhder` | `double` | `get_panel()` / `get_table()` 可请求值 | 可供股东分配的利润。 |
-| `prfshare_payable_dvd` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付优先股股利。 |
-| `comshare_payable_dvd` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付普通股股利。 |
-| `capit_comstock_div` | `double` | `get_panel()` / `get_table()` 可请求值 | 转作股本的普通股股利。 |
-| `net_after_nr_lp_correct` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣除非经常性损益后的净利润（更正前）。 |
-| `credit_impa_loss` | `double` | `get_panel()` / `get_table()` 可请求值 | 信用减值损失。 |
-| `net_expo_hedging_benefits` | `double` | `get_panel()` / `get_table()` 可请求值 | 净敞口套期收益。 |
-| `oth_impair_loss_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他资产减值损失。 |
-| `total_opcost` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业总成本（二）。 |
-| `amodcost_fin_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 以摊余成本计量的金融资产终止确认收益。 |
-| `oth_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他收益。 |
-| `asset_disp_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产处置收益。 |
-| `continued_net_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 持续经营净利润。 |
-| `end_net_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 终止经营净利润。 |
-| `update_flag` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 更新或修订标记。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期。 |
+| `f_ann_date` | `date32[day]` | `get_panel()` 可请求值 | 实际披露日期，也是利润表 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 财务报告期。 |
+| `report_type` | `string` | `get_panel()` 可请求值 | 报告类型。 |
+| `comp_type` | `string` | `get_panel()` 可请求值 | 公司类型。 |
+| `end_type` | `string` | `get_panel()` 可请求值 | 报告期类型。 |
+| `basic_eps` | `double` | `get_panel()` 可请求值 | 基本每股收益。 |
+| `diluted_eps` | `double` | `get_panel()` 可请求值 | 稀释每股收益。 |
+| `total_revenue` | `double` | `get_panel()` 可请求值 | 营业总收入。 |
+| `revenue` | `double` | `get_panel()` 可请求值 | 营业收入。 |
+| `int_income` | `double` | `get_panel()` 可请求值 | 利息收入（银行业务）。 |
+| `prem_earned` | `double` | `get_panel()` 可请求值 | 已赚保费（保险业务）。 |
+| `comm_income` | `double` | `get_panel()` 可请求值 | 手续费及佣金收入。 |
+| `n_commis_income` | `double` | `get_panel()` 可请求值 | 手续费及佣金净收入。 |
+| `n_oth_income` | `double` | `get_panel()` 可请求值 | 其他经营净收益。 |
+| `n_oth_b_income` | `double` | `get_panel()` 可请求值 | 其他业务净收益。 |
+| `prem_income` | `double` | `get_panel()` 可请求值 | 保险业务收入。 |
+| `out_prem` | `double` | `get_panel()` 可请求值 | 分出保费。 |
+| `une_prem_reser` | `double` | `get_panel()` 可请求值 | 未到期责任准备金。 |
+| `reins_income` | `double` | `get_panel()` 可请求值 | 摊回分保收入。 |
+| `n_sec_tb_income` | `double` | `get_panel()` 可请求值 | 代理买卖证券业务净收入。 |
+| `n_sec_uw_income` | `double` | `get_panel()` 可请求值 | 证券承销业务净收入。 |
+| `n_asset_mg_income` | `double` | `get_panel()` 可请求值 | 受托客户资产管理业务净收入。 |
+| `oth_b_income` | `double` | `get_panel()` 可请求值 | 其他业务收入。 |
+| `fv_value_chg_gain` | `double` | `get_panel()` 可请求值 | 公允价值变动收益。 |
+| `invest_income` | `double` | `get_panel()` 可请求值 | 投资收益。 |
+| `ass_invest_income` | `double` | `get_panel()` 可请求值 | 对联营和合营企业的投资收益。 |
+| `forex_gain` | `double` | `get_panel()` 可请求值 | 汇兑收益。 |
+| `total_cogs` | `double` | `get_panel()` 可请求值 | 营业总成本。 |
+| `oper_cost` | `double` | `get_panel()` 可请求值 | 营业成本。 |
+| `int_exp` | `double` | `get_panel()` 可请求值 | 利息支出。 |
+| `comm_exp` | `double` | `get_panel()` 可请求值 | 手续费及佣金支出。 |
+| `biz_tax_surchg` | `double` | `get_panel()` 可请求值 | 营业税金及附加。 |
+| `sell_exp` | `double` | `get_panel()` 可请求值 | 销售费用。 |
+| `admin_exp` | `double` | `get_panel()` 可请求值 | 管理费用。 |
+| `fin_exp` | `double` | `get_panel()` 可请求值 | 财务费用。 |
+| `assets_impair_loss` | `double` | `get_panel()` 可请求值 | 资产减值损失。 |
+| `prem_refund` | `double` | `get_panel()` 可请求值 | 退保金。 |
+| `compens_payout` | `double` | `get_panel()` 可请求值 | 赔付总支出。 |
+| `reser_insur_liab` | `double` | `get_panel()` 可请求值 | 提取保险责任准备金。 |
+| `div_payt` | `double` | `get_panel()` 可请求值 | 保户红利支出。 |
+| `reins_exp` | `double` | `get_panel()` 可请求值 | 分保费用。 |
+| `oper_exp` | `double` | `get_panel()` 可请求值 | 营业支出。 |
+| `compens_payout_refu` | `double` | `get_panel()` 可请求值 | 摊回赔付支出。 |
+| `insur_reser_refu` | `double` | `get_panel()` 可请求值 | 摊回保险责任准备金。 |
+| `reins_cost_refund` | `double` | `get_panel()` 可请求值 | 摊回分保费用。 |
+| `other_bus_cost` | `double` | `get_panel()` 可请求值 | 其他业务成本。 |
+| `operate_profit` | `double` | `get_panel()` 可请求值 | 营业利润。 |
+| `non_oper_income` | `double` | `get_panel()` 可请求值 | 营业外收入。 |
+| `non_oper_exp` | `double` | `get_panel()` 可请求值 | 营业外支出。 |
+| `nca_disploss` | `double` | `get_panel()` 可请求值 | 非流动资产处置损失。 |
+| `total_profit` | `double` | `get_panel()` 可请求值 | 利润总额。 |
+| `income_tax` | `double` | `get_panel()` 可请求值 | 所得税费用。 |
+| `n_income` | `double` | `get_panel()` 可请求值 | 净利润（含少数股东损益）。 |
+| `n_income_attr_p` | `double` | `get_panel()` 可请求值 | 归属于母公司股东的净利润。 |
+| `minority_gain` | `double` | `get_panel()` 可请求值 | 少数股东损益。 |
+| `oth_compr_income` | `double` | `get_panel()` 可请求值 | 其他综合收益。 |
+| `t_compr_income` | `double` | `get_panel()` 可请求值 | 综合收益总额。 |
+| `compr_inc_attr_p` | `double` | `get_panel()` 可请求值 | 归属于母公司股东的综合收益。 |
+| `compr_inc_attr_m_s` | `double` | `get_panel()` 可请求值 | 归属于少数股东的综合收益。 |
+| `ebit` | `double` | `get_panel()` 可请求值 | 息税前利润。 |
+| `ebitda` | `double` | `get_panel()` 可请求值 | 息税折旧摊销前利润。 |
+| `insurance_exp` | `double` | `get_panel()` 可请求值 | 保险合同费用。 |
+| `undist_profit` | `double` | `get_panel()` 可请求值 | 年初未分配利润。 |
+| `distable_profit` | `double` | `get_panel()` 可请求值 | 可供分配利润。 |
+| `rd_exp` | `double` | `get_panel()` 可请求值 | 研发费用。 |
+| `fin_exp_int_exp` | `double` | `get_panel()` 可请求值 | 财务费用中的利息支出。 |
+| `fin_exp_int_inc` | `double` | `get_panel()` 可请求值 | 财务费用中的利息收入。 |
+| `transfer_surplus_rese` | `double` | `get_panel()` 可请求值 | 盈余公积转入。 |
+| `transfer_housing_imprest` | `double` | `get_panel()` 可请求值 | 住房周转金转入。 |
+| `transfer_oth` | `double` | `get_panel()` 可请求值 | 其他转入。 |
+| `adj_lossgain` | `double` | `get_panel()` 可请求值 | 调整以前年度损益。 |
+| `withdra_legal_surplus` | `double` | `get_panel()` 可请求值 | 提取法定盈余公积。 |
+| `withdra_legal_pubfund` | `double` | `get_panel()` 可请求值 | 提取法定公益金。 |
+| `withdra_biz_devfund` | `double` | `get_panel()` 可请求值 | 提取企业发展基金。 |
+| `withdra_rese_fund` | `double` | `get_panel()` 可请求值 | 提取储备基金。 |
+| `withdra_oth_ersu` | `double` | `get_panel()` 可请求值 | 提取任意盈余公积。 |
+| `workers_welfare` | `double` | `get_panel()` 可请求值 | 职工奖金福利。 |
+| `distr_profit_shrhder` | `double` | `get_panel()` 可请求值 | 可供股东分配的利润。 |
+| `prfshare_payable_dvd` | `double` | `get_panel()` 可请求值 | 应付优先股股利。 |
+| `comshare_payable_dvd` | `double` | `get_panel()` 可请求值 | 应付普通股股利。 |
+| `capit_comstock_div` | `double` | `get_panel()` 可请求值 | 转作股本的普通股股利。 |
+| `net_after_nr_lp_correct` | `double` | `get_panel()` 可请求值 | 扣除非经常性损益后的净利润（更正前）。 |
+| `credit_impa_loss` | `double` | `get_panel()` 可请求值 | 信用减值损失。 |
+| `net_expo_hedging_benefits` | `double` | `get_panel()` 可请求值 | 净敞口套期收益。 |
+| `oth_impair_loss_assets` | `double` | `get_panel()` 可请求值 | 其他资产减值损失。 |
+| `total_opcost` | `double` | `get_panel()` 可请求值 | 营业总成本（二）。 |
+| `amodcost_fin_assets` | `double` | `get_panel()` 可请求值 | 以摊余成本计量的金融资产终止确认收益。 |
+| `oth_income` | `double` | `get_panel()` 可请求值 | 其他收益。 |
+| `asset_disp_income` | `double` | `get_panel()` 可请求值 | 资产处置收益。 |
+| `continued_net_profit` | `double` | `get_panel()` 可请求值 | 持续经营净利润。 |
+| `end_net_profit` | `double` | `get_panel()` 可请求值 | 终止经营净利润。 |
+| `update_flag` | `string` | `get_panel()` 可请求值 | 更新或修订标记。 |
 
 <a id="dataset-balancesheet"></a>
 ## `balancesheet`：Tushare 资产负债表
 
 资产负债表逻辑数据集；原始表保留修订，PIT 宽表使用 `f_ann_date` 作为披露日期。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`f_ann_date`、`report_type`、`comp_type`、`end_type`、`update_flag`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期。 |
-| `f_ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 实际披露日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 财务报告期。 |
-| `report_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告类型。 |
-| `comp_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公司类型。 |
-| `end_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告期类型。 |
-| `total_share` | `double` | `get_panel()` / `get_table()` 可请求值 | 股份总数。 |
-| `cap_rese` | `double` | `get_panel()` / `get_table()` 可请求值 | 资本公积金。 |
-| `undistr_porfit` | `double` | `get_panel()` / `get_table()` 可请求值 | 未分配利润。 |
-| `surplus_rese` | `double` | `get_panel()` / `get_table()` 可请求值 | 盈余公积金。 |
-| `special_rese` | `double` | `get_panel()` / `get_table()` 可请求值 | 专项储备。 |
-| `money_cap` | `double` | `get_panel()` / `get_table()` 可请求值 | 货币资金。 |
-| `trad_asset` | `double` | `get_panel()` / `get_table()` 可请求值 | 交易性金融资产。 |
-| `notes_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收票据。 |
-| `accounts_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收账款。 |
-| `oth_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他应收款。 |
-| `prepayment` | `double` | `get_panel()` / `get_table()` 可请求值 | 预付款项。 |
-| `div_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收股利。 |
-| `int_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收利息。 |
-| `inventories` | `double` | `get_panel()` / `get_table()` 可请求值 | 存货。 |
-| `amor_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 待摊费用。 |
-| `nca_within_1y` | `double` | `get_panel()` / `get_table()` 可请求值 | 一年内到期的非流动资产。 |
-| `sett_rsrv` | `double` | `get_panel()` / `get_table()` 可请求值 | 结算备付金。 |
-| `loanto_oth_bank_fi` | `double` | `get_panel()` / `get_table()` 可请求值 | 拆出资金。 |
-| `premium_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收保费。 |
-| `reinsur_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保账款。 |
-| `reinsur_res_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保合同准备金。 |
-| `pur_resale_fa` | `double` | `get_panel()` / `get_table()` 可请求值 | 买入返售金融资产。 |
-| `oth_cur_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他流动资产。 |
-| `total_cur_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动资产合计。 |
-| `fa_avail_for_sale` | `double` | `get_panel()` / `get_table()` 可请求值 | 可供出售金融资产。 |
-| `htm_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 持有至到期投资。 |
-| `lt_eqt_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期股权投资。 |
-| `invest_real_estate` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资性房地产。 |
-| `time_deposits` | `double` | `get_panel()` / `get_table()` 可请求值 | 定期存款。 |
-| `oth_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他资产。 |
-| `lt_rec` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期应收款。 |
-| `fix_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产。 |
-| `cip` | `double` | `get_panel()` / `get_table()` 可请求值 | 在建工程。 |
-| `const_materials` | `double` | `get_panel()` / `get_table()` 可请求值 | 工程物资。 |
-| `fixed_assets_disp` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产清理。 |
-| `produc_bio_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 生产性生物资产。 |
-| `oil_and_gas_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 油气资产。 |
-| `intan_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 无形资产。 |
-| `r_and_d` | `double` | `get_panel()` / `get_table()` 可请求值 | 研发支出。 |
-| `goodwill` | `double` | `get_panel()` / `get_table()` 可请求值 | 商誉。 |
-| `lt_amor_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期待摊费用。 |
-| `defer_tax_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延所得税资产。 |
-| `decr_in_disbur` | `double` | `get_panel()` / `get_table()` 可请求值 | 发放贷款及垫款。 |
-| `oth_nca` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他非流动资产。 |
-| `total_nca` | `double` | `get_panel()` / `get_table()` 可请求值 | 非流动资产合计。 |
-| `cash_reser_cb` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金及存放中央银行款项。 |
-| `depos_in_oth_bfi` | `double` | `get_panel()` / `get_table()` 可请求值 | 存放同业及其他金融机构款项。 |
-| `prec_metals` | `double` | `get_panel()` / `get_table()` 可请求值 | 贵金属。 |
-| `deriv_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 衍生金融资产。 |
-| `rr_reins_une_prem` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保未到期责任准备金。 |
-| `rr_reins_outstd_cla` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保未决赔款准备金。 |
-| `rr_reins_lins_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保寿险责任准备金。 |
-| `rr_reins_lthins_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收分保长期健康险责任准备金。 |
-| `refund_depos` | `double` | `get_panel()` / `get_table()` 可请求值 | 存出保证金。 |
-| `ph_pledge_loans` | `double` | `get_panel()` / `get_table()` 可请求值 | 保户质押贷款。 |
-| `refund_cap_depos` | `double` | `get_panel()` / `get_table()` 可请求值 | 存出资本保证金。 |
-| `indep_acct_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 独立账户资产。 |
-| `client_depos` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：客户资金。 |
-| `client_prov` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：客户备付金。 |
-| `transac_seat_fee` | `double` | `get_panel()` / `get_table()` 可请求值 | 交易席位费。 |
-| `invest_as_receiv` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收款项类投资。 |
-| `total_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产总计。 |
-| `lt_borr` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期借款。 |
-| `st_borr` | `double` | `get_panel()` / `get_table()` 可请求值 | 短期借款。 |
-| `cb_borr` | `double` | `get_panel()` / `get_table()` 可请求值 | 向中央银行借款。 |
-| `depos_ib_deposits` | `double` | `get_panel()` / `get_table()` 可请求值 | 吸收存款及同业存放。 |
-| `loan_oth_bank` | `double` | `get_panel()` / `get_table()` 可请求值 | 拆入资金。 |
-| `trading_fl` | `double` | `get_panel()` / `get_table()` 可请求值 | 交易性金融负债。 |
-| `notes_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付票据。 |
-| `acct_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付账款。 |
-| `adv_receipts` | `double` | `get_panel()` / `get_table()` 可请求值 | 预收款项。 |
-| `sold_for_repur_fa` | `double` | `get_panel()` / `get_table()` 可请求值 | 卖出回购金融资产款。 |
-| `comm_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付手续费及佣金。 |
-| `payroll_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付职工薪酬。 |
-| `taxes_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应交税费。 |
-| `int_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付利息。 |
-| `div_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付股利。 |
-| `oth_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他应付款。 |
-| `acc_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 预提费用。 |
-| `deferred_inc` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延收益。 |
-| `st_bonds_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付短期债券。 |
-| `payable_to_reinsurer` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付分保账款。 |
-| `rsrv_insur_cont` | `double` | `get_panel()` / `get_table()` 可请求值 | 保险合同准备金。 |
-| `acting_trading_sec` | `double` | `get_panel()` / `get_table()` 可请求值 | 代理买卖证券款。 |
-| `acting_uw_sec` | `double` | `get_panel()` / `get_table()` 可请求值 | 代理承销证券款。 |
-| `non_cur_liab_due_1y` | `double` | `get_panel()` / `get_table()` 可请求值 | 一年内到期的非流动负债。 |
-| `oth_cur_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他流动负债。 |
-| `total_cur_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动负债合计。 |
-| `bond_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付债券。 |
-| `lt_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期应付款。 |
-| `specific_payables` | `double` | `get_panel()` / `get_table()` 可请求值 | 专项应付款。 |
-| `estimated_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 预计负债。 |
-| `defer_tax_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延所得税负债。 |
-| `defer_inc_non_cur_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延收益——非流动负债。 |
-| `oth_ncl` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他非流动负债。 |
-| `total_ncl` | `double` | `get_panel()` / `get_table()` 可请求值 | 非流动负债合计。 |
-| `depos_oth_bfi` | `double` | `get_panel()` / `get_table()` 可请求值 | 同业及其他金融机构存放款项。 |
-| `deriv_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 衍生金融负债。 |
-| `depos` | `double` | `get_panel()` / `get_table()` 可请求值 | 吸收存款。 |
-| `agency_bus_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 代理业务负债。 |
-| `oth_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他负债。 |
-| `prem_receiv_adva` | `double` | `get_panel()` / `get_table()` 可请求值 | 预收保费。 |
-| `depos_received` | `double` | `get_panel()` / `get_table()` 可请求值 | 存入保证金。 |
-| `ph_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 保户投资款。 |
-| `reser_une_prem` | `double` | `get_panel()` / `get_table()` 可请求值 | 未到期责任准备金。 |
-| `reser_outstd_claims` | `double` | `get_panel()` / `get_table()` 可请求值 | 保险责任准备金——未决赔款准备金。 |
-| `reser_lins_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 寿险责任准备金。 |
-| `reser_lthins_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期健康险责任准备金。 |
-| `indept_acc_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 独立账户负债。 |
-| `pledge_borr` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：质押借款。 |
-| `indem_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付赔付款。 |
-| `policy_div_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付保单红利。 |
-| `total_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 负债合计。 |
-| `treasury_share` | `double` | `get_panel()` / `get_table()` 可请求值 | 减：库存股。 |
-| `ordin_risk_reser` | `double` | `get_panel()` / `get_table()` 可请求值 | 一般风险准备。 |
-| `forex_differ` | `double` | `get_panel()` / `get_table()` 可请求值 | 外币报表折算差额。 |
-| `invest_loss_unconf` | `double` | `get_panel()` / `get_table()` 可请求值 | 未确认的投资损失。 |
-| `minority_int` | `double` | `get_panel()` / `get_table()` 可请求值 | 少数股东权益。 |
-| `total_hldr_eqy_exc_min_int` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属于母公司股东权益合计。 |
-| `total_hldr_eqy_inc_min_int` | `double` | `get_panel()` / `get_table()` 可请求值 | 所有者权益合计（含少数股东权益）。 |
-| `total_liab_hldr_eqy` | `double` | `get_panel()` / `get_table()` 可请求值 | 负债及所有者权益总计。 |
-| `lt_payroll_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期应付职工薪酬。 |
-| `oth_comp_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他综合收益。 |
-| `oth_eqt_tools` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他权益工具。 |
-| `oth_eqt_tools_p_shr` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：优先股。 |
-| `lending_funds` | `double` | `get_panel()` / `get_table()` 可请求值 | 发放贷款及垫款。 |
-| `acc_receivable` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收款项类资产。 |
-| `st_fin_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 短期应付债券。 |
-| `payables` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付款项。 |
-| `hfs_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 持有待售资产。 |
-| `hfs_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 持有待售负债。 |
-| `cost_fin_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 以公允价值计量且其变动计入其他综合收益的金融资产（成本）。 |
-| `fair_value_fin_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 以公允价值计量且其变动计入其他综合收益的金融资产（公允价值）。 |
-| `cip_total` | `double` | `get_panel()` / `get_table()` 可请求值 | 在建工程（合计）。 |
-| `oth_pay_total` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他应付款合计。 |
-| `long_pay_total` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期应付款合计。 |
-| `debt_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 债权投资。 |
-| `oth_debt_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他债权投资。 |
-| `oth_eq_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他权益工具投资。 |
-| `oth_illiq_fin_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他非流动金融资产。 |
-| `oth_eq_ppbond` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他权益工具：永续债。 |
-| `receiv_financing` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收款项融资。 |
-| `use_right_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 使用权资产。 |
-| `lease_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 租赁负债。 |
-| `contract_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 合同资产。 |
-| `contract_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 合同负债。 |
-| `accounts_receiv_bill` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收款项融资（含应收票据）。 |
-| `accounts_pay` | `double` | `get_panel()` / `get_table()` 可请求值 | 应付及预收款项。 |
-| `oth_rcv_total` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他应收款合计。 |
-| `fix_assets_total` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产合计。 |
-| `update_flag` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 更新或修订标记。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期。 |
+| `f_ann_date` | `date32[day]` | `get_panel()` 可请求值 | 实际披露日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 财务报告期。 |
+| `report_type` | `string` | `get_panel()` 可请求值 | 报告类型。 |
+| `comp_type` | `string` | `get_panel()` 可请求值 | 公司类型。 |
+| `end_type` | `string` | `get_panel()` 可请求值 | 报告期类型。 |
+| `total_share` | `double` | `get_panel()` 可请求值 | 股份总数。 |
+| `cap_rese` | `double` | `get_panel()` 可请求值 | 资本公积金。 |
+| `undistr_porfit` | `double` | `get_panel()` 可请求值 | 未分配利润。 |
+| `surplus_rese` | `double` | `get_panel()` 可请求值 | 盈余公积金。 |
+| `special_rese` | `double` | `get_panel()` 可请求值 | 专项储备。 |
+| `money_cap` | `double` | `get_panel()` 可请求值 | 货币资金。 |
+| `trad_asset` | `double` | `get_panel()` 可请求值 | 交易性金融资产。 |
+| `notes_receiv` | `double` | `get_panel()` 可请求值 | 应收票据。 |
+| `accounts_receiv` | `double` | `get_panel()` 可请求值 | 应收账款。 |
+| `oth_receiv` | `double` | `get_panel()` 可请求值 | 其他应收款。 |
+| `prepayment` | `double` | `get_panel()` 可请求值 | 预付款项。 |
+| `div_receiv` | `double` | `get_panel()` 可请求值 | 应收股利。 |
+| `int_receiv` | `double` | `get_panel()` 可请求值 | 应收利息。 |
+| `inventories` | `double` | `get_panel()` 可请求值 | 存货。 |
+| `amor_exp` | `double` | `get_panel()` 可请求值 | 待摊费用。 |
+| `nca_within_1y` | `double` | `get_panel()` 可请求值 | 一年内到期的非流动资产。 |
+| `sett_rsrv` | `double` | `get_panel()` 可请求值 | 结算备付金。 |
+| `loanto_oth_bank_fi` | `double` | `get_panel()` 可请求值 | 拆出资金。 |
+| `premium_receiv` | `double` | `get_panel()` 可请求值 | 应收保费。 |
+| `reinsur_receiv` | `double` | `get_panel()` 可请求值 | 应收分保账款。 |
+| `reinsur_res_receiv` | `double` | `get_panel()` 可请求值 | 应收分保合同准备金。 |
+| `pur_resale_fa` | `double` | `get_panel()` 可请求值 | 买入返售金融资产。 |
+| `oth_cur_assets` | `double` | `get_panel()` 可请求值 | 其他流动资产。 |
+| `total_cur_assets` | `double` | `get_panel()` 可请求值 | 流动资产合计。 |
+| `fa_avail_for_sale` | `double` | `get_panel()` 可请求值 | 可供出售金融资产。 |
+| `htm_invest` | `double` | `get_panel()` 可请求值 | 持有至到期投资。 |
+| `lt_eqt_invest` | `double` | `get_panel()` 可请求值 | 长期股权投资。 |
+| `invest_real_estate` | `double` | `get_panel()` 可请求值 | 投资性房地产。 |
+| `time_deposits` | `double` | `get_panel()` 可请求值 | 定期存款。 |
+| `oth_assets` | `double` | `get_panel()` 可请求值 | 其他资产。 |
+| `lt_rec` | `double` | `get_panel()` 可请求值 | 长期应收款。 |
+| `fix_assets` | `double` | `get_panel()` 可请求值 | 固定资产。 |
+| `cip` | `double` | `get_panel()` 可请求值 | 在建工程。 |
+| `const_materials` | `double` | `get_panel()` 可请求值 | 工程物资。 |
+| `fixed_assets_disp` | `double` | `get_panel()` 可请求值 | 固定资产清理。 |
+| `produc_bio_assets` | `double` | `get_panel()` 可请求值 | 生产性生物资产。 |
+| `oil_and_gas_assets` | `double` | `get_panel()` 可请求值 | 油气资产。 |
+| `intan_assets` | `double` | `get_panel()` 可请求值 | 无形资产。 |
+| `r_and_d` | `double` | `get_panel()` 可请求值 | 研发支出。 |
+| `goodwill` | `double` | `get_panel()` 可请求值 | 商誉。 |
+| `lt_amor_exp` | `double` | `get_panel()` 可请求值 | 长期待摊费用。 |
+| `defer_tax_assets` | `double` | `get_panel()` 可请求值 | 递延所得税资产。 |
+| `decr_in_disbur` | `double` | `get_panel()` 可请求值 | 发放贷款及垫款。 |
+| `oth_nca` | `double` | `get_panel()` 可请求值 | 其他非流动资产。 |
+| `total_nca` | `double` | `get_panel()` 可请求值 | 非流动资产合计。 |
+| `cash_reser_cb` | `double` | `get_panel()` 可请求值 | 现金及存放中央银行款项。 |
+| `depos_in_oth_bfi` | `double` | `get_panel()` 可请求值 | 存放同业及其他金融机构款项。 |
+| `prec_metals` | `double` | `get_panel()` 可请求值 | 贵金属。 |
+| `deriv_assets` | `double` | `get_panel()` 可请求值 | 衍生金融资产。 |
+| `rr_reins_une_prem` | `double` | `get_panel()` 可请求值 | 应收分保未到期责任准备金。 |
+| `rr_reins_outstd_cla` | `double` | `get_panel()` 可请求值 | 应收分保未决赔款准备金。 |
+| `rr_reins_lins_liab` | `double` | `get_panel()` 可请求值 | 应收分保寿险责任准备金。 |
+| `rr_reins_lthins_liab` | `double` | `get_panel()` 可请求值 | 应收分保长期健康险责任准备金。 |
+| `refund_depos` | `double` | `get_panel()` 可请求值 | 存出保证金。 |
+| `ph_pledge_loans` | `double` | `get_panel()` 可请求值 | 保户质押贷款。 |
+| `refund_cap_depos` | `double` | `get_panel()` 可请求值 | 存出资本保证金。 |
+| `indep_acct_assets` | `double` | `get_panel()` 可请求值 | 独立账户资产。 |
+| `client_depos` | `double` | `get_panel()` 可请求值 | 其中：客户资金。 |
+| `client_prov` | `double` | `get_panel()` 可请求值 | 其中：客户备付金。 |
+| `transac_seat_fee` | `double` | `get_panel()` 可请求值 | 交易席位费。 |
+| `invest_as_receiv` | `double` | `get_panel()` 可请求值 | 应收款项类投资。 |
+| `total_assets` | `double` | `get_panel()` 可请求值 | 资产总计。 |
+| `lt_borr` | `double` | `get_panel()` 可请求值 | 长期借款。 |
+| `st_borr` | `double` | `get_panel()` 可请求值 | 短期借款。 |
+| `cb_borr` | `double` | `get_panel()` 可请求值 | 向中央银行借款。 |
+| `depos_ib_deposits` | `double` | `get_panel()` 可请求值 | 吸收存款及同业存放。 |
+| `loan_oth_bank` | `double` | `get_panel()` 可请求值 | 拆入资金。 |
+| `trading_fl` | `double` | `get_panel()` 可请求值 | 交易性金融负债。 |
+| `notes_payable` | `double` | `get_panel()` 可请求值 | 应付票据。 |
+| `acct_payable` | `double` | `get_panel()` 可请求值 | 应付账款。 |
+| `adv_receipts` | `double` | `get_panel()` 可请求值 | 预收款项。 |
+| `sold_for_repur_fa` | `double` | `get_panel()` 可请求值 | 卖出回购金融资产款。 |
+| `comm_payable` | `double` | `get_panel()` 可请求值 | 应付手续费及佣金。 |
+| `payroll_payable` | `double` | `get_panel()` 可请求值 | 应付职工薪酬。 |
+| `taxes_payable` | `double` | `get_panel()` 可请求值 | 应交税费。 |
+| `int_payable` | `double` | `get_panel()` 可请求值 | 应付利息。 |
+| `div_payable` | `double` | `get_panel()` 可请求值 | 应付股利。 |
+| `oth_payable` | `double` | `get_panel()` 可请求值 | 其他应付款。 |
+| `acc_exp` | `double` | `get_panel()` 可请求值 | 预提费用。 |
+| `deferred_inc` | `double` | `get_panel()` 可请求值 | 递延收益。 |
+| `st_bonds_payable` | `double` | `get_panel()` 可请求值 | 应付短期债券。 |
+| `payable_to_reinsurer` | `double` | `get_panel()` 可请求值 | 应付分保账款。 |
+| `rsrv_insur_cont` | `double` | `get_panel()` 可请求值 | 保险合同准备金。 |
+| `acting_trading_sec` | `double` | `get_panel()` 可请求值 | 代理买卖证券款。 |
+| `acting_uw_sec` | `double` | `get_panel()` 可请求值 | 代理承销证券款。 |
+| `non_cur_liab_due_1y` | `double` | `get_panel()` 可请求值 | 一年内到期的非流动负债。 |
+| `oth_cur_liab` | `double` | `get_panel()` 可请求值 | 其他流动负债。 |
+| `total_cur_liab` | `double` | `get_panel()` 可请求值 | 流动负债合计。 |
+| `bond_payable` | `double` | `get_panel()` 可请求值 | 应付债券。 |
+| `lt_payable` | `double` | `get_panel()` 可请求值 | 长期应付款。 |
+| `specific_payables` | `double` | `get_panel()` 可请求值 | 专项应付款。 |
+| `estimated_liab` | `double` | `get_panel()` 可请求值 | 预计负债。 |
+| `defer_tax_liab` | `double` | `get_panel()` 可请求值 | 递延所得税负债。 |
+| `defer_inc_non_cur_liab` | `double` | `get_panel()` 可请求值 | 递延收益——非流动负债。 |
+| `oth_ncl` | `double` | `get_panel()` 可请求值 | 其他非流动负债。 |
+| `total_ncl` | `double` | `get_panel()` 可请求值 | 非流动负债合计。 |
+| `depos_oth_bfi` | `double` | `get_panel()` 可请求值 | 同业及其他金融机构存放款项。 |
+| `deriv_liab` | `double` | `get_panel()` 可请求值 | 衍生金融负债。 |
+| `depos` | `double` | `get_panel()` 可请求值 | 吸收存款。 |
+| `agency_bus_liab` | `double` | `get_panel()` 可请求值 | 代理业务负债。 |
+| `oth_liab` | `double` | `get_panel()` 可请求值 | 其他负债。 |
+| `prem_receiv_adva` | `double` | `get_panel()` 可请求值 | 预收保费。 |
+| `depos_received` | `double` | `get_panel()` 可请求值 | 存入保证金。 |
+| `ph_invest` | `double` | `get_panel()` 可请求值 | 保户投资款。 |
+| `reser_une_prem` | `double` | `get_panel()` 可请求值 | 未到期责任准备金。 |
+| `reser_outstd_claims` | `double` | `get_panel()` 可请求值 | 保险责任准备金——未决赔款准备金。 |
+| `reser_lins_liab` | `double` | `get_panel()` 可请求值 | 寿险责任准备金。 |
+| `reser_lthins_liab` | `double` | `get_panel()` 可请求值 | 长期健康险责任准备金。 |
+| `indept_acc_liab` | `double` | `get_panel()` 可请求值 | 独立账户负债。 |
+| `pledge_borr` | `double` | `get_panel()` 可请求值 | 其中：质押借款。 |
+| `indem_payable` | `double` | `get_panel()` 可请求值 | 应付赔付款。 |
+| `policy_div_payable` | `double` | `get_panel()` 可请求值 | 应付保单红利。 |
+| `total_liab` | `double` | `get_panel()` 可请求值 | 负债合计。 |
+| `treasury_share` | `double` | `get_panel()` 可请求值 | 减：库存股。 |
+| `ordin_risk_reser` | `double` | `get_panel()` 可请求值 | 一般风险准备。 |
+| `forex_differ` | `double` | `get_panel()` 可请求值 | 外币报表折算差额。 |
+| `invest_loss_unconf` | `double` | `get_panel()` 可请求值 | 未确认的投资损失。 |
+| `minority_int` | `double` | `get_panel()` 可请求值 | 少数股东权益。 |
+| `total_hldr_eqy_exc_min_int` | `double` | `get_panel()` 可请求值 | 归属于母公司股东权益合计。 |
+| `total_hldr_eqy_inc_min_int` | `double` | `get_panel()` 可请求值 | 所有者权益合计（含少数股东权益）。 |
+| `total_liab_hldr_eqy` | `double` | `get_panel()` 可请求值 | 负债及所有者权益总计。 |
+| `lt_payroll_payable` | `double` | `get_panel()` 可请求值 | 长期应付职工薪酬。 |
+| `oth_comp_income` | `double` | `get_panel()` 可请求值 | 其他综合收益。 |
+| `oth_eqt_tools` | `double` | `get_panel()` 可请求值 | 其他权益工具。 |
+| `oth_eqt_tools_p_shr` | `double` | `get_panel()` 可请求值 | 其中：优先股。 |
+| `lending_funds` | `double` | `get_panel()` 可请求值 | 发放贷款及垫款。 |
+| `acc_receivable` | `double` | `get_panel()` 可请求值 | 应收款项类资产。 |
+| `st_fin_payable` | `double` | `get_panel()` 可请求值 | 短期应付债券。 |
+| `payables` | `double` | `get_panel()` 可请求值 | 应付款项。 |
+| `hfs_assets` | `double` | `get_panel()` 可请求值 | 持有待售资产。 |
+| `hfs_sales` | `double` | `get_panel()` 可请求值 | 持有待售负债。 |
+| `cost_fin_assets` | `double` | `get_panel()` 可请求值 | 以公允价值计量且其变动计入其他综合收益的金融资产（成本）。 |
+| `fair_value_fin_assets` | `double` | `get_panel()` 可请求值 | 以公允价值计量且其变动计入其他综合收益的金融资产（公允价值）。 |
+| `cip_total` | `double` | `get_panel()` 可请求值 | 在建工程（合计）。 |
+| `oth_pay_total` | `double` | `get_panel()` 可请求值 | 其他应付款合计。 |
+| `long_pay_total` | `double` | `get_panel()` 可请求值 | 长期应付款合计。 |
+| `debt_invest` | `double` | `get_panel()` 可请求值 | 债权投资。 |
+| `oth_debt_invest` | `double` | `get_panel()` 可请求值 | 其他债权投资。 |
+| `oth_eq_invest` | `double` | `get_panel()` 可请求值 | 其他权益工具投资。 |
+| `oth_illiq_fin_assets` | `double` | `get_panel()` 可请求值 | 其他非流动金融资产。 |
+| `oth_eq_ppbond` | `double` | `get_panel()` 可请求值 | 其他权益工具：永续债。 |
+| `receiv_financing` | `double` | `get_panel()` 可请求值 | 应收款项融资。 |
+| `use_right_assets` | `double` | `get_panel()` 可请求值 | 使用权资产。 |
+| `lease_liab` | `double` | `get_panel()` 可请求值 | 租赁负债。 |
+| `contract_assets` | `double` | `get_panel()` 可请求值 | 合同资产。 |
+| `contract_liab` | `double` | `get_panel()` 可请求值 | 合同负债。 |
+| `accounts_receiv_bill` | `double` | `get_panel()` 可请求值 | 应收款项融资（含应收票据）。 |
+| `accounts_pay` | `double` | `get_panel()` 可请求值 | 应付及预收款项。 |
+| `oth_rcv_total` | `double` | `get_panel()` 可请求值 | 其他应收款合计。 |
+| `fix_assets_total` | `double` | `get_panel()` 可请求值 | 固定资产合计。 |
+| `update_flag` | `string` | `get_panel()` 可请求值 | 更新或修订标记。 |
 
 <a id="dataset-cashflow"></a>
 ## `cashflow`：Tushare 现金流量表
 
 现金流量表逻辑数据集；原始表保留修订，PIT 宽表使用 `f_ann_date` 作为披露日期。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`f_ann_date`、`report_type`、`comp_type`、`end_type`、`update_flag`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期。 |
-| `f_ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 实际披露日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 财务报告期。 |
-| `comp_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公司类型。 |
-| `report_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告类型。 |
-| `end_type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 报告期类型。 |
-| `net_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润。 |
-| `finan_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用（付现部分调整项）。 |
-| `c_fr_sale_sg` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售商品、提供劳务收到的现金。 |
-| `recp_tax_rends` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到的税费返还。 |
-| `n_depos_incr_fi` | `double` | `get_panel()` / `get_table()` 可请求值 | 客户存款和同业存放款项净增加额。 |
-| `n_incr_loans_cb` | `double` | `get_panel()` / `get_table()` 可请求值 | 向中央银行借款净增加额。 |
-| `n_inc_borr_oth_fi` | `double` | `get_panel()` / `get_table()` 可请求值 | 向其他金融机构拆入资金净增加额。 |
-| `prem_fr_orig_contr` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到原保险合同保费取得的现金。 |
-| `n_incr_insured_dep` | `double` | `get_panel()` / `get_table()` 可请求值 | 保户储金净增加额。 |
-| `n_reinsur_prem` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到再保业务现金净额。 |
-| `n_incr_disp_tfa` | `double` | `get_panel()` / `get_table()` 可请求值 | 处置交易性金融资产净增加额。 |
-| `ifc_cash_incr` | `double` | `get_panel()` / `get_table()` 可请求值 | 收取利息、手续费及佣金的现金。 |
-| `n_incr_disp_faas` | `double` | `get_panel()` / `get_table()` 可请求值 | 处置可供出售金融资产净增加额。 |
-| `n_incr_loans_oth_bank` | `double` | `get_panel()` / `get_table()` 可请求值 | 拆入资金及卖出回购金融资产款净增加额。 |
-| `n_cap_incr_repur` | `double` | `get_panel()` / `get_table()` 可请求值 | 回购业务资金净增加额。 |
-| `c_fr_oth_operate_a` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到其他与经营活动有关的现金。 |
-| `c_inf_fr_operate_a` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营活动现金流入小计。 |
-| `c_paid_goods_s` | `double` | `get_panel()` / `get_table()` 可请求值 | 购买商品、接受劳务支付的现金。 |
-| `c_paid_to_for_empl` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付给职工以及为职工支付的现金。 |
-| `c_paid_for_taxes` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付的各项税费。 |
-| `n_incr_clt_loan_adv` | `double` | `get_panel()` / `get_table()` 可请求值 | 客户贷款及垫款净增加额。 |
-| `n_incr_dep_cbob` | `double` | `get_panel()` / `get_table()` 可请求值 | 存放中央银行和同业款项净增加额。 |
-| `c_pay_claims_orig_inco` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付原保险合同赔付款项的现金。 |
-| `pay_handling_chrg` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付手续费及佣金的现金。 |
-| `pay_comm_insur_plcy` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付保单红利的现金。 |
-| `oth_cash_pay_oper_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付其他与经营活动有关的现金。 |
-| `st_cash_out_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营活动现金流出小计。 |
-| `n_cashflow_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营活动产生的现金流量净额。 |
-| `oth_recp_ral_inv_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到其他与投资活动有关的现金。 |
-| `c_disp_withdrwl_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 收回投资收到的现金。 |
-| `c_recp_return_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 取得投资收益收到的现金。 |
-| `n_recp_disp_fiolta` | `double` | `get_panel()` / `get_table()` 可请求值 | 处置固定资产、无形资产和其他长期资产收回的现金净额。 |
-| `n_recp_disp_sobu` | `double` | `get_panel()` / `get_table()` 可请求值 | 处置子公司及其他营业单位收到的现金净额。 |
-| `stot_inflows_inv_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资活动现金流入小计。 |
-| `c_pay_acq_const_fiolta` | `double` | `get_panel()` / `get_table()` 可请求值 | 购建固定资产、无形资产和其他长期资产支付的现金。 |
-| `c_paid_invest` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资支付的现金。 |
-| `n_disp_subs_oth_biz` | `double` | `get_panel()` / `get_table()` 可请求值 | 取得子公司及其他营业单位支付的现金净额。 |
-| `oth_pay_ral_inv_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付其他与投资活动有关的现金。 |
-| `n_incr_pledge_loan` | `double` | `get_panel()` / `get_table()` 可请求值 | 质押贷款净增加额。 |
-| `stot_out_inv_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资活动现金流出小计。 |
-| `n_cashflow_inv_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资活动产生的现金流量净额。 |
-| `c_recp_borrow` | `double` | `get_panel()` / `get_table()` 可请求值 | 吸收投资收到的现金。 |
-| `proc_issue_bonds` | `double` | `get_panel()` / `get_table()` 可请求值 | 取得借款收到的现金。 |
-| `oth_cash_recp_ral_fnc_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到其他与筹资活动有关的现金。 |
-| `stot_cash_in_fnc_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 筹资活动现金流入小计。 |
-| `free_cashflow` | `double` | `get_panel()` / `get_table()` 可请求值 | 企业自由现金流量。 |
-| `c_prepay_amt_borr` | `double` | `get_panel()` / `get_table()` 可请求值 | 发行债券收到的现金。 |
-| `c_pay_dist_dpcp_int_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 分配股利、利润或偿付利息支付的现金。 |
-| `incl_dvd_profit_paid_sc_ms` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：子公司支付给少数股东的股利、利润。 |
-| `oth_cashpay_ral_fnc_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 支付其他与筹资活动有关的现金。 |
-| `stot_cashout_fnc_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 筹资活动现金流出小计。 |
-| `n_cash_flows_fnc_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 筹资活动产生的现金流量净额。 |
-| `eff_fx_flu_cash` | `double` | `get_panel()` / `get_table()` 可请求值 | 汇率变动对现金的影响。 |
-| `n_incr_cash_cash_equ` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金及现金等价物净增加额。 |
-| `c_cash_equ_beg_period` | `double` | `get_panel()` / `get_table()` 可请求值 | 期初现金及现金等价物余额。 |
-| `c_cash_equ_end_period` | `double` | `get_panel()` / `get_table()` 可请求值 | 期末现金及现金等价物余额。 |
-| `c_recp_cap_contrib` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：吸收投资收到的现金（资本投入）。 |
-| `incl_cash_rec_saims` | `double` | `get_panel()` / `get_table()` 可请求值 | 其中：子公司吸收少数股东投资收到的现金。 |
-| `uncon_invest_loss` | `double` | `get_panel()` / `get_table()` 可请求值 | 未确认的投资损失（间接法调整项）。 |
-| `prov_depr_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产减值准备（间接法）。 |
-| `depr_fa_coga_dpba` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产折旧、油气资产折耗、生产性生物资产折旧。 |
-| `amort_intang_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 无形资产摊销。 |
-| `lt_amort_deferred_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期待摊费用摊销。 |
-| `decr_deferred_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 待摊费用的减少（间接法）。 |
-| `incr_acc_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 预提费用的增加（间接法）。 |
-| `loss_disp_fiolta` | `double` | `get_panel()` / `get_table()` 可请求值 | 处置固定资产、无形资产和其他长期资产的损失。 |
-| `loss_scr_fa` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产报废损失。 |
-| `loss_fv_chg` | `double` | `get_panel()` / `get_table()` 可请求值 | 公允价值变动损失。 |
-| `invest_loss` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资损失（间接法）。 |
-| `decr_def_inc_tax_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延所得税资产减少。 |
-| `incr_def_inc_tax_liab` | `double` | `get_panel()` / `get_table()` 可请求值 | 递延所得税负债增加。 |
-| `decr_inventories` | `double` | `get_panel()` / `get_table()` 可请求值 | 存货的减少（间接法）。 |
-| `decr_oper_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营性应收项目的减少。 |
-| `incr_oper_payable` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营性应付项目的增加。 |
-| `others` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他（间接法）。 |
-| `im_net_cashflow_oper_act` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营活动产生的现金流量净额（间接法）。 |
-| `conv_debt_into_cap` | `double` | `get_panel()` / `get_table()` 可请求值 | 债务转为资本。 |
-| `conv_copbonds_due_within_1y` | `double` | `get_panel()` / `get_table()` 可请求值 | 一年内到期的可转换公司债券。 |
-| `fa_fnc_leases` | `double` | `get_panel()` / `get_table()` 可请求值 | 融资租入固定资产。 |
-| `im_n_incr_cash_equ` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金及现金等价物净增加额（间接法）。 |
-| `net_dism_capital_add` | `double` | `get_panel()` / `get_table()` 可请求值 | 筹资净额相关调整：减少注册资本。 |
-| `net_cash_rece_sec` | `double` | `get_panel()` / `get_table()` 可请求值 | 收到与筹资活动相关的现金净额。 |
-| `credit_impa_loss` | `double` | `get_panel()` / `get_table()` 可请求值 | 信用减值损失。 |
-| `use_right_asset_dep` | `double` | `get_panel()` / `get_table()` 可请求值 | 使用权资产折旧。 |
-| `oth_loss_asset` | `double` | `get_panel()` / `get_table()` 可请求值 | 其他资产减值损失。 |
-| `end_bal_cash` | `double` | `get_panel()` / `get_table()` 可请求值 | 期末现金余额。 |
-| `beg_bal_cash` | `double` | `get_panel()` / `get_table()` 可请求值 | 期初现金余额。 |
-| `end_bal_cash_equ` | `double` | `get_panel()` / `get_table()` 可请求值 | 期末现金等价物余额。 |
-| `beg_bal_cash_equ` | `double` | `get_panel()` / `get_table()` 可请求值 | 期初现金等价物余额。 |
-| `update_flag` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 更新或修订标记。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期。 |
+| `f_ann_date` | `date32[day]` | `get_panel()` 可请求值 | 实际披露日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 财务报告期。 |
+| `comp_type` | `string` | `get_panel()` 可请求值 | 公司类型。 |
+| `report_type` | `string` | `get_panel()` 可请求值 | 报告类型。 |
+| `end_type` | `string` | `get_panel()` 可请求值 | 报告期类型。 |
+| `net_profit` | `double` | `get_panel()` 可请求值 | 净利润。 |
+| `finan_exp` | `double` | `get_panel()` 可请求值 | 财务费用（付现部分调整项）。 |
+| `c_fr_sale_sg` | `double` | `get_panel()` 可请求值 | 销售商品、提供劳务收到的现金。 |
+| `recp_tax_rends` | `double` | `get_panel()` 可请求值 | 收到的税费返还。 |
+| `n_depos_incr_fi` | `double` | `get_panel()` 可请求值 | 客户存款和同业存放款项净增加额。 |
+| `n_incr_loans_cb` | `double` | `get_panel()` 可请求值 | 向中央银行借款净增加额。 |
+| `n_inc_borr_oth_fi` | `double` | `get_panel()` 可请求值 | 向其他金融机构拆入资金净增加额。 |
+| `prem_fr_orig_contr` | `double` | `get_panel()` 可请求值 | 收到原保险合同保费取得的现金。 |
+| `n_incr_insured_dep` | `double` | `get_panel()` 可请求值 | 保户储金净增加额。 |
+| `n_reinsur_prem` | `double` | `get_panel()` 可请求值 | 收到再保业务现金净额。 |
+| `n_incr_disp_tfa` | `double` | `get_panel()` 可请求值 | 处置交易性金融资产净增加额。 |
+| `ifc_cash_incr` | `double` | `get_panel()` 可请求值 | 收取利息、手续费及佣金的现金。 |
+| `n_incr_disp_faas` | `double` | `get_panel()` 可请求值 | 处置可供出售金融资产净增加额。 |
+| `n_incr_loans_oth_bank` | `double` | `get_panel()` 可请求值 | 拆入资金及卖出回购金融资产款净增加额。 |
+| `n_cap_incr_repur` | `double` | `get_panel()` 可请求值 | 回购业务资金净增加额。 |
+| `c_fr_oth_operate_a` | `double` | `get_panel()` 可请求值 | 收到其他与经营活动有关的现金。 |
+| `c_inf_fr_operate_a` | `double` | `get_panel()` 可请求值 | 经营活动现金流入小计。 |
+| `c_paid_goods_s` | `double` | `get_panel()` 可请求值 | 购买商品、接受劳务支付的现金。 |
+| `c_paid_to_for_empl` | `double` | `get_panel()` 可请求值 | 支付给职工以及为职工支付的现金。 |
+| `c_paid_for_taxes` | `double` | `get_panel()` 可请求值 | 支付的各项税费。 |
+| `n_incr_clt_loan_adv` | `double` | `get_panel()` 可请求值 | 客户贷款及垫款净增加额。 |
+| `n_incr_dep_cbob` | `double` | `get_panel()` 可请求值 | 存放中央银行和同业款项净增加额。 |
+| `c_pay_claims_orig_inco` | `double` | `get_panel()` 可请求值 | 支付原保险合同赔付款项的现金。 |
+| `pay_handling_chrg` | `double` | `get_panel()` 可请求值 | 支付手续费及佣金的现金。 |
+| `pay_comm_insur_plcy` | `double` | `get_panel()` 可请求值 | 支付保单红利的现金。 |
+| `oth_cash_pay_oper_act` | `double` | `get_panel()` 可请求值 | 支付其他与经营活动有关的现金。 |
+| `st_cash_out_act` | `double` | `get_panel()` 可请求值 | 经营活动现金流出小计。 |
+| `n_cashflow_act` | `double` | `get_panel()` 可请求值 | 经营活动产生的现金流量净额。 |
+| `oth_recp_ral_inv_act` | `double` | `get_panel()` 可请求值 | 收到其他与投资活动有关的现金。 |
+| `c_disp_withdrwl_invest` | `double` | `get_panel()` 可请求值 | 收回投资收到的现金。 |
+| `c_recp_return_invest` | `double` | `get_panel()` 可请求值 | 取得投资收益收到的现金。 |
+| `n_recp_disp_fiolta` | `double` | `get_panel()` 可请求值 | 处置固定资产、无形资产和其他长期资产收回的现金净额。 |
+| `n_recp_disp_sobu` | `double` | `get_panel()` 可请求值 | 处置子公司及其他营业单位收到的现金净额。 |
+| `stot_inflows_inv_act` | `double` | `get_panel()` 可请求值 | 投资活动现金流入小计。 |
+| `c_pay_acq_const_fiolta` | `double` | `get_panel()` 可请求值 | 购建固定资产、无形资产和其他长期资产支付的现金。 |
+| `c_paid_invest` | `double` | `get_panel()` 可请求值 | 投资支付的现金。 |
+| `n_disp_subs_oth_biz` | `double` | `get_panel()` 可请求值 | 取得子公司及其他营业单位支付的现金净额。 |
+| `oth_pay_ral_inv_act` | `double` | `get_panel()` 可请求值 | 支付其他与投资活动有关的现金。 |
+| `n_incr_pledge_loan` | `double` | `get_panel()` 可请求值 | 质押贷款净增加额。 |
+| `stot_out_inv_act` | `double` | `get_panel()` 可请求值 | 投资活动现金流出小计。 |
+| `n_cashflow_inv_act` | `double` | `get_panel()` 可请求值 | 投资活动产生的现金流量净额。 |
+| `c_recp_borrow` | `double` | `get_panel()` 可请求值 | 吸收投资收到的现金。 |
+| `proc_issue_bonds` | `double` | `get_panel()` 可请求值 | 取得借款收到的现金。 |
+| `oth_cash_recp_ral_fnc_act` | `double` | `get_panel()` 可请求值 | 收到其他与筹资活动有关的现金。 |
+| `stot_cash_in_fnc_act` | `double` | `get_panel()` 可请求值 | 筹资活动现金流入小计。 |
+| `free_cashflow` | `double` | `get_panel()` 可请求值 | 企业自由现金流量。 |
+| `c_prepay_amt_borr` | `double` | `get_panel()` 可请求值 | 发行债券收到的现金。 |
+| `c_pay_dist_dpcp_int_exp` | `double` | `get_panel()` 可请求值 | 分配股利、利润或偿付利息支付的现金。 |
+| `incl_dvd_profit_paid_sc_ms` | `double` | `get_panel()` 可请求值 | 其中：子公司支付给少数股东的股利、利润。 |
+| `oth_cashpay_ral_fnc_act` | `double` | `get_panel()` 可请求值 | 支付其他与筹资活动有关的现金。 |
+| `stot_cashout_fnc_act` | `double` | `get_panel()` 可请求值 | 筹资活动现金流出小计。 |
+| `n_cash_flows_fnc_act` | `double` | `get_panel()` 可请求值 | 筹资活动产生的现金流量净额。 |
+| `eff_fx_flu_cash` | `double` | `get_panel()` 可请求值 | 汇率变动对现金的影响。 |
+| `n_incr_cash_cash_equ` | `double` | `get_panel()` 可请求值 | 现金及现金等价物净增加额。 |
+| `c_cash_equ_beg_period` | `double` | `get_panel()` 可请求值 | 期初现金及现金等价物余额。 |
+| `c_cash_equ_end_period` | `double` | `get_panel()` 可请求值 | 期末现金及现金等价物余额。 |
+| `c_recp_cap_contrib` | `double` | `get_panel()` 可请求值 | 其中：吸收投资收到的现金（资本投入）。 |
+| `incl_cash_rec_saims` | `double` | `get_panel()` 可请求值 | 其中：子公司吸收少数股东投资收到的现金。 |
+| `uncon_invest_loss` | `double` | `get_panel()` 可请求值 | 未确认的投资损失（间接法调整项）。 |
+| `prov_depr_assets` | `double` | `get_panel()` 可请求值 | 资产减值准备（间接法）。 |
+| `depr_fa_coga_dpba` | `double` | `get_panel()` 可请求值 | 固定资产折旧、油气资产折耗、生产性生物资产折旧。 |
+| `amort_intang_assets` | `double` | `get_panel()` 可请求值 | 无形资产摊销。 |
+| `lt_amort_deferred_exp` | `double` | `get_panel()` 可请求值 | 长期待摊费用摊销。 |
+| `decr_deferred_exp` | `double` | `get_panel()` 可请求值 | 待摊费用的减少（间接法）。 |
+| `incr_acc_exp` | `double` | `get_panel()` 可请求值 | 预提费用的增加（间接法）。 |
+| `loss_disp_fiolta` | `double` | `get_panel()` 可请求值 | 处置固定资产、无形资产和其他长期资产的损失。 |
+| `loss_scr_fa` | `double` | `get_panel()` 可请求值 | 固定资产报废损失。 |
+| `loss_fv_chg` | `double` | `get_panel()` 可请求值 | 公允价值变动损失。 |
+| `invest_loss` | `double` | `get_panel()` 可请求值 | 投资损失（间接法）。 |
+| `decr_def_inc_tax_assets` | `double` | `get_panel()` 可请求值 | 递延所得税资产减少。 |
+| `incr_def_inc_tax_liab` | `double` | `get_panel()` 可请求值 | 递延所得税负债增加。 |
+| `decr_inventories` | `double` | `get_panel()` 可请求值 | 存货的减少（间接法）。 |
+| `decr_oper_payable` | `double` | `get_panel()` 可请求值 | 经营性应收项目的减少。 |
+| `incr_oper_payable` | `double` | `get_panel()` 可请求值 | 经营性应付项目的增加。 |
+| `others` | `double` | `get_panel()` 可请求值 | 其他（间接法）。 |
+| `im_net_cashflow_oper_act` | `double` | `get_panel()` 可请求值 | 经营活动产生的现金流量净额（间接法）。 |
+| `conv_debt_into_cap` | `double` | `get_panel()` 可请求值 | 债务转为资本。 |
+| `conv_copbonds_due_within_1y` | `double` | `get_panel()` 可请求值 | 一年内到期的可转换公司债券。 |
+| `fa_fnc_leases` | `double` | `get_panel()` 可请求值 | 融资租入固定资产。 |
+| `im_n_incr_cash_equ` | `double` | `get_panel()` 可请求值 | 现金及现金等价物净增加额（间接法）。 |
+| `net_dism_capital_add` | `double` | `get_panel()` 可请求值 | 筹资净额相关调整：减少注册资本。 |
+| `net_cash_rece_sec` | `double` | `get_panel()` 可请求值 | 收到与筹资活动相关的现金净额。 |
+| `credit_impa_loss` | `double` | `get_panel()` 可请求值 | 信用减值损失。 |
+| `use_right_asset_dep` | `double` | `get_panel()` 可请求值 | 使用权资产折旧。 |
+| `oth_loss_asset` | `double` | `get_panel()` 可请求值 | 其他资产减值损失。 |
+| `end_bal_cash` | `double` | `get_panel()` 可请求值 | 期末现金余额。 |
+| `beg_bal_cash` | `double` | `get_panel()` 可请求值 | 期初现金余额。 |
+| `end_bal_cash_equ` | `double` | `get_panel()` 可请求值 | 期末现金等价物余额。 |
+| `beg_bal_cash_equ` | `double` | `get_panel()` 可请求值 | 期初现金等价物余额。 |
+| `update_flag` | `string` | `get_panel()` 可请求值 | 更新或修订标记。 |
 
 <a id="dataset-fina-indicator"></a>
 ## `fina_indicator`：Tushare 财务指标
 
 财务指标逻辑数据集。该家族没有 `f_ann_date`，PIT 宽表使用 `ann_date`。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`update_flag`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 财务报告期。 |
-| `eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 基本每股收益。 |
-| `dt_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释每股收益。 |
-| `total_revenue_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股营业总收入。 |
-| `revenue_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股营业收入。 |
-| `capital_rese_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股资本公积。 |
-| `surplus_rese_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股盈余公积。 |
-| `undist_profit_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股未分配利润。 |
-| `extra_item` | `double` | `get_panel()` / `get_table()` 可请求值 | 非经常性损益。 |
-| `profit_dedt` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣除非经常性损益后的净利润。 |
-| `gross_margin` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售毛利率。 |
-| `current_ratio` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动比率。 |
-| `quick_ratio` | `double` | `get_panel()` / `get_table()` 可请求值 | 速动比率。 |
-| `cash_ratio` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金比率。 |
-| `invturn_days` | `double` | `get_panel()` / `get_table()` 可请求值 | 存货周转天数。 |
-| `arturn_days` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收账款周转天数。 |
-| `inv_turn` | `double` | `get_panel()` / `get_table()` 可请求值 | 存货周转率。 |
-| `ar_turn` | `double` | `get_panel()` / `get_table()` 可请求值 | 应收账款周转率。 |
-| `ca_turn` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动资产周转率。 |
-| `fa_turn` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产周转率。 |
-| `assets_turn` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产周转率。 |
-| `op_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润（财务指标口径）。 |
-| `valuechange_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 公允价值变动收益。 |
-| `interst_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 利息收入（财务指标口径）。 |
-| `daa` | `double` | `get_panel()` / `get_table()` 可请求值 | 折旧与摊销。 |
-| `ebit` | `double` | `get_panel()` / `get_table()` 可请求值 | 息税前利润。 |
-| `ebitda` | `double` | `get_panel()` / `get_table()` 可请求值 | 息税折旧摊销前利润。 |
-| `fcff` | `double` | `get_panel()` / `get_table()` 可请求值 | 企业自由现金流。 |
-| `fcfe` | `double` | `get_panel()` / `get_table()` 可请求值 | 股权自由现金流。 |
-| `current_exint` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动有息负债。 |
-| `noncurrent_exint` | `double` | `get_panel()` / `get_table()` 可请求值 | 非流动有息负债。 |
-| `interestdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 有息负债。 |
-| `netdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 净负债。 |
-| `tangible_asset` | `double` | `get_panel()` / `get_table()` 可请求值 | 有形资产。 |
-| `working_capital` | `double` | `get_panel()` / `get_table()` 可请求值 | 营运资金。 |
-| `networking_capital` | `double` | `get_panel()` / `get_table()` 可请求值 | 净营运资金。 |
-| `invest_capital` | `double` | `get_panel()` / `get_table()` 可请求值 | 投入资本。 |
-| `retained_earnings` | `double` | `get_panel()` / `get_table()` 可请求值 | 留存收益。 |
-| `diluted2_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释每股收益（另一口径）。 |
-| `bps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股净资产。 |
-| `ocfps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股经营现金流。 |
-| `retainedps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股留存收益。 |
-| `cfps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股现金流。 |
-| `ebit_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股息税前利润。 |
-| `fcff_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股企业自由现金流。 |
-| `fcfe_ps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股股权自由现金流。 |
-| `netprofit_margin` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售净利率。 |
-| `grossprofit_margin` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售毛利率。 |
-| `cogs_of_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售成本。 |
-| `expense_of_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售费用。 |
-| `profit_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润占营业总收入比。 |
-| `saleexp_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售费用占营业总收入比。 |
-| `adminexp_of_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 管理费用占营业总收入比。 |
-| `finaexp_of_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用占营业总收入比。 |
-| `impai_ttm` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产减值损失（TTM）。 |
-| `gc_of_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业总成本占营业总收入比。 |
-| `op_of_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润占营业总收入比。 |
-| `ebit_of_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 息税前利润占营业总收入比。 |
-| `roe` | `double` | `get_panel()` / `get_table()` 可请求值 | 净资产收益率。 |
-| `roe_waa` | `double` | `get_panel()` / `get_table()` 可请求值 | 加权平均净资产收益率。 |
-| `roe_dt` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣除非经常性损益后的净资产收益率。 |
-| `roa` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产收益率。 |
-| `npta` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产净利率。 |
-| `roic` | `double` | `get_panel()` / `get_table()` 可请求值 | 投入资本回报率。 |
-| `roe_yearly` | `double` | `get_panel()` / `get_table()` 可请求值 | 年化净资产收益率。 |
-| `roa2_yearly` | `double` | `get_panel()` / `get_table()` 可请求值 | 年化总资产收益率。 |
-| `roe_avg` | `double` | `get_panel()` / `get_table()` 可请求值 | 平均净资产收益率。 |
-| `opincome_of_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润占利润总额比。 |
-| `investincome_of_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 投资收益占利润总额比。 |
-| `n_op_profit_of_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 非营业利润占利润总额比。 |
-| `tax_to_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 所得税占利润总额比。 |
-| `dtprofit_to_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣非利润占净利润比。 |
-| `salescash_to_or` | `double` | `get_panel()` / `get_table()` 可请求值 | 销售商品提供劳务收到的现金占营业收入比。 |
-| `ocf_to_or` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量占营业收入比。 |
-| `ocf_to_opincome` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量占营业利润比。 |
-| `capitalized_to_da` | `double` | `get_panel()` / `get_table()` 可请求值 | 资本化支出占折旧摊销比。 |
-| `debt_to_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 资产负债率。 |
-| `assets_to_eqt` | `double` | `get_panel()` / `get_table()` 可请求值 | 权益乘数（总资产/股东权益）。 |
-| `dp_assets_to_eqt` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属母公司股东权益对应的权益乘数。 |
-| `ca_to_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动资产占总资产比。 |
-| `nca_to_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 非流动资产占总资产比。 |
-| `tbassets_to_totalassets` | `double` | `get_panel()` / `get_table()` 可请求值 | 有形资产占总资产比。 |
-| `int_to_talcap` | `double` | `get_panel()` / `get_table()` 可请求值 | 有息负债占总资本比。 |
-| `eqt_to_talcapital` | `double` | `get_panel()` / `get_table()` 可请求值 | 股东权益占总资本比。 |
-| `currentdebt_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 流动负债占债务比。 |
-| `longdeb_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期负债占债务比。 |
-| `ocf_to_shortdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量占短期债务比。 |
-| `debt_to_eqt` | `double` | `get_panel()` / `get_table()` 可请求值 | 产权比率（负债/股东权益）。 |
-| `eqt_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 股东权益占负债比。 |
-| `eqt_to_interestdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 股东权益占有息负债比。 |
-| `tangibleasset_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 有形资产/负债合计。 |
-| `tangasset_to_intdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 有形资产/有息负债。 |
-| `tangibleasset_to_netdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 有形资产/净负债。 |
-| `ocf_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量/负债合计。 |
-| `ocf_to_interestdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量/有息负债。 |
-| `ocf_to_netdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量/净负债。 |
-| `ebit_to_interest` | `double` | `get_panel()` / `get_table()` 可请求值 | 利息保障倍数。 |
-| `longdebt_to_workingcapital` | `double` | `get_panel()` / `get_table()` 可请求值 | 长期负债/营运资金。 |
-| `ebitda_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | EBITDA/负债合计。 |
-| `turn_days` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业周期（天）。 |
-| `roa_yearly` | `double` | `get_panel()` / `get_table()` 可请求值 | 年化总资产收益率。 |
-| `roa_dp` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣非总资产收益率。 |
-| `fixed_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产。 |
-| `profit_prefin_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 财务费用前利润。 |
-| `non_op_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 非营业利润。 |
-| `op_to_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润/利润总额。 |
-| `nop_to_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 非营业利润/利润总额。 |
-| `ocf_to_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量/净利润。 |
-| `cash_to_liqdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金/流动负债。 |
-| `cash_to_liqdebt_withinterest` | `double` | `get_panel()` / `get_table()` 可请求值 | 现金及现金等价物/含息流动负债。 |
-| `op_to_liqdebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润/流动负债。 |
-| `op_to_debt` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润/负债合计。 |
-| `roic_yearly` | `double` | `get_panel()` / `get_table()` 可请求值 | 年化投入资本回报率。 |
-| `total_fa_trun` | `double` | `get_panel()` / `get_table()` 可请求值 | 固定资产周转率。 |
-| `profit_to_op` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润/营业利润。 |
-| `q_opincome` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业利润。 |
-| `q_investincome` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度投资收益。 |
-| `q_dtprofit` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度扣非净利润。 |
-| `q_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度基本每股收益。 |
-| `q_netprofit_margin` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售净利率。 |
-| `q_gsprofit_margin` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售毛利率。 |
-| `q_exp_to_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度期间费用占营收比。 |
-| `q_profit_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度净利润占营收比。 |
-| `q_saleexp_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售费用占营收比。 |
-| `q_adminexp_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度管理费用占营收比。 |
-| `q_finaexp_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度财务费用占营收比。 |
-| `q_impair_to_gr_ttm` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度资产减值损失占营收比（TTM）。 |
-| `q_gc_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业总成本占营收比。 |
-| `q_op_to_gr` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业利润占营收比。 |
-| `q_roe` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度净资产收益率。 |
-| `q_dt_roe` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度扣非净资产收益率。 |
-| `q_npta` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度总资产净利率。 |
-| `q_opincome_to_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业利润占利润总额比。 |
-| `q_investincome_to_ebt` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度投资收益占利润总额比。 |
-| `q_dtprofit_to_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度扣非利润占净利润比。 |
-| `q_salescash_to_or` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售收现占营收比。 |
-| `q_ocf_to_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度经营现金净流量占营收比。 |
-| `q_ocf_to_or` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度经营现金净流量占营收比。 |
-| `basic_eps_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 基本每股收益同比。 |
-| `dt_eps_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释每股收益同比。 |
-| `cfps_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股现金流同比。 |
-| `op_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润同比。 |
-| `ebt_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 利润总额同比。 |
-| `netprofit_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润同比。 |
-| `dt_netprofit_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣非净利润同比。 |
-| `ocf_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 经营现金净流量同比。 |
-| `roe_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 净资产收益率同比。 |
-| `bps_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股净资产同比。 |
-| `assets_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产同比。 |
-| `eqt_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 股东权益同比。 |
-| `tr_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业总收入同比。 |
-| `or_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业收入同比。 |
-| `q_gr_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营收同比。 |
-| `q_gr_qoq` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营收环比。 |
-| `q_sales_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售同比。 |
-| `q_sales_qoq` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度销售环比。 |
-| `q_op_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业利润同比。 |
-| `q_op_qoq` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度营业利润环比。 |
-| `q_profit_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度净利润同比。 |
-| `q_profit_qoq` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度净利润环比。 |
-| `q_netprofit_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度归母净利润同比。 |
-| `q_netprofit_qoq` | `double` | `get_panel()` / `get_table()` 可请求值 | 单季度归母净利润环比。 |
-| `equity_yoy` | `double` | `get_panel()` / `get_table()` 可请求值 | 净资产同比。 |
-| `rd_exp` | `double` | `get_panel()` / `get_table()` 可请求值 | 研发费用。 |
-| `update_flag` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 更新或修订标记。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 财务报告期。 |
+| `eps` | `double` | `get_panel()` 可请求值 | 基本每股收益。 |
+| `dt_eps` | `double` | `get_panel()` 可请求值 | 稀释每股收益。 |
+| `total_revenue_ps` | `double` | `get_panel()` 可请求值 | 每股营业总收入。 |
+| `revenue_ps` | `double` | `get_panel()` 可请求值 | 每股营业收入。 |
+| `capital_rese_ps` | `double` | `get_panel()` 可请求值 | 每股资本公积。 |
+| `surplus_rese_ps` | `double` | `get_panel()` 可请求值 | 每股盈余公积。 |
+| `undist_profit_ps` | `double` | `get_panel()` 可请求值 | 每股未分配利润。 |
+| `extra_item` | `double` | `get_panel()` 可请求值 | 非经常性损益。 |
+| `profit_dedt` | `double` | `get_panel()` 可请求值 | 扣除非经常性损益后的净利润。 |
+| `gross_margin` | `double` | `get_panel()` 可请求值 | 销售毛利率。 |
+| `current_ratio` | `double` | `get_panel()` 可请求值 | 流动比率。 |
+| `quick_ratio` | `double` | `get_panel()` 可请求值 | 速动比率。 |
+| `cash_ratio` | `double` | `get_panel()` 可请求值 | 现金比率。 |
+| `invturn_days` | `double` | `get_panel()` 可请求值 | 存货周转天数。 |
+| `arturn_days` | `double` | `get_panel()` 可请求值 | 应收账款周转天数。 |
+| `inv_turn` | `double` | `get_panel()` 可请求值 | 存货周转率。 |
+| `ar_turn` | `double` | `get_panel()` 可请求值 | 应收账款周转率。 |
+| `ca_turn` | `double` | `get_panel()` 可请求值 | 流动资产周转率。 |
+| `fa_turn` | `double` | `get_panel()` 可请求值 | 固定资产周转率。 |
+| `assets_turn` | `double` | `get_panel()` 可请求值 | 总资产周转率。 |
+| `op_income` | `double` | `get_panel()` 可请求值 | 营业利润（财务指标口径）。 |
+| `valuechange_income` | `double` | `get_panel()` 可请求值 | 公允价值变动收益。 |
+| `interst_income` | `double` | `get_panel()` 可请求值 | 利息收入（财务指标口径）。 |
+| `daa` | `double` | `get_panel()` 可请求值 | 折旧与摊销。 |
+| `ebit` | `double` | `get_panel()` 可请求值 | 息税前利润。 |
+| `ebitda` | `double` | `get_panel()` 可请求值 | 息税折旧摊销前利润。 |
+| `fcff` | `double` | `get_panel()` 可请求值 | 企业自由现金流。 |
+| `fcfe` | `double` | `get_panel()` 可请求值 | 股权自由现金流。 |
+| `current_exint` | `double` | `get_panel()` 可请求值 | 流动有息负债。 |
+| `noncurrent_exint` | `double` | `get_panel()` 可请求值 | 非流动有息负债。 |
+| `interestdebt` | `double` | `get_panel()` 可请求值 | 有息负债。 |
+| `netdebt` | `double` | `get_panel()` 可请求值 | 净负债。 |
+| `tangible_asset` | `double` | `get_panel()` 可请求值 | 有形资产。 |
+| `working_capital` | `double` | `get_panel()` 可请求值 | 营运资金。 |
+| `networking_capital` | `double` | `get_panel()` 可请求值 | 净营运资金。 |
+| `invest_capital` | `double` | `get_panel()` 可请求值 | 投入资本。 |
+| `retained_earnings` | `double` | `get_panel()` 可请求值 | 留存收益。 |
+| `diluted2_eps` | `double` | `get_panel()` 可请求值 | 稀释每股收益（另一口径）。 |
+| `bps` | `double` | `get_panel()` 可请求值 | 每股净资产。 |
+| `ocfps` | `double` | `get_panel()` 可请求值 | 每股经营现金流。 |
+| `retainedps` | `double` | `get_panel()` 可请求值 | 每股留存收益。 |
+| `cfps` | `double` | `get_panel()` 可请求值 | 每股现金流。 |
+| `ebit_ps` | `double` | `get_panel()` 可请求值 | 每股息税前利润。 |
+| `fcff_ps` | `double` | `get_panel()` 可请求值 | 每股企业自由现金流。 |
+| `fcfe_ps` | `double` | `get_panel()` 可请求值 | 每股股权自由现金流。 |
+| `netprofit_margin` | `double` | `get_panel()` 可请求值 | 销售净利率。 |
+| `grossprofit_margin` | `double` | `get_panel()` 可请求值 | 销售毛利率。 |
+| `cogs_of_sales` | `double` | `get_panel()` 可请求值 | 销售成本。 |
+| `expense_of_sales` | `double` | `get_panel()` 可请求值 | 销售费用。 |
+| `profit_to_gr` | `double` | `get_panel()` 可请求值 | 净利润占营业总收入比。 |
+| `saleexp_to_gr` | `double` | `get_panel()` 可请求值 | 销售费用占营业总收入比。 |
+| `adminexp_of_gr` | `double` | `get_panel()` 可请求值 | 管理费用占营业总收入比。 |
+| `finaexp_of_gr` | `double` | `get_panel()` 可请求值 | 财务费用占营业总收入比。 |
+| `impai_ttm` | `double` | `get_panel()` 可请求值 | 资产减值损失（TTM）。 |
+| `gc_of_gr` | `double` | `get_panel()` 可请求值 | 营业总成本占营业总收入比。 |
+| `op_of_gr` | `double` | `get_panel()` 可请求值 | 营业利润占营业总收入比。 |
+| `ebit_of_gr` | `double` | `get_panel()` 可请求值 | 息税前利润占营业总收入比。 |
+| `roe` | `double` | `get_panel()` 可请求值 | 净资产收益率。 |
+| `roe_waa` | `double` | `get_panel()` 可请求值 | 加权平均净资产收益率。 |
+| `roe_dt` | `double` | `get_panel()` 可请求值 | 扣除非经常性损益后的净资产收益率。 |
+| `roa` | `double` | `get_panel()` 可请求值 | 总资产收益率。 |
+| `npta` | `double` | `get_panel()` 可请求值 | 总资产净利率。 |
+| `roic` | `double` | `get_panel()` 可请求值 | 投入资本回报率。 |
+| `roe_yearly` | `double` | `get_panel()` 可请求值 | 年化净资产收益率。 |
+| `roa2_yearly` | `double` | `get_panel()` 可请求值 | 年化总资产收益率。 |
+| `roe_avg` | `double` | `get_panel()` 可请求值 | 平均净资产收益率。 |
+| `opincome_of_ebt` | `double` | `get_panel()` 可请求值 | 营业利润占利润总额比。 |
+| `investincome_of_ebt` | `double` | `get_panel()` 可请求值 | 投资收益占利润总额比。 |
+| `n_op_profit_of_ebt` | `double` | `get_panel()` 可请求值 | 非营业利润占利润总额比。 |
+| `tax_to_ebt` | `double` | `get_panel()` 可请求值 | 所得税占利润总额比。 |
+| `dtprofit_to_profit` | `double` | `get_panel()` 可请求值 | 扣非利润占净利润比。 |
+| `salescash_to_or` | `double` | `get_panel()` 可请求值 | 销售商品提供劳务收到的现金占营业收入比。 |
+| `ocf_to_or` | `double` | `get_panel()` 可请求值 | 经营现金净流量占营业收入比。 |
+| `ocf_to_opincome` | `double` | `get_panel()` 可请求值 | 经营现金净流量占营业利润比。 |
+| `capitalized_to_da` | `double` | `get_panel()` 可请求值 | 资本化支出占折旧摊销比。 |
+| `debt_to_assets` | `double` | `get_panel()` 可请求值 | 资产负债率。 |
+| `assets_to_eqt` | `double` | `get_panel()` 可请求值 | 权益乘数（总资产/股东权益）。 |
+| `dp_assets_to_eqt` | `double` | `get_panel()` 可请求值 | 归属母公司股东权益对应的权益乘数。 |
+| `ca_to_assets` | `double` | `get_panel()` 可请求值 | 流动资产占总资产比。 |
+| `nca_to_assets` | `double` | `get_panel()` 可请求值 | 非流动资产占总资产比。 |
+| `tbassets_to_totalassets` | `double` | `get_panel()` 可请求值 | 有形资产占总资产比。 |
+| `int_to_talcap` | `double` | `get_panel()` 可请求值 | 有息负债占总资本比。 |
+| `eqt_to_talcapital` | `double` | `get_panel()` 可请求值 | 股东权益占总资本比。 |
+| `currentdebt_to_debt` | `double` | `get_panel()` 可请求值 | 流动负债占债务比。 |
+| `longdeb_to_debt` | `double` | `get_panel()` 可请求值 | 长期负债占债务比。 |
+| `ocf_to_shortdebt` | `double` | `get_panel()` 可请求值 | 经营现金净流量占短期债务比。 |
+| `debt_to_eqt` | `double` | `get_panel()` 可请求值 | 产权比率（负债/股东权益）。 |
+| `eqt_to_debt` | `double` | `get_panel()` 可请求值 | 股东权益占负债比。 |
+| `eqt_to_interestdebt` | `double` | `get_panel()` 可请求值 | 股东权益占有息负债比。 |
+| `tangibleasset_to_debt` | `double` | `get_panel()` 可请求值 | 有形资产/负债合计。 |
+| `tangasset_to_intdebt` | `double` | `get_panel()` 可请求值 | 有形资产/有息负债。 |
+| `tangibleasset_to_netdebt` | `double` | `get_panel()` 可请求值 | 有形资产/净负债。 |
+| `ocf_to_debt` | `double` | `get_panel()` 可请求值 | 经营现金净流量/负债合计。 |
+| `ocf_to_interestdebt` | `double` | `get_panel()` 可请求值 | 经营现金净流量/有息负债。 |
+| `ocf_to_netdebt` | `double` | `get_panel()` 可请求值 | 经营现金净流量/净负债。 |
+| `ebit_to_interest` | `double` | `get_panel()` 可请求值 | 利息保障倍数。 |
+| `longdebt_to_workingcapital` | `double` | `get_panel()` 可请求值 | 长期负债/营运资金。 |
+| `ebitda_to_debt` | `double` | `get_panel()` 可请求值 | EBITDA/负债合计。 |
+| `turn_days` | `double` | `get_panel()` 可请求值 | 营业周期（天）。 |
+| `roa_yearly` | `double` | `get_panel()` 可请求值 | 年化总资产收益率。 |
+| `roa_dp` | `double` | `get_panel()` 可请求值 | 扣非总资产收益率。 |
+| `fixed_assets` | `double` | `get_panel()` 可请求值 | 固定资产。 |
+| `profit_prefin_exp` | `double` | `get_panel()` 可请求值 | 财务费用前利润。 |
+| `non_op_profit` | `double` | `get_panel()` 可请求值 | 非营业利润。 |
+| `op_to_ebt` | `double` | `get_panel()` 可请求值 | 营业利润/利润总额。 |
+| `nop_to_ebt` | `double` | `get_panel()` 可请求值 | 非营业利润/利润总额。 |
+| `ocf_to_profit` | `double` | `get_panel()` 可请求值 | 经营现金净流量/净利润。 |
+| `cash_to_liqdebt` | `double` | `get_panel()` 可请求值 | 现金/流动负债。 |
+| `cash_to_liqdebt_withinterest` | `double` | `get_panel()` 可请求值 | 现金及现金等价物/含息流动负债。 |
+| `op_to_liqdebt` | `double` | `get_panel()` 可请求值 | 营业利润/流动负债。 |
+| `op_to_debt` | `double` | `get_panel()` 可请求值 | 营业利润/负债合计。 |
+| `roic_yearly` | `double` | `get_panel()` 可请求值 | 年化投入资本回报率。 |
+| `total_fa_trun` | `double` | `get_panel()` 可请求值 | 固定资产周转率。 |
+| `profit_to_op` | `double` | `get_panel()` 可请求值 | 净利润/营业利润。 |
+| `q_opincome` | `double` | `get_panel()` 可请求值 | 单季度营业利润。 |
+| `q_investincome` | `double` | `get_panel()` 可请求值 | 单季度投资收益。 |
+| `q_dtprofit` | `double` | `get_panel()` 可请求值 | 单季度扣非净利润。 |
+| `q_eps` | `double` | `get_panel()` 可请求值 | 单季度基本每股收益。 |
+| `q_netprofit_margin` | `double` | `get_panel()` 可请求值 | 单季度销售净利率。 |
+| `q_gsprofit_margin` | `double` | `get_panel()` 可请求值 | 单季度销售毛利率。 |
+| `q_exp_to_sales` | `double` | `get_panel()` 可请求值 | 单季度期间费用占营收比。 |
+| `q_profit_to_gr` | `double` | `get_panel()` 可请求值 | 单季度净利润占营收比。 |
+| `q_saleexp_to_gr` | `double` | `get_panel()` 可请求值 | 单季度销售费用占营收比。 |
+| `q_adminexp_to_gr` | `double` | `get_panel()` 可请求值 | 单季度管理费用占营收比。 |
+| `q_finaexp_to_gr` | `double` | `get_panel()` 可请求值 | 单季度财务费用占营收比。 |
+| `q_impair_to_gr_ttm` | `double` | `get_panel()` 可请求值 | 单季度资产减值损失占营收比（TTM）。 |
+| `q_gc_to_gr` | `double` | `get_panel()` 可请求值 | 单季度营业总成本占营收比。 |
+| `q_op_to_gr` | `double` | `get_panel()` 可请求值 | 单季度营业利润占营收比。 |
+| `q_roe` | `double` | `get_panel()` 可请求值 | 单季度净资产收益率。 |
+| `q_dt_roe` | `double` | `get_panel()` 可请求值 | 单季度扣非净资产收益率。 |
+| `q_npta` | `double` | `get_panel()` 可请求值 | 单季度总资产净利率。 |
+| `q_opincome_to_ebt` | `double` | `get_panel()` 可请求值 | 单季度营业利润占利润总额比。 |
+| `q_investincome_to_ebt` | `double` | `get_panel()` 可请求值 | 单季度投资收益占利润总额比。 |
+| `q_dtprofit_to_profit` | `double` | `get_panel()` 可请求值 | 单季度扣非利润占净利润比。 |
+| `q_salescash_to_or` | `double` | `get_panel()` 可请求值 | 单季度销售收现占营收比。 |
+| `q_ocf_to_sales` | `double` | `get_panel()` 可请求值 | 单季度经营现金净流量占营收比。 |
+| `q_ocf_to_or` | `double` | `get_panel()` 可请求值 | 单季度经营现金净流量占营收比。 |
+| `basic_eps_yoy` | `double` | `get_panel()` 可请求值 | 基本每股收益同比。 |
+| `dt_eps_yoy` | `double` | `get_panel()` 可请求值 | 稀释每股收益同比。 |
+| `cfps_yoy` | `double` | `get_panel()` 可请求值 | 每股现金流同比。 |
+| `op_yoy` | `double` | `get_panel()` 可请求值 | 营业利润同比。 |
+| `ebt_yoy` | `double` | `get_panel()` 可请求值 | 利润总额同比。 |
+| `netprofit_yoy` | `double` | `get_panel()` 可请求值 | 净利润同比。 |
+| `dt_netprofit_yoy` | `double` | `get_panel()` 可请求值 | 扣非净利润同比。 |
+| `ocf_yoy` | `double` | `get_panel()` 可请求值 | 经营现金净流量同比。 |
+| `roe_yoy` | `double` | `get_panel()` 可请求值 | 净资产收益率同比。 |
+| `bps_yoy` | `double` | `get_panel()` 可请求值 | 每股净资产同比。 |
+| `assets_yoy` | `double` | `get_panel()` 可请求值 | 总资产同比。 |
+| `eqt_yoy` | `double` | `get_panel()` 可请求值 | 股东权益同比。 |
+| `tr_yoy` | `double` | `get_panel()` 可请求值 | 营业总收入同比。 |
+| `or_yoy` | `double` | `get_panel()` 可请求值 | 营业收入同比。 |
+| `q_gr_yoy` | `double` | `get_panel()` 可请求值 | 单季度营收同比。 |
+| `q_gr_qoq` | `double` | `get_panel()` 可请求值 | 单季度营收环比。 |
+| `q_sales_yoy` | `double` | `get_panel()` 可请求值 | 单季度销售同比。 |
+| `q_sales_qoq` | `double` | `get_panel()` 可请求值 | 单季度销售环比。 |
+| `q_op_yoy` | `double` | `get_panel()` 可请求值 | 单季度营业利润同比。 |
+| `q_op_qoq` | `double` | `get_panel()` 可请求值 | 单季度营业利润环比。 |
+| `q_profit_yoy` | `double` | `get_panel()` 可请求值 | 单季度净利润同比。 |
+| `q_profit_qoq` | `double` | `get_panel()` 可请求值 | 单季度净利润环比。 |
+| `q_netprofit_yoy` | `double` | `get_panel()` 可请求值 | 单季度归母净利润同比。 |
+| `q_netprofit_qoq` | `double` | `get_panel()` 可请求值 | 单季度归母净利润环比。 |
+| `equity_yoy` | `double` | `get_panel()` 可请求值 | 净资产同比。 |
+| `rd_exp` | `double` | `get_panel()` 可请求值 | 研发费用。 |
+| `update_flag` | `string` | `get_panel()` 可请求值 | 更新或修订标记。 |
 
 <a id="dataset-express"></a>
 ## `express`：Tushare 业绩快报
 
 业绩快报逻辑数据集；原始表保留公告记录，PIT 宽表使用 `ann_date`。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`is_audit`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 业绩对应的报告期。 |
-| `revenue` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业收入。 |
-| `operate_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润。 |
-| `total_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 利润总额。 |
-| `n_income` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润。 |
-| `total_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产。 |
-| `total_hldr_eqy_exc_min_int` | `double` | `get_panel()` / `get_table()` 可请求值 | 归属于母公司股东的所有者权益。 |
-| `diluted_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释每股收益。 |
-| `diluted_roe` | `double` | `get_panel()` / `get_table()` 可请求值 | 稀释净资产收益率。 |
-| `yoy_net_profit` | `double` | `get_panel()` / `get_table()` 可请求值 | 净利润同比。 |
-| `bps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股净资产。 |
-| `yoy_sales` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业收入同比。 |
-| `yoy_op` | `double` | `get_panel()` / `get_table()` 可请求值 | 营业利润同比。 |
-| `yoy_tp` | `double` | `get_panel()` / `get_table()` 可请求值 | 利润总额同比。 |
-| `yoy_dedu_np` | `double` | `get_panel()` / `get_table()` 可请求值 | 扣非净利润同比。 |
-| `yoy_eps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股收益同比。 |
-| `yoy_roe` | `double` | `get_panel()` / `get_table()` 可请求值 | 净资产收益率同比。 |
-| `growth_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 总资产同比。 |
-| `yoy_equity` | `double` | `get_panel()` / `get_table()` 可请求值 | 股东权益同比。 |
-| `growth_bps` | `double` | `get_panel()` / `get_table()` 可请求值 | 每股净资产同比。 |
-| `or_last_year` | `double` | `get_panel()` / `get_table()` 可请求值 | 去年同期营业收入。 |
-| `op_last_year` | `double` | `get_panel()` / `get_table()` 可请求值 | 去年同期营业利润。 |
-| `tp_last_year` | `double` | `get_panel()` / `get_table()` 可请求值 | 去年同期利润总额。 |
-| `np_last_year` | `double` | `get_panel()` / `get_table()` 可请求值 | 去年同期净利润。 |
-| `eps_last_year` | `double` | `get_panel()` / `get_table()` 可请求值 | 去年同期每股收益。 |
-| `open_net_assets` | `double` | `get_panel()` / `get_table()` 可请求值 | 期初净资产。 |
-| `open_bps` | `double` | `get_panel()` / `get_table()` 可请求值 | 期初每股净资产。 |
-| `perf_summary` | `string` | `get_panel()` / `get_table()` 可请求值 | 业绩简要说明。 |
-| `is_audit` | `int64` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 是否经过审计的标记。 |
-| `remark` | `string` | `get_panel()` / `get_table()` 可请求值 | 备注。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 业绩对应的报告期。 |
+| `revenue` | `double` | `get_panel()` 可请求值 | 营业收入。 |
+| `operate_profit` | `double` | `get_panel()` 可请求值 | 营业利润。 |
+| `total_profit` | `double` | `get_panel()` 可请求值 | 利润总额。 |
+| `n_income` | `double` | `get_panel()` 可请求值 | 净利润。 |
+| `total_assets` | `double` | `get_panel()` 可请求值 | 总资产。 |
+| `total_hldr_eqy_exc_min_int` | `double` | `get_panel()` 可请求值 | 归属于母公司股东的所有者权益。 |
+| `diluted_eps` | `double` | `get_panel()` 可请求值 | 稀释每股收益。 |
+| `diluted_roe` | `double` | `get_panel()` 可请求值 | 稀释净资产收益率。 |
+| `yoy_net_profit` | `double` | `get_panel()` 可请求值 | 净利润同比。 |
+| `bps` | `double` | `get_panel()` 可请求值 | 每股净资产。 |
+| `yoy_sales` | `double` | `get_panel()` 可请求值 | 营业收入同比。 |
+| `yoy_op` | `double` | `get_panel()` 可请求值 | 营业利润同比。 |
+| `yoy_tp` | `double` | `get_panel()` 可请求值 | 利润总额同比。 |
+| `yoy_dedu_np` | `double` | `get_panel()` 可请求值 | 扣非净利润同比。 |
+| `yoy_eps` | `double` | `get_panel()` 可请求值 | 每股收益同比。 |
+| `yoy_roe` | `double` | `get_panel()` 可请求值 | 净资产收益率同比。 |
+| `growth_assets` | `double` | `get_panel()` 可请求值 | 总资产同比。 |
+| `yoy_equity` | `double` | `get_panel()` 可请求值 | 股东权益同比。 |
+| `growth_bps` | `double` | `get_panel()` 可请求值 | 每股净资产同比。 |
+| `or_last_year` | `double` | `get_panel()` 可请求值 | 去年同期营业收入。 |
+| `op_last_year` | `double` | `get_panel()` 可请求值 | 去年同期营业利润。 |
+| `tp_last_year` | `double` | `get_panel()` 可请求值 | 去年同期利润总额。 |
+| `np_last_year` | `double` | `get_panel()` 可请求值 | 去年同期净利润。 |
+| `eps_last_year` | `double` | `get_panel()` 可请求值 | 去年同期每股收益。 |
+| `open_net_assets` | `double` | `get_panel()` 可请求值 | 期初净资产。 |
+| `open_bps` | `double` | `get_panel()` 可请求值 | 期初每股净资产。 |
+| `perf_summary` | `string` | `get_panel()` 可请求值 | 业绩简要说明。 |
+| `is_audit` | `int64` | `get_panel()` 可请求值 | 是否经过审计的标记。 |
+| `remark` | `string` | `get_panel()` 可请求值 | 备注。 |
 
 <a id="dataset-forecast"></a>
 ## `forecast`：Tushare 业绩预告
 
 业绩预告逻辑数据集；PIT 使用 `ann_date`，并以首次公告日期参与修订优先级。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`、`first_ann_date`、`type`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 业绩预告对应的报告期。 |
-| `type` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 业绩预告类型。 |
-| `p_change_min` | `double` | `get_panel()` / `get_table()` 可请求值 | 预告净利润变动幅度下限（%）。 |
-| `p_change_max` | `double` | `get_panel()` / `get_table()` 可请求值 | 预告净利润变动幅度上限（%）。 |
-| `net_profit_min` | `double` | `get_panel()` / `get_table()` 可请求值 | 预告净利润下限。 |
-| `net_profit_max` | `double` | `get_panel()` / `get_table()` 可请求值 | 预告净利润上限。 |
-| `last_parent_net` | `double` | `get_panel()` / `get_table()` 可请求值 | 上年同期归母净利润。 |
-| `first_ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 首次公告日期。 |
-| `summary` | `string` | `get_panel()` / `get_table()` 可请求值 | 业绩预告内容摘要。 |
-| `change_reason` | `string` | `get_panel()` / `get_table()` 可请求值 | 业绩变动原因说明。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 公告日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 业绩预告对应的报告期。 |
+| `type` | `string` | `get_panel()` 可请求值 | 业绩预告类型。 |
+| `p_change_min` | `double` | `get_panel()` 可请求值 | 预告净利润变动幅度下限（%）。 |
+| `p_change_max` | `double` | `get_panel()` 可请求值 | 预告净利润变动幅度上限（%）。 |
+| `net_profit_min` | `double` | `get_panel()` 可请求值 | 预告净利润下限。 |
+| `net_profit_max` | `double` | `get_panel()` 可请求值 | 预告净利润上限。 |
+| `last_parent_net` | `double` | `get_panel()` 可请求值 | 上年同期归母净利润。 |
+| `first_ann_date` | `date32[day]` | `get_panel()` 可请求值 | 首次公告日期。 |
+| `summary` | `string` | `get_panel()` 可请求值 | 业绩预告内容摘要。 |
+| `change_reason` | `string` | `get_panel()` 可请求值 | 业绩变动原因说明。 |
 
 <a id="dataset-stk-holdernumber"></a>
 ## `stk_holdernumber`：Tushare 股东人数
 
 股东人数原始表按统计截止日筛选并保留公告记录；PIT 日频面板使用公告日。
 
-- `get_panel()`：支持；按 `trade_date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `end_date`、`ts_code`、`ann_date`，再附加请求字段。
+- `get_panel()`：按 `trade_date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 股东人数公告日期，也是 PIT 的 disclosure date。 |
-| `end_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 股东人数统计截止日期。 |
-| `holder_num` | `int64` | `get_panel()` / `get_table()` 可请求值 | 股东户数。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的证券代码。 |
+| `ann_date` | `date32[day]` | `get_panel()` 可请求值 | 股东人数公告日期，也是 PIT 的 disclosure date。 |
+| `end_date` | `date32[day]` | `get_panel()` 可请求值 | 股东人数统计截止日期。 |
+| `holder_num` | `int64` | `get_panel()` 可请求值 | 股东户数。 |
 
 <a id="dataset-ci-index-member"></a>
 ## `ci_index_member`：Tushare 中信行业成分
 
-`get_table()` 保留 `in_date`/`out_date` 原始区间，`get_panel()` 才将中信行业成分区间展开到开市日。
+`get_panel()` 将中信行业成分区间展开到开市日。
 
-- `get_panel()`：支持；按 `date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `in_date`、`ts_code`、`l1_code`、`l2_code`、`l3_code`、`out_date`、`is_new`，再附加请求字段。
+- `get_panel()`：按 `date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `l1_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 一级行业代码。 |
-| `l1_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 一级行业名称。 |
-| `l2_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 二级行业代码。 |
-| `l2_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 二级行业名称。 |
-| `l3_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 三级行业代码。 |
-| `l3_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 三级行业名称。 |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的成分证券代码。 |
-| `name` | `string` | `get_panel()` / `get_table()` 可请求值 | 成分证券名称。 |
-| `in_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 纳入行业成分的日期。 |
-| `out_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 移出行业成分的日期；空值表示仍在成分中。 |
-| `is_new` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 当前成分与历史成分标记。 |
+| `l1_code` | `string` | `get_panel()` 可请求值 | 一级行业代码。 |
+| `l1_name` | `string` | `get_panel()` 可请求值 | 一级行业名称。 |
+| `l2_code` | `string` | `get_panel()` 可请求值 | 二级行业代码。 |
+| `l2_name` | `string` | `get_panel()` 可请求值 | 二级行业名称。 |
+| `l3_code` | `string` | `get_panel()` 可请求值 | 三级行业代码。 |
+| `l3_name` | `string` | `get_panel()` 可请求值 | 三级行业名称。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的成分证券代码。 |
+| `name` | `string` | `get_panel()` 可请求值 | 成分证券名称。 |
+| `in_date` | `date32[day]` | `get_panel()` 可请求值 | 纳入行业成分的日期。 |
+| `out_date` | `date32[day]` | `get_panel()` 可请求值 | 移出行业成分的日期；空值表示仍在成分中。 |
+| `is_new` | `string` | `get_panel()` 可请求值 | 当前成分与历史成分标记。 |
 
 <a id="dataset-index-member-all"></a>
 ## `index_member_all`：Tushare 申万行业成分
 
-`get_table()` 保留 `in_date`/`out_date` 原始区间，`get_panel()` 才将申万行业成分区间展开到开市日。
+`get_panel()` 将申万行业成分区间展开到开市日。
 
-- `get_panel()`：支持；按 `date × ts_code` 返回每个请求字段的宽表。
-- `get_table()`：支持；自动返回 `in_date`、`ts_code`、`l1_code`、`l2_code`、`l3_code`、`out_date`、`is_new`，再附加请求字段。
-
-| 字段 | 类型 | 使用方式 | 说明 |
-| --- | --- | --- | --- |
-| `l1_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 一级行业代码。 |
-| `l1_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 一级行业名称。 |
-| `l2_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 二级行业代码。 |
-| `l2_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 二级行业名称。 |
-| `l3_code` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 三级行业代码。 |
-| `l3_name` | `string` | `get_panel()` / `get_table()` 可请求值 | 三级行业名称。 |
-| `ts_code` | `string` | `get_panel()` 列键；`get_table()` 自动证券键 | 带交易所后缀的成分证券代码。 |
-| `name` | `string` | `get_panel()` / `get_table()` 可请求值 | 成分证券名称。 |
-| `in_date` | `date32[day]` | `get_table()` 自动时间键；`get_panel()` 可请求值 | 纳入行业成分的日期。 |
-| `out_date` | `date32[day]` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 移出行业成分的日期；空值表示仍在成分中。 |
-| `is_new` | `string` | `get_table()` 自动身份列；`get_panel()` 可请求值 | 当前成分与历史成分标记。 |
-
-<a id="dataset-stk-holdertrade"></a>
-## `stk_holdertrade`：Tushare 股东增减持
-
-股东增减持为一对多事件长表，默认以公告日为时间并只支持 `get_table()`。
-
-- `get_panel()`：不支持；该数据集存在一对多事件。
-- `get_table()`：支持；自动返回 `ann_date`、`ts_code`、`holder_name`、`holder_type`、`in_de`、`begin_date`、`close_date`，再附加请求字段。
+- `get_panel()`：按 `date × ts_code` 返回每个请求字段的宽表。
 
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
-| `ts_code` | `string` | `get_table()` 自动证券键 | 带交易所后缀的证券代码。 |
-| `ann_date` | `date32[day]` | `get_table()` 自动时间键 | 增减持事件公告日期。 |
-| `holder_name` | `string` | `get_table()` 自动身份列 | 股东名称。 |
-| `holder_type` | `string` | `get_table()` 自动身份列 | 股东类型。 |
-| `in_de` | `string` | `get_table()` 自动身份列 | 变动方向：增持或减持。 |
-| `change_vol` | `double` | `get_table()` 可请求值 | 本次增减持股数。 |
-| `change_ratio` | `double` | `get_table()` 可请求值 | 本次变动比例（%）。 |
-| `after_share` | `double` | `get_table()` 可请求值 | 变动后持股数。 |
-| `after_ratio` | `double` | `get_table()` 可请求值 | 变动后持股比例（%）。 |
-| `avg_price` | `double` | `get_table()` 可请求值 | 本次增减持均价。 |
-| `total_share` | `double` | `get_table()` 可请求值 | 本次变动合计股数。 |
-| `begin_date` | `date32[day]` | `get_table()` 自动身份列 | 增减持区间开始日期。 |
-| `close_date` | `date32[day]` | `get_table()` 自动身份列 | 增减持区间结束日期。 |
+| `l1_code` | `string` | `get_panel()` 可请求值 | 一级行业代码。 |
+| `l1_name` | `string` | `get_panel()` 可请求值 | 一级行业名称。 |
+| `l2_code` | `string` | `get_panel()` 可请求值 | 二级行业代码。 |
+| `l2_name` | `string` | `get_panel()` 可请求值 | 二级行业名称。 |
+| `l3_code` | `string` | `get_panel()` 可请求值 | 三级行业代码。 |
+| `l3_name` | `string` | `get_panel()` 可请求值 | 三级行业名称。 |
+| `ts_code` | `string` | `get_panel()` 列键 | 带交易所后缀的成分证券代码。 |
+| `name` | `string` | `get_panel()` 可请求值 | 成分证券名称。 |
+| `in_date` | `date32[day]` | `get_panel()` 可请求值 | 纳入行业成分的日期。 |
+| `out_date` | `date32[day]` | `get_panel()` 可请求值 | 移出行业成分的日期；空值表示仍在成分中。 |
+| `is_new` | `string` | `get_panel()` 可请求值 | 当前成分与历史成分标记。 |

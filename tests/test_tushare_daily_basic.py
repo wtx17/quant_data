@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import pyarrow as pa
 import pytest
 
 from quant_data import (
@@ -152,7 +151,7 @@ def test_daily_basic_panel_fetches_each_open_date_and_uses_generic_pivot(
     assert audit["source"]["calendar_api"] == "trade_cal"
 
 
-def test_daily_basic_table_filters_instruments_after_daily_fetch(
+def test_daily_basic_panel_filters_instruments_after_daily_fetch(
     tmp_path: Path,
 ) -> None:
     rows = pd.DataFrame(
@@ -180,7 +179,7 @@ def test_daily_basic_table_filters_instruments_after_daily_fetch(
     sessions = [date(2024, 1, 2), date(2024, 1, 3)]
     client, fake = make_client(tmp_path, rows, sessions)
 
-    table = client.get_table(
+    table = client.get_panel(
         "daily_basic",
         ["turnover_rate", "limit_status"],
         start="2024-01-02",
@@ -188,35 +187,25 @@ def test_daily_basic_table_filters_instruments_after_daily_fetch(
         instruments=["600000.SH"],
     )
 
-    assert table.column_names == [
-        "trade_date",
-        "ts_code",
-        "turnover_rate",
-        "limit_status",
-    ]
-    assert table["trade_date"].to_pylist() == [
-        date(2024, 1, 2),
-        date(2024, 1, 3),
-    ]
-    assert table["ts_code"].to_pylist() == ["600000.SH", "600000.SH"]
-    assert table["turnover_rate"].to_pylist() == pytest.approx([1.1, 1.2])
-    assert table["limit_status"].to_pylist() == [0, 1]
-    assert table.schema.field("trade_date").type == pa.date32()
-    assert table.schema.field("limit_status").type == pa.int64()
+    assert list(table["turnover_rate"].index) == sessions
+    assert list(table["turnover_rate"].columns) == ["600000.SH"]
+    assert table["turnover_rate"]["600000.SH"].tolist() == pytest.approx([1.1, 1.2])
+    assert table["limit_status"]["600000.SH"].tolist() == [0, 1]
+    assert table["limit_status"]["600000.SH"].dtype == "int64[pyarrow]"
 
     data_calls = [params for api_name, params in fake.calls if api_name == "daily_basic"]
     assert len(data_calls) == 2
     assert all("ts_code" not in params for params in data_calls)
 
 
-def test_daily_basic_requires_closed_range_for_table_and_panel(
+def test_daily_basic_requires_closed_range_for_panel(
     tmp_path: Path,
 ) -> None:
     rows = pd.DataFrame(columns=["ts_code", "trade_date", "close"])
     client, fake = make_client(tmp_path, rows, [])
 
     with pytest.raises(InvalidQueryError, match="requires both start and end"):
-        client.get_table(
+        client.get_panel(
             "daily_basic",
             ["close"],
             start="2024-01-02",
@@ -243,7 +232,7 @@ def test_daily_basic_rejects_a_day_at_the_api_row_limit(tmp_path: Path) -> None:
     client, _ = make_client(tmp_path, rows, [trade_date])
 
     with pytest.raises(RemoteQueryError, match="6000-row API limit"):
-        client.get_table(
+        client.get_panel(
             "daily_basic",
             ["close"],
             start=trade_date,

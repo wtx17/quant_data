@@ -43,7 +43,6 @@ class _ClickHouseRegistration:
     partition_column: str | None = None
     order_columns: tuple[str, ...] = ()
     frequency: str | None = None
-    panel_compatible: bool = True
 
 
 _CLICKHOUSE_PANEL_SPECS = (
@@ -69,24 +68,6 @@ _CLICKHOUSE_PANEL_SPECS = (
     ),
 )
 
-_CLICKHOUSE_LONG_SPECS = (
-    _ClickHouseRegistration(
-        name="minghu_tk",
-        table="stock_base.tk",
-        time_column="date_time",
-        partition_column="date",
-        order_columns=("date_time", "code", "time_int"),
-        panel_compatible=False,
-    ),
-    _ClickHouseRegistration(
-        name="minghu_zb",
-        table="stock_base.zb",
-        time_column="date_time",
-        partition_column="date",
-        order_columns=("date_time", "code", "seqno"),
-        panel_compatible=False,
-    ),
-)
 
 _TUSHARE_DATASETS = (
     "daily_basic",
@@ -99,7 +80,6 @@ _TUSHARE_DATASETS = (
     "stk_holdernumber",
     "ci_index_member",
     "index_member_all",
-    "stk_holdertrade",
 )
 
 
@@ -116,8 +96,7 @@ def clickhouse_dataset_specs(
     Returns
     -------
     tuple[ClickHouseDatasetSpec, ...]
-        Specifications for the built-in Minghu daily, index daily, minute,
-        snapshot, and transaction tables.
+        Specifications for the built-in Minghu daily, index daily, and minute tables.
 
     Notes
     -----
@@ -125,7 +104,7 @@ def clickhouse_dataset_specs(
     ClickHouse client, read credentials, or access a remote table.
     """
     specs: list[ClickHouseDatasetSpec] = []
-    for item in (*_CLICKHOUSE_PANEL_SPECS, *_CLICKHOUSE_LONG_SPECS):
+    for item in _CLICKHOUSE_PANEL_SPECS:
         specs.append(
             ClickHouseDatasetSpec(
                 name=item.name,
@@ -135,7 +114,6 @@ def clickhouse_dataset_specs(
                 partition_column=item.partition_column,
                 order_columns=item.order_columns,
                 frequency=item.frequency,
-                panel_compatible=item.panel_compatible,
             )
         )
     return tuple(specs)
@@ -161,10 +139,7 @@ def tushare_dataset_specs(
     backend chooses ordinary or VIP transport routes from each query's universe;
     disclosed datasets acquire PIT semantics automatically in ``get_panel``.
     """
-    return tuple(
-        TushareDatasetSpec(name=name, connection=connection)
-        for name in _TUSHARE_DATASETS
-    )
+    return tuple(TushareDatasetSpec(name=name, connection=connection) for name in _TUSHARE_DATASETS)
 
 
 def tushare_parquet_dataset_specs(
@@ -188,7 +163,7 @@ def tushare_parquet_dataset_specs(
     Notes
     -----
     Constructing specifications does not inspect files or resolve a token.
-    Registration validates the manifests; table queries remain fully local.
+    Registration validates the manifests; observation panels remain fully local.
     """
 
     return tuple(
