@@ -9,9 +9,9 @@ import pytest
 import pandas as pd
 import pyarrow as pa
 
-from quant_data import ClickHouseConfig, ClickHouseDatasetSpec, DataClient
+from quant_data import ClickHouseConfig, DataClient
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES
-from quant_data.initialize import clickhouse_dataset_specs
+from quant_data.initialize import clickhouse_registrations
 
 pytestmark = pytest.mark.clickhouse
 CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
@@ -64,37 +64,40 @@ def test_minghu_tables_smoke(tmp_path: Path) -> None:
                 password_env="MINGHU_CLICKHOUSE_PASSWORD",
             ),
         )
-        data.register(
-            ClickHouseDatasetSpec(
-                name="daily",
-                connection="minghu",
-                table="stock_base.daily",
-                time_column="date",
-                frequency="1d",
-            )
+        data.register_clickhouse(
+            "daily",
+            connection="minghu",
+            table="stock_base.daily",
+            time_column="date",
+            frequency="1d",
         )
-        data.register(
-            ClickHouseDatasetSpec(
-                name="minghu_index_daily",
-                connection="minghu",
-                table="index_base.daily",
-                time_column="date",
-                frequency="1d",
-            )
+        data.register_clickhouse(
+            "minghu_index_daily",
+            connection="minghu",
+            table="index_base.daily",
+            time_column="date",
+            frequency="1d",
         )
-        data.register(
-            ClickHouseDatasetSpec(
-                name="m1",
-                connection="minghu",
-                table="stock_base.m1",
-                time_column="date_time",
-                partition_column="date",
-                order_columns=("date_time", "code"),
-                frequency="1min",
-            )
+        data.register_clickhouse(
+            "m1",
+            connection="minghu",
+            table="stock_base.m1",
+            time_column="date_time",
+            partition_column="date",
+            order_columns=("date_time", "code"),
+            frequency="1min",
         )
-        data.register(
-            next(spec for spec in clickhouse_dataset_specs() if spec.name == "zb_cj_flow_min")
+        flow_registration = next(
+            item for item in clickhouse_registrations() if item.name == "zb_cj_flow_min"
+        )
+        data.register_clickhouse(
+            flow_registration.name,
+            connection=flow_registration.connection,
+            table=flow_registration.table,
+            time_column=flow_registration.time_column,
+            partition_column=flow_registration.partition_column,
+            order_columns=flow_registration.order_columns,
+            frequency=flow_registration.frequency,
         )
         flow = data.get_panel(
             "zb_cj_flow_min",
@@ -193,14 +196,12 @@ def test_minute_sql_time_synthesis(
     monkeypatch.setattr(remote, "query_arrow", query_inline)
     with DataClient(tmp_path / "audit", clickhouse_client_factory=lambda **kwargs: remote) as data:
         data.add_clickhouse_connection("test", ClickHouseConfig(host="inline"))
-        data.register(
-            ClickHouseDatasetSpec(
-                name="minute",
-                connection="test",
-                table="custom.minute",
-                time_column="date_time",
-                partition_column="date",
-            )
+        data.register_clickhouse(
+            "minute",
+            connection="test",
+            table="custom.minute",
+            time_column="date_time",
+            partition_column="date",
         )
         expected = pd.Timestamp("2026-03-02 09:30:00.123", tz="Asia/Shanghai")
         panel = data.get_panel("minute", ["close"], start=expected, end=expected)["close"]
@@ -225,19 +226,21 @@ def test_membership_events_real_daily(tmp_path: Path, monkeypatch: pytest.Monkey
     reads: list[tuple[int, int]] = []
     market_codes: set[str] = set()
     with initialize_data_client(audit_dir=tmp_path / "audit", register_tushare=False) as data:
-        original_scan = data._clickhouse.scan
+        from quant_data.backends import clickhouse as clickhouse_module
 
-        def measured_scan(dataset, query):
+        original_scan = clickhouse_module.scan_clickhouse
+
+        def measured_scan(session, source, dataset_name, fields, query):
             assert query.start.date() == (pd.Timestamp(day) - pd.DateOffset(months=1)).date()
             assert query.end.date() == day
             assert query.fields == ()
-            table = original_scan(dataset, query)
+            table = original_scan(session, source, dataset_name, fields, query)
             assert table.column_names == ["date", "code"]
             reads.append((table.num_rows, table.nbytes))
             market_codes.update(table["code"].to_pylist())
             return table
 
-        monkeypatch.setattr(data._clickhouse, "scan", measured_scan)
+        monkeypatch.setattr(clickhouse_module, "scan_clickhouse", measured_scan)
         instruments = ["000001.SZ", "600000.SH", "000009.SZ"]
         panel = data.get_panel(
             "membership_events", ["membership"], query_date, query_date, instruments=instruments

@@ -25,9 +25,9 @@ from quant_data.backends.tushare_catalog import (  # noqa: E402
     TUSHARE_DATASETS,
 )
 from quant_data.initialize import (  # noqa: E402
-    clickhouse_dataset_specs,
+    TUSHARE_DATASET_NAMES,
+    clickhouse_registrations,
     registered_dataset_names,
-    tushare_dataset_specs,
 )
 
 
@@ -79,28 +79,28 @@ def collect_references() -> tuple[DatasetReference, ...]:
 
     references: dict[str, DatasetReference] = {}
 
-    for clickhouse_spec in clickhouse_dataset_specs():
-        fields = MINGHU_TABLE_COLUMN_TYPES.get(clickhouse_spec.table)
+    for clickhouse_registration in clickhouse_registrations():
+        fields = MINGHU_TABLE_COLUMN_TYPES.get(clickhouse_registration.table)
         if fields is None:
             raise CatalogError(
-                f"Initialized ClickHouse table {clickhouse_spec.table!r} "
+                f"Initialized ClickHouse table {clickhouse_registration.table!r} "
                 "has no local schema catalog"
             )
         # The backend synthesizes the panel timestamp from the physical minute keys.
         if (
-            clickhouse_spec.time_column == "date_time"
+            clickhouse_registration.time_column == "date_time"
             and {"date", "time_int"} <= dict(fields).keys()
         ):
             fields = tuple((dict(fields) | {"date_time": "DateTime64(3, 'Asia/Shanghai')"}).items())
         _add_reference(
             references,
             DatasetReference(
-                name=clickhouse_spec.name,
+                name=clickhouse_registration.name,
                 fields=fields,
-                source_time_column=clickhouse_spec.time_column,
-                instrument_column=clickhouse_spec.instrument_column,
+                source_time_column=clickhouse_registration.time_column,
+                instrument_column="code",
                 identity_columns=(),
-                panel_time_column=clickhouse_spec.time_column,
+                panel_time_column=clickhouse_registration.time_column,
             ),
         )
 
@@ -118,12 +118,11 @@ def collect_references() -> tuple[DatasetReference, ...]:
         ),
     )
 
-    for tushare_spec in tushare_dataset_specs():
-        catalog_name = tushare_spec.dataset or tushare_spec.name
-        catalog = TUSHARE_DATASETS.get(catalog_name)
+    for dataset_name in TUSHARE_DATASET_NAMES:
+        catalog = TUSHARE_DATASETS.get(dataset_name)
         if catalog is None:
             raise CatalogError(
-                f"Initialized Tushare dataset {catalog_name!r} has no local schema catalog"
+                f"Initialized Tushare dataset {dataset_name!r} has no local schema catalog"
             )
         semantics = catalog.semantics
         if isinstance(semantics, DisclosureSemantics):
@@ -136,11 +135,11 @@ def collect_references() -> tuple[DatasetReference, ...]:
             source_time_column = semantics.source_time_column
             panel_time_column = semantics.panel_time_column
         else:  # pragma: no cover - exhaustive catalog guard
-            raise CatalogError(f"Unsupported semantics for dataset {tushare_spec.name!r}")
+            raise CatalogError(f"Unsupported semantics for dataset {dataset_name!r}")
         _add_reference(
             references,
             DatasetReference(
-                name=tushare_spec.name,
+                name=dataset_name,
                 fields=tuple((field.name, str(field.type)) for field in catalog.schema),
                 source_time_column=source_time_column,
                 instrument_column=catalog.instrument_column,

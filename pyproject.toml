@@ -37,6 +37,7 @@ only-include = [
   "audit.py",
   "backends",
   "client.py",
+  "datasets.py",
   "exceptions.py",
   "initialize.py",
   "models.py",

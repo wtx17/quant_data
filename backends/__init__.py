@@ -1,5 +1,4 @@
-from .clickhouse import ClickHouseBackend
-from .parquet import DuckDBParquetBackend
-from .tushare import TushareBackend
+from .clickhouse import ClickHouseSession
+from .tushare import TushareSession
 
-__all__ = ["ClickHouseBackend", "DuckDBParquetBackend", "TushareBackend"]
+__all__ = ["ClickHouseSession", "TushareSession"]

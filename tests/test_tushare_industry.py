@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from quant_data import DataClient, TushareConfig, TushareDatasetSpec
+from quant_data import DataClient, TushareConfig
 
 
 def weekdays(start: date, end: date) -> list[date]:
@@ -106,13 +106,7 @@ def make_client(tmp_path: Path) -> tuple[DataClient, FakeTushareClient]:
 
 def test_ci_index_member_expands_intervals_to_daily_panel(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
-    client.register(
-        TushareDatasetSpec(
-            name="citic_industry",
-            connection="ts",
-            dataset="ci_index_member",
-        )
-    )
+    client.register_tushare("citic_industry", connection="ts", dataset="ci_index_member")
 
     panels = client.get_panel(
         "citic_industry",
@@ -143,13 +137,11 @@ def test_ci_index_member_expands_intervals_to_daily_panel(tmp_path: Path) -> Non
 
 def test_ci_index_member_whole_industry_query_does_not_send_ts_code(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
-    client.register(
-        TushareDatasetSpec(
-            name="citic_electronics",
-            connection="ts",
-            dataset="ci_index_member",
-            fixed_params={"l2_code": "CI005835.CI"},
-        )
+    client.register_tushare(
+        "citic_electronics",
+        connection="ts",
+        dataset="ci_index_member",
+        fixed_params={"l2_code": "CI005835.CI"},
     )
 
     panels = client.get_panel(
@@ -169,13 +161,7 @@ def test_ci_index_member_whole_industry_query_does_not_send_ts_code(tmp_path: Pa
 
 def test_index_member_all_expands_intervals_to_daily_panel(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
-    client.register(
-        TushareDatasetSpec(
-            name="sw_industry",
-            connection="ts",
-            dataset="index_member_all",
-        )
-    )
+    client.register_tushare("sw_industry", connection="ts", dataset="index_member_all")
 
     panels = client.get_panel(
         "sw_industry",
@@ -206,13 +192,11 @@ def test_index_member_all_expands_intervals_to_daily_panel(tmp_path: Path) -> No
 
 def test_index_member_all_whole_industry_query_does_not_send_ts_code(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
-    client.register(
-        TushareDatasetSpec(
-            name="sw_gold",
-            connection="ts",
-            dataset="index_member_all",
-            fixed_params={"l3_code": "850531.SI"},
-        )
+    client.register_tushare(
+        "sw_gold",
+        connection="ts",
+        dataset="index_member_all",
+        fixed_params={"l3_code": "850531.SI"},
     )
 
     panels = client.get_panel(
@@ -232,13 +216,11 @@ def test_index_member_all_whole_industry_query_does_not_send_ts_code(tmp_path: P
 
 def test_fixed_membership_status_uses_one_request(tmp_path: Path) -> None:
     client, fake = make_client(tmp_path)
-    client.register(
-        TushareDatasetSpec(
-            name="current_members",
-            dataset="ci_index_member",
-            connection="ts",
-            fixed_params={"is_new": "Y"},
-        )
+    client.register_tushare(
+        "current_members",
+        connection="ts",
+        dataset="ci_index_member",
+        fixed_params={"is_new": "Y"},
     )
 
     table = client.get_panel(

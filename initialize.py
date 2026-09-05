@@ -12,25 +12,17 @@ from typing import Any
 if __package__:
     from . import (
         ClickHouseConfig,
-        ClickHouseDatasetSpec,
         DataClient,
-        BuiltInDatasetSpec,
         DatasetRegistrationError,
         TushareConfig,
-        TushareDatasetSpec,
-        TushareParquetDatasetSpec,
     )
 else:
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from quant_data import (
         ClickHouseConfig,
-        ClickHouseDatasetSpec,
         DataClient,
-        BuiltInDatasetSpec,
         DatasetRegistrationError,
         TushareConfig,
-        TushareDatasetSpec,
-        TushareParquetDatasetSpec,
     )
 
 DEFAULT_CLICKHOUSE_CONNECTION = "minghu"
@@ -38,8 +30,11 @@ DEFAULT_TUSHARE_CONNECTION = "tushare"
 
 
 @dataclass(frozen=True, slots=True)
-class _ClickHouseRegistration:
+class ClickHouseRegistration:
+    """Describe one default ClickHouse panel registration."""
+
     name: str
+    connection: str
     table: str
     time_column: str
     partition_column: str | None = None
@@ -47,20 +42,20 @@ class _ClickHouseRegistration:
     frequency: str | None = None
 
 
-_CLICKHOUSE_PANEL_SPECS = (
-    _ClickHouseRegistration(
+_CLICKHOUSE_PANEL_DEFS = (
+    dict(
         name="minghu_daily",
         table="stock_base.daily",
         time_column="date",
         frequency="1d",
     ),
-    _ClickHouseRegistration(
+    dict(
         name="minghu_index_daily",
         table="index_base.daily",
         time_column="date",
         frequency="1d",
     ),
-    _ClickHouseRegistration(
+    dict(
         name="minghu_m1",
         table="stock_base.m1",
         time_column="date_time",
@@ -68,7 +63,7 @@ _CLICKHOUSE_PANEL_SPECS = (
         order_columns=("date_time", "code"),
         frequency="1min",
     ),
-    _ClickHouseRegistration(
+    dict(
         name="zb_cj_flow_min",
         table="zhangruiqi.zb_cj_flow_min",
         time_column="date_time",
@@ -78,8 +73,7 @@ _CLICKHOUSE_PANEL_SPECS = (
     ),
 )
 
-
-_TUSHARE_DATASETS = (
+TUSHARE_DATASET_NAMES = (
     "daily_basic",
     "income",
     "balancesheet",
@@ -93,96 +87,30 @@ _TUSHARE_DATASETS = (
 )
 
 
-def clickhouse_dataset_specs(
+def clickhouse_registrations(
     connection: str = DEFAULT_CLICKHOUSE_CONNECTION,
-) -> tuple[ClickHouseDatasetSpec, ...]:
-    """Return the project-standard ClickHouse dataset specifications.
+) -> tuple[ClickHouseRegistration, ...]:
+    """Return the project-standard ClickHouse panel registrations.
 
     Parameters
     ----------
     connection
-        Connection profile referenced by every returned specification.
+        Connection profile referenced by every returned registration.
 
     Returns
     -------
-    tuple[ClickHouseDatasetSpec, ...]
-        Specifications for the built-in Minghu daily, index daily, and minute tables.
+    tuple[ClickHouseRegistration, ...]
+        Registrations for the built-in Minghu daily, index daily, and minute
+        tables.
 
     Notes
     -----
-    This function only creates immutable specifications. It does not create a
+    This function only creates immutable records. It does not create a
     ClickHouse client, read credentials, or access a remote table.
     """
-    specs: list[ClickHouseDatasetSpec] = []
-    for item in _CLICKHOUSE_PANEL_SPECS:
-        specs.append(
-            ClickHouseDatasetSpec(
-                name=item.name,
-                connection=connection,
-                table=item.table,
-                time_column=item.time_column,
-                partition_column=item.partition_column,
-                order_columns=item.order_columns,
-                frequency=item.frequency,
-            )
-        )
-    return tuple(specs)
-
-
-def tushare_dataset_specs(
-    connection: str = DEFAULT_TUSHARE_CONNECTION,
-) -> tuple[TushareDatasetSpec, ...]:
-    """Return the project-standard Tushare dataset specifications.
-
-    Parameters
-    ----------
-    connection
-        Connection profile referenced by every returned specification.
-    Returns
-    -------
-    tuple[TushareDatasetSpec, ...]
-        One immutable specification per supported logical Tushare dataset.
-
-    Notes
-    -----
-    This function does not initialize a Tushare client or read a token. The
-    backend chooses ordinary or VIP transport routes from each query's universe;
-    disclosed datasets acquire PIT semantics automatically in ``get_panel``.
-    """
-    return tuple(TushareDatasetSpec(name=name, connection=connection) for name in _TUSHARE_DATASETS)
-
-
-def tushare_parquet_dataset_specs(
-    data_dir: str | Path,
-    calendar_connection: str = DEFAULT_TUSHARE_CONNECTION,
-) -> tuple[TushareParquetDatasetSpec, ...]:
-    """Return local Parquet specifications for the Tushare logical catalog.
-
-    Parameters
-    ----------
-    data_dir
-        Root containing each dataset directory and its ``_manifest.json``.
-    calendar_connection
-        Tushare profile used only by panel queries for ``trade_cal``.
-
-    Returns
-    -------
-    tuple[TushareParquetDatasetSpec, ...]
-        One manifest-backed specification per supported Tushare dataset.
-
-    Notes
-    -----
-    Constructing specifications does not inspect files or resolve a token.
-    Registration validates the manifests; observation panels remain fully local.
-    """
-
     return tuple(
-        TushareParquetDatasetSpec(
-            name=name,
-            data_dir=data_dir,
-            calendar_connection=calendar_connection,
-        )
-        for name in _TUSHARE_DATASETS
+        ClickHouseRegistration(connection=connection, **definition)
+        for definition in _CLICKHOUSE_PANEL_DEFS
     )
 
 
@@ -199,12 +127,12 @@ def registered_dataset_names() -> tuple[str, ...]:
 
     Notes
     -----
-    The result is derived from local specifications and requires no credentials
-    or remote service access.
+    The result is derived from local registration records and requires no
+    credentials or remote service access.
     """
-    names = [spec.name for spec in clickhouse_dataset_specs()]
+    names = [registration.name for registration in clickhouse_registrations()]
     names.append("membership_events")
-    names.extend(spec.name for spec in tushare_dataset_specs())
+    names.extend(TUSHARE_DATASET_NAMES)
     return tuple(names)
 
 
@@ -238,7 +166,7 @@ def initialize_data_client(
     register_tushare
         Configure Tushare and register its catalog-backed datasets.
     clickhouse_connection
-        ClickHouse profile name referenced by generated specifications.
+        ClickHouse profile name referenced by generated registrations.
     clickhouse_host
         Server hostname. Environment variables and the project default are
         consulted when omitted.
@@ -253,7 +181,7 @@ def initialize_data_client(
     clickhouse_secure
         Whether to enable TLS. Environment variables are used when omitted.
     tushare_connection
-        Tushare profile name referenced by generated specifications.
+        Tushare profile name referenced by generated registrations.
     tushare_data_dir
         Optional root of a manifest-backed Tushare Parquet archive. When set,
         every Tushare dataset reads local files unless selected by
@@ -276,14 +204,14 @@ def initialize_data_client(
     Raises
     ------
     DatasetRegistrationError
-        If a connection or generated dataset specification is invalid.
+        If a connection or generated dataset registration is invalid.
 
     Notes
     -----
     Built-in registrations use local catalogs. Neither ClickHouse nor Tushare
     opens a remote connection or resolves credentials until a query needs it.
-    Importing this module and calling the specification helpers are side-effect
-    free.
+    Importing this module and calling the registration helpers are
+    side-effect free.
     """
     remote_tushare_datasets = (
         _resolve_tushare_remote_datasets(
@@ -322,9 +250,17 @@ def initialize_data_client(
                 else _env_bool(("QUANT_DATA_CLICKHOUSE_SECURE", "MINGHU_CLICKHOUSE_SECURE"), False),
             ),
         )
-        for clickhouse_spec in clickhouse_dataset_specs(clickhouse_connection):
-            client.register(clickhouse_spec)
-        client.register(BuiltInDatasetSpec(connection=clickhouse_connection))
+        for registration in clickhouse_registrations(clickhouse_connection):
+            client.register_clickhouse(
+                registration.name,
+                connection=registration.connection,
+                table=registration.table,
+                time_column=registration.time_column,
+                partition_column=registration.partition_column,
+                order_columns=registration.order_columns,
+                frequency=registration.frequency,
+            )
+        client.register_builtin("membership_events", connection=clickhouse_connection)
 
     if register_tushare:
         client.add_tushare_connection(
@@ -336,25 +272,21 @@ def initialize_data_client(
                 or "TUSHARE_TOKEN",
             ),
         )
-        for dataset_name in _TUSHARE_DATASETS:
+        for dataset_name in TUSHARE_DATASET_NAMES:
             if dataset_name in remote_tushare_datasets:
-                client.register(
-                    TushareDatasetSpec(
-                        name=dataset_name,
-                        connection=tushare_connection,
-                    )
+                client.register_tushare(
+                    dataset_name,
+                    connection=tushare_connection,
                 )
             else:
                 if tushare_data_dir is None:
                     raise DatasetRegistrationError(
                         "Tushare local registration requires tushare_data_dir"
                     )
-                client.register(
-                    TushareParquetDatasetSpec(
-                        name=dataset_name,
-                        data_dir=tushare_data_dir,
-                        calendar_connection=tushare_connection,
-                    )
+                client.register_tushare(
+                    dataset_name,
+                    data_dir=tushare_data_dir,
+                    calendar_connection=tushare_connection,
                 )
 
     return client
@@ -365,7 +297,7 @@ def _resolve_tushare_remote_datasets(
     remote_datasets: Collection[str] | None,
 ) -> frozenset[str]:
     if remote_datasets is None:
-        return frozenset() if data_dir is not None else frozenset(_TUSHARE_DATASETS)
+        return frozenset() if data_dir is not None else frozenset(TUSHARE_DATASET_NAMES)
     if isinstance(remote_datasets, str):
         raise DatasetRegistrationError(
             "tushare_remote_datasets must be a collection of dataset names, not a string"
@@ -378,13 +310,13 @@ def _resolve_tushare_remote_datasets(
             f"tushare_remote_datasets must contain only non-empty strings: {invalid}"
         )
     selected = frozenset(values)
-    unsupported = sorted(selected.difference(_TUSHARE_DATASETS))
+    unsupported = sorted(selected.difference(TUSHARE_DATASET_NAMES))
     if unsupported:
         raise DatasetRegistrationError(
             f"Unsupported Tushare remote datasets: {unsupported}; "
-            f"supported datasets: {list(_TUSHARE_DATASETS)}"
+            f"supported datasets: {list(TUSHARE_DATASET_NAMES)}"
         )
-    if data_dir is None and selected != frozenset(_TUSHARE_DATASETS):
+    if data_dir is None and selected != frozenset(TUSHARE_DATASET_NAMES):
         raise DatasetRegistrationError(
             "tushare_data_dir is required unless tushare_remote_datasets "
             "selects every Tushare dataset"

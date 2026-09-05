@@ -6,7 +6,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-from quant_data import ClickHouseConfig, DataClient, InvalidQueryError, BuiltInDatasetSpec
+from quant_data import ClickHouseConfig, DataClient, InvalidQueryError
 from quant_data.backends import parquet
 
 
@@ -43,7 +43,7 @@ def setup_membership(tmp_path, monkeypatch):
 
     client = DataClient(audit_dir=tmp_path / "audit", clickhouse_client_factory=lambda **kw: Fake())
     client.add_clickhouse_connection("minghu", ClickHouseConfig(host="test"))
-    client.register(BuiltInDatasetSpec())
+    client.register_builtin("membership_events", connection="minghu")
     yield client, calls, tmp_path
     client.close()
 
@@ -126,9 +126,11 @@ def test_invalid_queries_do_not_access_market(setup_membership, kwargs):
 )
 def test_market_lookback_calendar_month(setup_membership, monkeypatch, start, expected):
     client, _, _ = setup_membership
+    from quant_data.backends import clickhouse as clickhouse_module
+
     queries = []
 
-    def scan(dataset, query):
+    def scan(session, source, dataset_name, fields, query):
         queries.append(query)
         return pa.table(
             {
@@ -137,30 +139,28 @@ def test_market_lookback_calendar_month(setup_membership, monkeypatch, start, ex
             }
         )
 
-    monkeypatch.setattr(client._clickhouse, "scan", scan)
+    monkeypatch.setattr(clickhouse_module, "scan_clickhouse", scan)
     panel = client.get_panel(
         "membership_events", ["membership"], start, start, instruments=["000002.SZ"]
     )["membership"]
     assert queries[0].start.date() == pd.Timestamp(expected).date()
     assert queries[0].end.date() == pd.Timestamp(start).date()
+    assert queries[0].fields == ()
+    assert queries[0].instruments is None
     assert panel.index.tolist() == [pd.Timestamp(start)]
     assert panel.values.tolist() == [[0]]
 
 
 def test_builtin_alias_and_event_scan(setup_membership):
-    from quant_data.models import DataQuery
-
     client, _, _ = setup_membership
-    client.register(BuiltInDatasetSpec(name="indices", dataset="membership_events"))
-    registered = client._datasets["indices"]
-    assert registered.spec.backend == "parquet"
-    table = client._parquet.scan(registered, DataQuery(fields=("membership",)))
-    assert table.column_names == ["change_date", "code", "hs300", "zz500", "zz1000"]
-    assert table.num_rows == 3
+    client.register_builtin("indices", connection="minghu")
     result = client.get_panel(
         "indices", ["membership"], "2024-01-05", "2024-01-09", instruments=["000001.SZ"]
     )["membership"]
     assert result["000001.SZ"].tolist() == [1, 2, 0]
+    assert result.index.tolist() == list(
+        pd.to_datetime(["2024-01-05", "2024-01-08", "2024-01-09"])
+    )
 
 
 def test_unknown_builtin_is_rejected(setup_membership):
@@ -168,5 +168,5 @@ def test_unknown_builtin_is_rejected(setup_membership):
 
     client, calls, _ = setup_membership
     with pytest.raises(DatasetRegistrationError, match="Unknown built-in dataset"):
-        client.register(BuiltInDatasetSpec(dataset="unknown"))
+        client.register_builtin(dataset="unknown")
     assert not calls

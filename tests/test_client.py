@@ -11,7 +11,6 @@ import pytest
 from quant_data import (
     DataClient,
     DatasetRegistrationError,
-    DatasetSpec,
     DuplicateObservationError,
     FieldNotFoundError,
     InvalidQueryError,
@@ -49,13 +48,11 @@ def sample_files(tmp_path: Path) -> Path:
 
 def make_client(tmp_path: Path, sample_files: Path) -> DataClient:
     client = DataClient(audit_dir=tmp_path / "audit")
-    client.register(
-        DatasetSpec(
-            name="daily",
-            paths=[sample_files / "*.parquet"],
-            frequency="1d",
-            version="v1",
-        )
+    client.register_parquet(
+        "daily",
+        [sample_files / "*.parquet"],
+        frequency="1d",
+        version="v1",
     )
     return client
 
@@ -323,7 +320,7 @@ def test_duplicate_keys_fail(tmp_path: Path) -> None:
         },
     )
     client = DataClient(tmp_path / "audit")
-    client.register(DatasetSpec("duplicate", [file]))
+    client.register_parquet("duplicate", [file])
     with pytest.raises(DuplicateObservationError, match="duplicate key pairs"):
         client.get_panel("duplicate", ["close"])
 
@@ -333,7 +330,7 @@ def test_registration_rejects_missing_key_in_any_file(tmp_path: Path) -> None:
     write_table(tmp_path / "bad.parquet", {"time": ["2026-01-02"], "x": [2]})
     client = DataClient(tmp_path / "audit")
     with pytest.raises(DatasetRegistrationError, match="missing key columns"):
-        client.register(DatasetSpec("bad", [tmp_path]))
+        client.register_parquet("bad", [tmp_path])
 
 
 def test_sql_special_characters_are_values_not_sql(tmp_path: Path) -> None:
@@ -347,13 +344,11 @@ def test_sql_special_characters_are_values_not_sql(tmp_path: Path) -> None:
         },
     )
     client = DataClient(tmp_path / "audit")
-    client.register(
-        DatasetSpec(
-            "special",
-            [file],
-            time_column="when value",
-            instrument_column="asset code",
-        )
+    client.register_parquet(
+        "special",
+        [file],
+        time_column="when value",
+        instrument_column="asset code",
     )
     result = client.get_panel("special", ['odd"field'], instruments=["x'); DROP TABLE source; --"])
     assert result['odd"field'].iloc[0, 0] == 7
@@ -367,7 +362,7 @@ def test_custom_parquet_frequency_remains_optional_metadata(
     times = [pd.Timestamp("2026-01-05 09:30:01"), pd.Timestamp("2026-01-05 09:30:02")]
     write_table(path, {"time": times, "ts_code": ["000001.SZ"] * 2, "close": [1.0, 2.0]})
     with DataClient(tmp_path / "audit") as client:
-        client.register(DatasetSpec("custom", [path], frequency=frequency))
+        client.register_parquet("custom", [path], frequency=frequency)
         panel = client.get_panel("custom", ["close"])["close"]
     assert list(panel.index) == times
     assert panel["000001.SZ"].tolist() == [1.0, 2.0]

@@ -13,7 +13,6 @@ from quant_data import (
     InvalidQueryError,
     RemoteQueryError,
     TushareConfig,
-    TushareDatasetSpec,
 )
 
 
@@ -66,7 +65,7 @@ def make_client(
         tushare_client_factory=FakeFactory(fake),
     )
     client.add_tushare_connection("ts", TushareConfig(token="x"))
-    client.register(TushareDatasetSpec(name="daily_basic", connection="ts"))
+    client.register_tushare("daily_basic", connection="ts")
     return client, fake
 
 

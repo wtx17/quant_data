@@ -7,47 +7,52 @@ from typing import Literal, Mapping, TypeAlias
 
 import pyarrow as pa
 
+from ..exceptions import DatasetRegistrationError
 from .tushare_schemas import TUSHARE_SCHEMAS
 
-
-RouteUniverse: TypeAlias = Literal["instrument_only", "whole_market", "both"]
-
-
-@dataclass(frozen=True, slots=True)
-class DateRangeQuery:
-    """Describe a closed remote date-range API query."""
-
-    start_param: str = "start_date"
-    end_param: str = "end_date"
-
-
-@dataclass(frozen=True, slots=True)
-class TradeDateQuery:
-    """Describe an API fetched once per open trading date."""
-
-    date_param: str = "trade_date"
-    max_rows: int = 6000
-
-
-@dataclass(frozen=True, slots=True)
-class MembershipQuery:
-    """Describe the paired current/history membership requests."""
-
-    status_param: str = "is_new"
-    status_values: tuple[str, ...] = ("Y", "N")
-
-
-QueryShape: TypeAlias = DateRangeQuery | TradeDateQuery | MembershipQuery
+RouteScope: TypeAlias = Literal["instruments", "whole_market", "both"]
+RequestKind: TypeAlias = Literal["date_range", "trade_date", "membership_status"]
 
 
 @dataclass(frozen=True, slots=True)
 class TushareApiRoute:
-    """Describe one remote API route for a logical Tushare dataset."""
+    """Describe one remote API route for a logical Tushare dataset.
+
+    Parameters
+    ----------
+    api_name
+        Remote API method name.
+    scope
+        Which query universes the route serves: ``"instruments"`` for
+        explicit instrument lists, ``"whole_market"`` for unbounded queries,
+        ``"both"`` for either.
+    request
+        Request shape implemented by one of the three explicit fetch
+        functions: a closed remote date range, one request per open trading
+        date, or paired current/history membership requests.
+    instrument_param
+        API parameter carrying one instrument identifier.
+    start_param, end_param
+        API parameters bounding a ``date_range`` request.
+    date_param
+        API parameter selecting one trading date.
+    max_rows
+        Row count at which a single response is considered possibly
+        truncated, or ``None`` when the API pages without loss.
+    status_param, status_values
+        Membership-status parameter and its fetchable values.
+    """
 
     api_name: str
-    universe: RouteUniverse
-    query_shape: QueryShape
+    scope: RouteScope
+    request: RequestKind
     instrument_param: str = "ts_code"
+    start_param: str = "start_date"
+    end_param: str = "end_date"
+    date_param: str = "trade_date"
+    max_rows: int | None = None
+    status_param: str = "is_new"
+    status_values: tuple[str, ...] = ("Y", "N")
 
 
 @dataclass(frozen=True, slots=True)
@@ -113,7 +118,6 @@ def build_tushare_catalogs(
         identity_columns: tuple[str, ...],
         revision_order: tuple[str, ...],
     ) -> TushareDatasetCatalog:
-        disclosure_query = DateRangeQuery()
         semantics = DisclosureSemantics(
             period_column="end_date",
             disclosure_column=disclosure_column,
@@ -135,13 +139,13 @@ def build_tushare_catalogs(
             routes=(
                 TushareApiRoute(
                     api_name=name,
-                    universe="instrument_only",
-                    query_shape=disclosure_query,
+                    scope="instruments",
+                    request="date_range",
                 ),
                 TushareApiRoute(
                     api_name=f"{name}_vip",
-                    universe="whole_market",
-                    query_shape=disclosure_query,
+                    scope="whole_market",
+                    request="date_range",
                 ),
             ),
         )
@@ -159,8 +163,9 @@ def build_tushare_catalogs(
             routes=(
                 TushareApiRoute(
                     api_name="daily_basic",
-                    universe="both",
-                    query_shape=TradeDateQuery(),
+                    scope="both",
+                    request="trade_date",
+                    max_rows=6000,
                 ),
             ),
         ),
@@ -237,8 +242,8 @@ def build_tushare_catalogs(
         routes=(
             TushareApiRoute(
                 api_name="stk_holdernumber",
-                universe="both",
-                query_shape=DateRangeQuery(),
+                scope="both",
+                request="date_range",
             ),
         ),
     )
@@ -258,8 +263,8 @@ def build_tushare_catalogs(
             routes=(
                 TushareApiRoute(
                     api_name=name,
-                    universe="both",
-                    query_shape=MembershipQuery(),
+                    scope="both",
+                    request="membership_status",
                 ),
             ),
         )
@@ -278,13 +283,28 @@ def _unique(values: tuple[str, ...]) -> tuple[str, ...]:
 TUSHARE_DATASETS = build_tushare_catalogs(TUSHARE_SCHEMAS)
 
 
+def catalog_for(dataset_name: str) -> TushareDatasetCatalog:
+    """Return the logical catalog for one supported dataset name.
+
+    Raises
+    ------
+    DatasetRegistrationError
+        If the name is not part of the static catalog.
+    """
+
+    catalog = TUSHARE_DATASETS.get(dataset_name)
+    if catalog is None:
+        supported = ", ".join(sorted(TUSHARE_DATASETS))
+        raise DatasetRegistrationError(
+            f"Unsupported Tushare dataset {dataset_name!r}; supported datasets: {supported}"
+        )
+    return catalog
+
+
 __all__ = [
-    "DateRangeQuery",
     "DisclosureSemantics",
-    "MembershipQuery",
     "MembershipSemantics",
     "ObservationSemantics",
-    "TradeDateQuery",
     "TushareApiRoute",
     "TushareDatasetCatalog",
     "TUSHARE_DATASETS",

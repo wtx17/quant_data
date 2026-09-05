@@ -15,15 +15,12 @@ from quant_data import (
     BackendConnectionError,
     DataClient,
     DatasetRegistrationError,
+    FieldNotFoundError,
     InvalidQueryError,
     TushareConfig,
-    TushareParquetDatasetSpec,
 )
 from quant_data.backends.tushare_catalog import TUSHARE_DATASETS
-from quant_data.initialize import (
-    initialize_data_client,
-    tushare_parquet_dataset_specs,
-)
+from quant_data.initialize import TUSHARE_DATASET_NAMES, initialize_data_client
 
 
 class CalendarClient:
@@ -151,13 +148,14 @@ def make_client(tmp_path: Path) -> tuple[DataClient, CalendarClient, CalendarFac
     return client, calendar, factory
 
 
-def local_spec(
+def register_local(
+    client: DataClient,
     root: Path,
     dataset: str,
     **kwargs: Any,
-) -> TushareParquetDatasetSpec:
-    return TushareParquetDatasetSpec(
-        name=dataset,
+) -> None:
+    client.register_tushare(
+        dataset,
         data_dir=root,
         calendar_connection="ts",
         **kwargs,
@@ -208,7 +206,7 @@ def test_local_daily_basic_reads_date_partitions_without_api_calls(
         },
     )
     client, calendar, factory = make_client(tmp_path)
-    client.register(local_spec(root, "daily_basic"))
+    register_local(client, root, "daily_basic")
 
     table = client.get_panel(
         "daily_basic",
@@ -273,14 +271,13 @@ def test_local_pit_panel_only_fetches_trade_calendar(tmp_path: Path) -> None:
         ],
     )
     client, calendar, factory = make_client(tmp_path)
-    client.register(
-        local_spec(
-            root,
-            "income",
-            disclosure_lag=0,
-            fetch_buffer_days=30,
-            fetch_margin_days=5,
-        )
+    register_local(
+        client,
+        root,
+        "income",
+        disclosure_lag=0,
+        fetch_buffer_days=30,
+        fetch_margin_days=5,
     )
 
     panel = client.get_panel(
@@ -333,7 +330,7 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
         range_start="20220101",
     )
     default_client, _, _ = make_client(tmp_path / "default")
-    default_client.register(local_spec(root, "income", fetch_buffer_days=30))
+    register_local(default_client, root, "income", fetch_buffer_days=30)
 
     default_panel = default_client.get_panel(
         "income",
@@ -347,14 +344,12 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
     assert default_audit["source"]["fixed_params"]["report_type"] == "1"
 
     override_client, _, _ = make_client(tmp_path / "override")
-    override_client.register(
-        TushareParquetDatasetSpec(
-            name="income_single_quarter",
-            dataset="income",
-            data_dir=root,
-            calendar_connection="ts",
-            fixed_params={"report_type": "2"},
-        )
+    override_client.register_tushare(
+        "income_single_quarter",
+        dataset="income",
+        data_dir=root,
+        calendar_connection="ts",
+        fixed_params={"report_type": "2"},
     )
     override_table = override_client.get_panel(
         "income_single_quarter",
@@ -401,7 +396,7 @@ def test_local_membership_panel_match_interval_semantics(tmp_path: Path) -> None
         ],
     )
     client, calendar, _ = make_client(tmp_path)
-    client.register(local_spec(root, "ci_index_member"))
+    register_local(client, root, "ci_index_member")
 
     panel = client.get_panel(
         "ci_index_member",
@@ -421,12 +416,11 @@ def test_local_fixed_params_map_or_fail_at_registration(tmp_path: Path) -> None:
     write_archive(root, "cashflow", [])
     client, _, _ = make_client(tmp_path)
     with pytest.raises(DatasetRegistrationError, match="is_calc"):
-        client.register(
-            local_spec(
-                root,
-                "cashflow",
-                fixed_params={"is_calc": 1},
-            )
+        register_local(
+            client,
+            root,
+            "cashflow",
+            fixed_params={"is_calc": 1},
         )
 
 
@@ -434,7 +428,7 @@ def test_local_snapshot_rejects_explicit_and_pit_buffer_overflow(tmp_path: Path)
     root = tmp_path / "archive"
     write_archive(root, "income", [])
     client, _, _ = make_client(tmp_path)
-    client.register(local_spec(root, "income", fetch_buffer_days=30))
+    register_local(client, root, "income", fetch_buffer_days=30)
 
     with pytest.raises(InvalidQueryError, match="starts at"):
         client.get_panel(
@@ -461,20 +455,19 @@ def test_manifest_metadata_mismatch_fails_registration(tmp_path: Path) -> None:
     client, _, _ = make_client(tmp_path)
 
     with pytest.raises(DatasetRegistrationError, match="size differs"):
-        client.register(local_spec(root, "income"))
+        register_local(client, root, "income")
 
 
 def test_local_initialization_registers_standard_names_without_token(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root = tmp_path / "archive"
-    specs = tushare_parquet_dataset_specs(root, calendar_connection="calendar")
-    assert [spec.name for spec in specs] == list(TUSHARE_DATASETS)
-    for spec in specs:
-        if spec.name == "daily_basic":
+    assert list(TUSHARE_DATASET_NAMES) == list(TUSHARE_DATASETS)
+    for name in TUSHARE_DATASET_NAMES:
+        if name == "daily_basic":
             write_daily_basic_archive(root, {"20240701": []})
         else:
-            write_archive(root, spec.name, [])
+            write_archive(root, name, [])
     monkeypatch.delenv("MISSING_LOCAL_CALENDAR_TOKEN", raising=False)
 
     client = initialize_data_client(
@@ -513,11 +506,21 @@ def test_initialization_can_mix_local_and_remote_tushare_datasets(
         audit_dir=tmp_path / "audit",
         register_clickhouse=False,
         tushare_data_dir=root,
-        tushare_remote_datasets=set(TUSHARE_DATASETS).difference({"income"}),
+        tushare_remote_datasets=set(TUSHARE_DATASET_NAMES).difference({"income"}),
         tushare_connection="mixed",
         tushare_token_env="MISSING_MIXED_TUSHARE_TOKEN",
     ) as client:
-        assert isinstance(client._datasets["income"].spec, TushareParquetDatasetSpec)
+        # ``income`` reads the local archive: its audit source is recorded
+        # before field validation fails.
+        with pytest.raises(FieldNotFoundError):
+            client.get_panel(
+                "income",
+                ["nonexistent"],
+                start="2024-03-31",
+                end="2024-03-31",
+            )
+        income_audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+        assert income_audit["source"]["format"] == "tushare-archive"
 
         with pytest.raises(BackendConnectionError, match="MISSING_MIXED_TUSHARE_TOKEN"):
             client.get_panel(
@@ -572,7 +575,7 @@ def test_local_pit_preserves_revisions_and_requested_identity_fields(tmp_path: P
         ],
     )
     client, calendar, _ = make_client(tmp_path)
-    client.register(local_spec(root, "income", fetch_buffer_days=30))
+    register_local(client, root, "income", fetch_buffer_days=30)
     panels = client.get_panel(
         "income",
         ["total_revenue", "ann_date", "update_flag", "end_date"],

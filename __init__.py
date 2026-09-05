@@ -14,26 +14,15 @@ from .exceptions import (
     RemoteQueryError,
     SchemaMismatchError,
 )
-from .models import (
-    ClickHouseConfig,
-    ClickHouseDatasetSpec,
-    DatasetSpec,
-    BuiltInDatasetSpec,
-    TushareConfig,
-    TushareDatasetSpec,
-    TushareParquetDatasetSpec,
-)
+from .models import ClickHouseConfig, TushareConfig
 
 __all__ = [
     "AuditWriteError",
     "BackendConnectionError",
     "ClickHouseConfig",
-    "ClickHouseDatasetSpec",
     "DataClient",
     "DatasetNotFoundError",
     "DatasetRegistrationError",
-    "DatasetSpec",
-    "BuiltInDatasetSpec",
     "DuplicateObservationError",
     "FieldNotFoundError",
     "InvalidQueryError",
@@ -41,7 +30,5 @@ __all__ = [
     "RemoteQueryError",
     "SchemaMismatchError",
     "TushareConfig",
-    "TushareDatasetSpec",
-    "TushareParquetDatasetSpec",
     "__version__",
 ]

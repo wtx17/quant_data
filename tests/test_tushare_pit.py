@@ -17,7 +17,6 @@ from quant_data import (
     RemoteQueryError,
     SchemaMismatchError,
     TushareConfig,
-    TushareDatasetSpec,
 )
 
 
@@ -137,15 +136,13 @@ def register_income(
     name: str = "income",
     disclosure_lag: int = 0,
 ) -> None:
-    client.register(
-        TushareDatasetSpec(
-            name=name,
-            dataset=None if name == "income" else "income",
-            connection="ts",
-            disclosure_lag=disclosure_lag,
-            fetch_buffer_days=60,
-            fetch_margin_days=15,
-        )
+    client.register_tushare(
+        name,
+        dataset=None if name == "income" else "income",
+        connection="ts",
+        disclosure_lag=disclosure_lag,
+        fetch_buffer_days=60,
+        fetch_margin_days=15,
     )
 
 
@@ -157,7 +154,7 @@ def test_registration_is_offline_and_token_is_resolved_on_query(
     client.add_tushare_connection(
         "ts", TushareConfig(token=None, token_env="MISSING_TUSHARE_TOKEN")
     )
-    client.register(TushareDatasetSpec(name="income", connection="ts"))
+    client.register_tushare("income", connection="ts")
 
     with pytest.raises(BackendConnectionError, match="MISSING_TUSHARE_TOKEN"):
         client.get_panel(
@@ -451,7 +448,7 @@ def test_fina_indicator_catalog_uses_ann_date(tmp_path: Path) -> None:
         )
     }
     client, fake, _ = make_client(tmp_path, data)
-    client.register(TushareDatasetSpec(name="fina_indicator", connection="ts"))
+    client.register_tushare("fina_indicator", connection="ts")
 
     panel = client.get_panel(
         "fina_indicator",
@@ -507,7 +504,7 @@ def test_all_disclosure_datasets_preserve_pit_revisions(
         row[field] = value
         rows.append(row)
     client, fake, _ = make_client(tmp_path, {dataset: pd.DataFrame(rows)})
-    client.register(TushareDatasetSpec(name=dataset, connection="ts", fetch_buffer_days=30))
+    client.register_tushare(dataset, connection="ts", fetch_buffer_days=30)
 
     panel = client.get_panel(
         dataset,

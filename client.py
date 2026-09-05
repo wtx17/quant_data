@@ -4,51 +4,31 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Sequence, cast
+from typing import Any, Callable, cast
 from zoneinfo import ZoneInfo
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.compute as pc
 
 from ._version import __version__
 from .audit import AuditWriter
-from .backends.base import DataBackend, TushareSemanticBackend
-from .backends.clickhouse import ClickHouseBackend, ClickHouseSource
-from .backends.parquet import DuckDBParquetBackend
-from .backends.tushare import TushareBackend
+from .backends.clickhouse import ClickHouseSession
+from .backends.tushare import TushareSession
+from . import datasets as dataset_factories
 from .exceptions import (
     DatasetNotFoundError,
-    DatasetRegistrationError,
     FieldNotFoundError,
     InvalidQueryError,
-    SchemaMismatchError,
 )
-from .models import (
-    ClickHouseConfig,
-    ClickHouseDatasetSpec,
-    DataQuery,
-    DatasetDefinition,
-    DatasetSpec,
-    BuiltInDatasetSpec,
-    QueryAudit,
-    RegisteredDataset,
-    TushareConfig,
-    TushareDatasetSpec,
-    TushareParquetDatasetSpec,
-)
-from .transforms import build_daily_panels, build_panels
-from .transforms.membership import build_membership_panel
+from .models import ClickHouseConfig, Dataset, Query, QueryAudit, TushareConfig
 from ._universes import load_universe
-
-_MINGHU_CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
 
 
 class DataClient:
-    """Register datasets and execute backend-independent data queries.
+    """Register datasets and execute source-independent data queries.
 
     Parameters
     ----------
@@ -63,18 +43,18 @@ class DataClient:
 
     Notes
     -----
-    A client starts with Parquet, ClickHouse, and Tushare backends but no
-    datasets. Remote connections are cached and released by :meth:`close`.
-    Use the client as a context manager to close them automatically.
+    A client starts with ClickHouse and Tushare sessions but no datasets.
+    Remote connections are cached and released by :meth:`close`. Use the
+    client as a context manager to close them automatically.
 
     Examples
     --------
     Register a local dataset and request one panel::
 
-        from quant_data import DataClient, DatasetSpec
+        from quant_data import DataClient
 
         with DataClient() as data:
-            data.register(DatasetSpec("daily", ["data/*.parquet"]))
+            data.register_parquet("daily", ["data/*.parquet"])
             close = data.get_panel("daily", ["close"])["close"]
     """
 
@@ -85,15 +65,9 @@ class DataClient:
         clickhouse_client_factory: Callable[..., Any] | None = None,
         tushare_client_factory: Callable[..., Any] | None = None,
     ) -> None:
-        self._datasets: dict[str, RegisteredDataset] = {}
-        self._clickhouse = ClickHouseBackend(clickhouse_client_factory)
-        self._tushare = TushareBackend(tushare_client_factory)
-        self._parquet = DuckDBParquetBackend(self._tushare)
-        self._backends: dict[str, DataBackend] = {
-            "parquet": self._parquet,
-            "clickhouse": self._clickhouse,
-            "tushare": self._tushare,
-        }
+        self._datasets: dict[str, Dataset] = {}
+        self._clickhouse = ClickHouseSession(clickhouse_client_factory)
+        self._tushare = TushareSession(tushare_client_factory)
         self._audit = AuditWriter(audit_dir)
 
     def add_clickhouse_connection(self, name: str, config: ClickHouseConfig) -> None:
@@ -102,7 +76,7 @@ class DataClient:
         Parameters
         ----------
         name
-            Identifier referenced by :class:`ClickHouseDatasetSpec` objects.
+            Identifier referenced by ClickHouse dataset registrations.
         config
             Host, credentials, TLS, and timeout settings.
 
@@ -125,7 +99,7 @@ class DataClient:
         Parameters
         ----------
         name
-            Identifier referenced by :class:`TushareDatasetSpec` objects.
+            Identifier referenced by Tushare dataset registrations.
         config
             Token or token-environment configuration.
 
@@ -141,39 +115,267 @@ class DataClient:
 
         self._tushare.add_connection(name, config)
 
-    def register(self, spec: DatasetDefinition) -> None:
-        """Validate and register a dataset definition.
+    def register_parquet(
+        self,
+        name: str,
+        paths: Sequence[str | Path],
+        *,
+        time_column: str = "time",
+        instrument_column: str = "ts_code",
+        frequency: str | None = None,
+        timezone: str | None = None,
+        version: str | None = None,
+    ) -> None:
+        """Register local Parquet files as one dataset.
 
         Parameters
         ----------
-        spec
-            Parquet, ClickHouse, or Tushare dataset specification.
+        name
+            Stable name used to register and query the dataset.
+        paths
+            Parquet files, directories, or glob patterns. Directories are
+            searched recursively and all matching files form one logical
+            table.
+        time_column
+            Column used as the panel index and time-range filter.
+        instrument_column
+            Column used as the panel columns and instrument filter.
+        frequency
+            Optional sampling-frequency metadata stored in query metadata.
+        timezone
+            Optional IANA timezone recorded for the dataset. Local Parquet
+            values are not localized during query parsing.
+        version
+            Optional dataset version stored in query metadata and audit
+            records.
 
         Raises
         ------
         DatasetRegistrationError
-            If the specification, connection, paths, schema, or backend is
-            invalid.
-        SchemaMismatchError
-            If storage schemas cannot be reconciled.
-        BackendConnectionError
-            If registration requires remote schema discovery and the backend
-            cannot be reached.
-        RemoteQueryError
-            If remote schema discovery fails.
+            If the name, key columns, paths, or timezone are invalid.
 
         Notes
         -----
-        Registering a name again replaces the prior prepared dataset. Built-in
-        Minghu tables use an offline catalog; custom ClickHouse tables may run
-        ``DESCRIBE TABLE`` during registration.
+        Every matched file must contain both key columns. Schemas are merged
+        with permissive Arrow promotion when the dataset is registered.
+        Registering a name again replaces the prior dataset; a failed
+        registration keeps the old one.
         """
 
-        self._validate_spec(spec)
-        backend = self._backends.get(spec.backend)
-        if backend is None:
-            raise DatasetRegistrationError(f"Unsupported backend: {spec.backend!r}")
-        self._datasets[spec.name] = backend.prepare(spec)
+        self._datasets[name] = dataset_factories.parquet_dataset(
+            name,
+            paths,
+            time_column=time_column,
+            instrument_column=instrument_column,
+            frequency=frequency,
+            timezone=timezone,
+            version=version,
+        )
+
+    def register_clickhouse(
+        self,
+        name: str,
+        *,
+        connection: str,
+        table: str,
+        time_column: str,
+        instrument_column: str = "code",
+        partition_column: str | None = None,
+        order_columns: tuple[str, ...] = (),
+        frequency: str | None = None,
+        timezone: str | None = "Asia/Shanghai",
+        version: str | None = None,
+        require_time_range: bool | None = None,
+    ) -> None:
+        """Register one ClickHouse table as a dataset.
+
+        Parameters
+        ----------
+        name
+            Stable registration name.
+        connection
+            Name previously passed to :meth:`add_clickhouse_connection`.
+        table
+            ClickHouse table in ``database.table`` form.
+        time_column
+            Column used for time filtering and panel rows. With
+            ``"date_time"`` and source columns ``date`` / ``time_int``, SQL
+            synthesizes a millisecond timestamp in Asia/Shanghai. ``date`` is
+            Date, Date32 or a YYYYMMDD integer; ``time_int`` is milliseconds
+            since midnight. A physical ``date_time`` column is not required
+            and is ignored if present.
+        instrument_column
+            Column used for instrument filtering and panel columns.
+        partition_column
+            Optional date partition column. When set, queries require both
+            time bounds and push a partition-range predicate to ClickHouse.
+        order_columns
+            Columns used for deterministic server-side ordering.
+        frequency
+            Optional sampling frequency stored in result metadata.
+        timezone
+            IANA timezone used to localize or convert query bounds.
+        version
+            Optional dataset version stored in result metadata.
+        require_time_range
+            Explicitly require both ``start`` and ``end``. ``None`` derives
+            the requirement from ``partition_column``.
+
+        Raises
+        ------
+        DatasetRegistrationError
+            If the definition, profile, identifiers, or configured columns
+            are invalid.
+        RemoteQueryError
+            If a custom table cannot be described remotely during
+            registration.
+
+        Notes
+        -----
+        Built-in Minghu tables use a local schema catalog, so registration
+        stays offline; custom tables are described remotely during
+        registration.
+        """
+
+        self._datasets[name] = dataset_factories.clickhouse_dataset(
+            self._clickhouse,
+            name,
+            connection=connection,
+            table=table,
+            time_column=time_column,
+            instrument_column=instrument_column,
+            partition_column=partition_column,
+            order_columns=order_columns,
+            frequency=frequency,
+            timezone=timezone,
+            version=version,
+            require_time_range=require_time_range,
+        )
+
+    def register_tushare(
+        self,
+        name: str,
+        *,
+        dataset: str | None = None,
+        connection: str | None = None,
+        data_dir: str | Path | None = None,
+        calendar_connection: str | None = None,
+        fixed_params: dict[str, object] | None = None,
+        timezone: str | None = "Asia/Shanghai",
+        version: str | None = None,
+        disclosure_lag: int = 0,
+        calendar_exchange: str = "SSE",
+        fetch_buffer_days: int = 180,
+        fetch_margin_days: int = 31,
+    ) -> None:
+        """Register one logical catalog-backed Tushare dataset.
+
+        Parameters
+        ----------
+        name
+            Stable registration name.
+        dataset
+            Optional logical catalog name. When omitted, ``name`` is used.
+            Supply this only when registering an alias or a fixed-parameter
+            view.
+        connection
+            Named Tushare connection used by the remote API source. Mutually
+            exclusive with ``data_dir``.
+        data_dir
+            Root directory of a manifest-backed local Parquet snapshot. When
+            provided, table data never calls a Tushare data API.
+        calendar_connection
+            Tushare connection used only to fetch ``trade_cal`` for local
+            snapshot panel queries. Required with ``data_dir``.
+        fixed_params
+            Constant API parameters added to every request. Backend-managed
+            parameters such as fields, dates, and instruments are reserved.
+        timezone
+            IANA timezone used to interpret query bounds.
+        version
+            Optional dataset version stored in result metadata.
+        disclosure_lag
+            Number of trading sessions between the snapped disclosure date
+            and first availability in a point-in-time panel.
+        calendar_exchange
+            Tushare exchange code used to request the trading calendar.
+        fetch_buffer_days
+            Calendar days fetched before ``start`` so earlier disclosures
+            can be carried into the requested panel.
+        fetch_margin_days
+            Calendar days fetched after ``end`` to make disclosure-lag
+            alignment possible near the right boundary.
+
+        Raises
+        ------
+        DatasetRegistrationError
+            If the definition, catalog name, connection, archive, or fixed
+            parameters are invalid.
+
+        Notes
+        -----
+        Disclosure datasets automatically produce point-in-time panels; keys,
+        table ordering, and panel behavior come exclusively from the logical
+        catalog. Local statement scans add the remote default
+        ``report_type="1"`` unless overridden in ``fixed_params``.
+        """
+
+        self._datasets[name] = dataset_factories.tushare_dataset(
+            self._tushare,
+            name,
+            dataset=dataset,
+            connection=connection,
+            data_dir=data_dir,
+            calendar_connection=calendar_connection,
+            fixed_params=fixed_params,
+            timezone=timezone,
+            version=version,
+            disclosure_lag=disclosure_lag,
+            calendar_exchange=calendar_exchange,
+            fetch_buffer_days=fetch_buffer_days,
+            fetch_margin_days=fetch_margin_days,
+        )
+
+    def register_builtin(
+        self,
+        name: str = "membership_events",
+        *,
+        dataset: str = "membership_events",
+        connection: str = "minghu",
+        timezone: str = "Asia/Shanghai",
+        version: str | None = None,
+    ) -> None:
+        """Register a bundled logical dataset and its auxiliary connection.
+
+        Parameters
+        ----------
+        name
+            Registration alias.
+        dataset
+            Bundled dataset selector; currently only ``membership_events``
+            is supported. Parquet supplies its events; ``connection``
+            supplies the market and calendar via ``stock_base.daily``.
+        connection
+            Named ClickHouse connection profile.
+        timezone
+            IANA timezone used to interpret query bounds.
+        version
+            Optional dataset version stored in result metadata.
+
+        Raises
+        ------
+        DatasetRegistrationError
+            If the dataset selection or connection is invalid.
+        """
+
+        self._datasets[name] = dataset_factories.builtin_dataset(
+            self._clickhouse,
+            name,
+            dataset=dataset,
+            connection=connection,
+            timezone=timezone,
+            version=version,
+        )
 
     def get_panel(
         self,
@@ -224,8 +426,7 @@ class DataClient:
         FieldNotFoundError
             If a requested field is absent from the registered schema.
         InvalidQueryError
-            If parameters are invalid or the dataset is event-shaped and
-            cannot be pivoted.
+            If parameters are invalid.
         DuplicateObservationError
             If an ordinary panel contains duplicate time/instrument pairs.
         SchemaMismatchError
@@ -249,21 +450,21 @@ class DataClient:
             start,
             end,
             instruments,
-            adjusted=adjusted,
+            adjusted,
             universe=universe,
         )
 
     def close(self) -> None:
-        """Close cached backend clients and release their resources.
+        """Close cached sessions and release their resources.
 
         Notes
         -----
-        The built-in Parquet backend has no persistent connection. Calling
-        this method more than once is safe for the built-in backends.
+        Local Parquet scans hold no persistent connection. Calling this
+        method more than once is safe.
         """
 
-        for backend in self._backends.values():
-            backend.close()
+        self._clickhouse.close()
+        self._tushare.close()
 
     def __enter__(self) -> DataClient:
         """Return this client when entering a context manager."""
@@ -271,7 +472,7 @@ class DataClient:
         return self
 
     def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
-        """Close backend resources when leaving a context manager."""
+        """Close session resources when leaving a context manager."""
 
         self.close()
 
@@ -288,21 +489,20 @@ class DataClient:
         query_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
         started_clock = time.perf_counter()
-        audited_instruments: list[str] | str | None = (
-            instruments
-            if isinstance(instruments, str)
-            else list(instruments)
-            if instruments is not None
-            else None
-        )
         record = QueryAudit(
             query_id=query_id,
             dataset=dataset,
-            fields=list(fields),
+            fields=_safe_list(fields),
             parameters={
-                "start": self._audit_value(start),
-                "end": self._audit_value(end),
-                "instruments": audited_instruments,
+                "start": DataClient._audit_value(start),
+                "end": DataClient._audit_value(end),
+                "instruments": (
+                    instruments
+                    if isinstance(instruments, str)
+                    else _safe_list(instruments)
+                    if instruments is not None
+                    else None
+                ),
                 "universe": (
                     universe if isinstance(universe, (str, type(None))) else repr(universe)
                 ),
@@ -313,22 +513,17 @@ class DataClient:
         )
 
         try:
-            registered = self._datasets.get(dataset)
-            if registered is None:
+            entry = self._datasets.get(dataset)
+            if entry is None:
                 raise DatasetNotFoundError(f"Dataset {dataset!r} is not registered")
-            spec = registered.spec
-            contract = registered.contract
-            backend = self._backends[spec.backend]
-            record.frequency = contract.panel_frequency
-            record.dataset_version = contract.version
-            record.source = backend.fingerprint(registered)
+            record.frequency = entry.frequency
+            record.dataset_version = entry.version
+            record.source = entry.fingerprint()
 
+            if universe is not None and instruments is not None:
+                raise InvalidQueryError("instruments and universe are mutually exclusive")
+            query = self._normalize_query(entry, dataset, fields, start, end, instruments)
             if universe is not None:
-                if instruments is not None:
-                    raise InvalidQueryError("instruments and universe are mutually exclusive")
-                # Normalize the query first so universe selection uses the same
-                # timezone and date interpretation as the backend query.
-                query = self._prepare_query(registered, fields, start, end, None)
                 if query.start is None or query.end is None:
                     raise InvalidQueryError("universe queries require both start and end")
                 panel = load_universe(universe)
@@ -342,86 +537,14 @@ class DataClient:
                     "count": len(selected_instruments),
                     "sha256": panel.sha256,
                 }
-            else:
-                query = self._prepare_query(registered, fields, start, end, instruments)
-            semantic_backend = (
-                cast(TushareSemanticBackend, backend)
-                if isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec))
-                else None
-            )
-            if isinstance(spec, TushareParquetDatasetSpec):
-                if semantic_backend is None:
-                    raise SchemaMismatchError("Tushare Parquet semantic backend is unavailable")
-                query = semantic_backend.normalize_snapshot_query(registered, query)
-                record.parameters["effective_start"] = self._audit_value(query.start)
-                record.parameters["effective_end"] = self._audit_value(query.end)
-            if isinstance(spec, TushareDatasetSpec):
-                data_api = self._tushare.route_name(registered, query)
-                record.parameters["data_api"] = data_api
-                record.source["selected_api"] = data_api
-                calendar_api = record.source.get("calendar_api")
-                if isinstance(calendar_api, str):
-                    record.parameters["calendar_api"] = calendar_api
-            apply_adjustment = self._resolve_adjustment(registered, adjusted)
+
+            apply_adjustment = self._resolve_adjustment(entry, dataset, adjusted)
             record.adjusted = apply_adjustment
             record.parameters["adjusted"] = apply_adjustment
-            scan_query = self._with_adjustment_factor(registered, query, apply_adjustment)
-            tushare_panel_kind = (
-                semantic_backend.panel_kind(registered) if semantic_backend is not None else None
-            )
-            if isinstance(spec, BuiltInDatasetSpec):
-                result = self._build_builtin_membership_panel(registered, query, record)
-                record.calendar_aligned = True
-                self._finish_panels(result, dataset, registered, record, False)
-            elif tushare_panel_kind == "disclosure":
-                if semantic_backend is None:
-                    raise SchemaMismatchError("Disclosure panel backend is unavailable")
-                result = self._build_tushare_disclosure_panels(
-                    dataset,
-                    registered,
-                    scan_query,
-                    record,
-                    semantic_backend,
-                )
-            elif tushare_panel_kind == "membership":
-                if semantic_backend is None:
-                    raise SchemaMismatchError("Membership panel backend is unavailable")
-                table = semantic_backend.scan_membership_panel(registered, scan_query)
-                record.calendar_aligned = True
-                record.parameters["calendar_api"] = "trade_cal"
-                record.source["calendar_api"] = "trade_cal"
-                result = self._build_panels(
-                    table,
-                    dataset,
-                    registered,
-                    query,
-                    record,
-                    apply_adjustment=False,
-                )
-            else:
-                if scan_query.instruments == ():
-                    table = self._empty_table(registered, scan_query.fields)
-                else:
-                    table = backend.scan(registered, scan_query)
-                time_column, instrument_column = self._panel_keys(registered)
-                self._validate_table_keys(
-                    table,
-                    registered,
-                    time_column=time_column,
-                    instrument_column=instrument_column,
-                )
-                if apply_adjustment:
-                    table = self._adjust_prices(table, registered)
+            query = replace(query, adjusted=apply_adjustment)
 
-                table = table.select([time_column, instrument_column, *query.fields])
-                result = self._build_panels(
-                    table,
-                    dataset,
-                    registered,
-                    query,
-                    record,
-                    apply_adjustment,
-                )
+            panels = entry.read_panel(query, record)
+            self._finish_panels(panels, dataset, entry, record)
             record.status = "success"
         except Exception as exc:
             record.status = "failed"
@@ -432,143 +555,22 @@ class DataClient:
 
         record.duration_ms = (time.perf_counter() - started_clock) * 1000
         self._audit.write(record)
-        return result
-
-    def _build_builtin_membership_panel(
-        self,
-        dataset: RegisteredDataset,
-        query: DataQuery,
-        record: QueryAudit,
-    ) -> dict[str, pd.DataFrame]:
-        spec = cast(BuiltInDatasetSpec, dataset.spec)
-        if query.start is None or query.end is None:
-            raise InvalidQueryError("Membership requires both start and end")
-        market_dataset = self._clickhouse.prepare(
-            ClickHouseDatasetSpec(
-                name=spec.name,
-                connection=spec.connection,
-                table="stock_base.daily",
-                time_column="date",
-                require_time_range=True,
-            )
-        )
-        record.source["market"] = self._clickhouse.fingerprint(market_dataset)
-        market = self._clickhouse.scan(
-            market_dataset,
-            DataQuery(
-                fields=(),
-                start=(pd.Timestamp(query.start) - pd.DateOffset(months=1)).to_pydatetime(),
-                end=query.end,
-            ),
-        ).to_pandas()
-        calendar = pd.DatetimeIndex(pd.to_datetime(market["date"]).unique()).sort_values()
-        calendar = calendar[
-            (calendar >= pd.Timestamp(query.start.date()))
-            & (calendar <= pd.Timestamp(query.end.date()))
-        ]
-        calendar.name = "date"
-        available = set(market["code"])
-        codes = list(query.instruments) if query.instruments is not None else sorted(available)
-        missing = sorted(set(codes) - available)
-        if missing:
-            raise InvalidQueryError(
-                f"Instruments absent from stock_base.daily in query range including one-month lookback: {missing}"
-            )
-        table = self._parquet.scan(dataset, query)
-        panel = build_membership_panel(table, calendar, codes)
-        panel.attrs["events_sha256"] = record.source["events_sha256"]
-        return {"membership": panel}
-
-    def _build_tushare_disclosure_panels(
-        self,
-        dataset_name: str,
-        dataset: RegisteredDataset,
-        query: DataQuery,
-        record: QueryAudit,
-        backend: TushareSemanticBackend,
-    ) -> dict[str, pd.DataFrame]:
-        spec = dataset.spec
-        if not isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec)):
-            raise SchemaMismatchError("PIT panels require a Tushare dataset")
-        if query.start is None or query.end is None:
-            raise InvalidQueryError(
-                f"Dataset {dataset_name!r} PIT panel requires both start and end"
-            )
-
-        table = backend.scan_disclosure_events(dataset, query)
-        contract = dataset.contract
-        self._validate_table_keys(
-            table,
-            dataset,
-            time_column=contract.source_time_column,
-            instrument_column=contract.instrument_column,
-        )
-        disclosure_column, period_column, revision_order = backend.pit_panel_semantics(dataset)
-        calendar = backend.trade_calendar(dataset, query)
-        panels = build_daily_panels(
-            table,
-            dataset_name=dataset_name,
-            disclosure_column=disclosure_column,
-            instrument_column=contract.instrument_column,
-            period_column=period_column,
-            fields=query.fields,
-            instruments=query.instruments,
-            calendar=calendar,
-            panel_start=pd.Timestamp(query.start.date()),
-            panel_end=pd.Timestamp(query.end.date()),
-            disclosure_lag=spec.disclosure_lag,
-            revision_order=revision_order,
-            index_name=contract.panel_time_column,
-        )
-        record.calendar_aligned = True
-        record.parameters["disclosure_lag"] = spec.disclosure_lag
-        record.parameters["calendar_api"] = "trade_cal"
-        record.source["calendar_api"] = "trade_cal"
-        self._finish_panels(panels, dataset_name, dataset, record, apply_adjustment=False)
-        return panels
-
-    def _build_panels(
-        self,
-        table: pa.Table,
-        dataset_name: str,
-        dataset: RegisteredDataset,
-        query: DataQuery,
-        record: QueryAudit,
-        apply_adjustment: bool,
-    ) -> dict[str, pd.DataFrame]:
-        time_column, instrument_column = self._panel_keys(dataset)
-        self._validate_table_keys(
-            table,
-            dataset,
-            time_column=time_column,
-            instrument_column=instrument_column,
-        )
-        panels = build_panels(
-            table,
-            dataset_name=dataset_name,
-            time_column=time_column,
-            instrument_column=instrument_column,
-            fields=query.fields,
-            instruments=query.instruments,
-        )
-        self._finish_panels(panels, dataset_name, dataset, record, apply_adjustment)
         return panels
 
     @staticmethod
     def _finish_panels(
         panels: dict[str, pd.DataFrame],
         dataset_name: str,
-        dataset: RegisteredDataset,
+        dataset: Dataset,
         record: QueryAudit,
-        apply_adjustment: bool,
     ) -> None:
         attrs = {
             "query_id": record.query_id,
             "dataset": dataset_name,
-            "frequency": dataset.contract.panel_frequency,
-            "version": dataset.contract.version,
+            "frequency": dataset.frequency,
+            "version": dataset.version,
             "parameters": record.parameters,
-            "adjusted": apply_adjustment,
+            "adjusted": record.adjusted,
             "calendar_aligned": record.calendar_aligned,
         }
         for panel in panels.values():
@@ -578,113 +580,26 @@ class DataClient:
         }
 
     @staticmethod
-    def _resolve_adjustment(dataset: RegisteredDataset, adjusted: bool | None) -> bool:
+    def _resolve_adjustment(dataset: Dataset, dataset_name: str, adjusted: bool | None) -> bool:
         if adjusted is not None and not isinstance(adjusted, bool):
             raise InvalidQueryError("adjusted must be True, False, or None")
         if adjusted is None:
             return dataset.adjustment.default if dataset.adjustment else False
         if adjusted and dataset.adjustment is None:
             raise InvalidQueryError(
-                f"Dataset {dataset.spec.name!r} does not define a price adjustment factor"
+                f"Dataset {dataset_name!r} does not define a price adjustment factor"
             )
         return adjusted
 
     @staticmethod
-    def _with_adjustment_factor(
-        dataset: RegisteredDataset,
-        query: DataQuery,
-        apply_adjustment: bool,
-    ) -> DataQuery:
-        adjustment = dataset.adjustment
-        if not apply_adjustment or adjustment is None:
-            return query
-        if not set(query.fields).intersection(adjustment.fields):
-            return query
-        if adjustment.factor_column in query.fields:
-            return query
-        return replace(query, fields=(*query.fields, adjustment.factor_column))
-
-    @staticmethod
-    def _adjust_prices(table: pa.Table, dataset: RegisteredDataset) -> pa.Table:
-        adjustment = dataset.adjustment
-        if adjustment is None or adjustment.factor_column not in table.column_names:
-            return table
-        factor = table[adjustment.factor_column]
-        for field in adjustment.fields:
-            if field not in table.column_names:
-                continue
-            index = table.schema.get_field_index(field)
-            adjusted_values = pc.multiply(table[field], factor)
-            table = table.set_column(index, field, adjusted_values)
-        return table
-
-    @staticmethod
-    def _returns_suffixed_clickhouse_codes(dataset: RegisteredDataset) -> bool:
-        spec = dataset.spec
-        return (
-            isinstance(spec, ClickHouseDatasetSpec)
-            and isinstance(dataset.source, ClickHouseSource)
-            and ClickHouseBackend._adds_code_suffix(spec, dataset.source)
-        )
-
-    @staticmethod
-    def _is_suffixed_instrument(value: str) -> bool:
-        return value.endswith(_MINGHU_CODE_SUFFIXES)
-
-    @staticmethod
-    def _validate_spec(spec: DatasetDefinition) -> None:
-        if not spec.name.strip():
-            raise DatasetRegistrationError("Dataset name cannot be empty")
-        if isinstance(spec, (DatasetSpec, ClickHouseDatasetSpec)):
-            if not spec.time_column or not spec.instrument_column:
-                raise DatasetRegistrationError("Key column names cannot be empty")
-            if spec.time_column == spec.instrument_column:
-                raise DatasetRegistrationError("Time and instrument columns must be different")
-        if isinstance(spec, DatasetSpec):
-            if not spec.paths:
-                raise DatasetRegistrationError("Dataset paths cannot be empty")
-        if isinstance(spec, (TushareDatasetSpec, TushareParquetDatasetSpec)):
-            if spec.dataset is not None and not spec.dataset.strip():
-                raise DatasetRegistrationError("Tushare dataset cannot be empty")
-            if isinstance(spec, TushareParquetDatasetSpec):
-                if not str(spec.data_dir).strip():
-                    raise DatasetRegistrationError("Tushare Parquet data_dir cannot be empty")
-                if not spec.calendar_connection.strip():
-                    raise DatasetRegistrationError("Tushare calendar_connection cannot be empty")
-            if not spec.calendar_exchange.strip():
-                raise DatasetRegistrationError("Tushare calendar_exchange cannot be empty")
-            if (
-                isinstance(spec.disclosure_lag, bool)
-                or not isinstance(spec.disclosure_lag, int)
-                or spec.disclosure_lag < 0
-            ):
-                raise DatasetRegistrationError("disclosure_lag must be non-negative")
-            if (
-                isinstance(spec.fetch_buffer_days, bool)
-                or not isinstance(spec.fetch_buffer_days, int)
-                or spec.fetch_buffer_days < 0
-            ):
-                raise DatasetRegistrationError("fetch_buffer_days must be non-negative")
-            if (
-                isinstance(spec.fetch_margin_days, bool)
-                or not isinstance(spec.fetch_margin_days, int)
-                or spec.fetch_margin_days < 0
-            ):
-                raise DatasetRegistrationError("fetch_margin_days must be non-negative")
-        if spec.timezone:
-            try:
-                ZoneInfo(spec.timezone)
-            except Exception as exc:
-                raise DatasetRegistrationError(f"Invalid timezone: {spec.timezone!r}") from exc
-
-    @staticmethod
-    def _prepare_query(
-        dataset: RegisteredDataset,
+    def _normalize_query(
+        dataset: Dataset,
+        dataset_name: str,
         fields: Sequence[str],
         start: Any | None,
         end: Any | None,
         instruments: Sequence[str] | None,
-    ) -> DataQuery:
+    ) -> Query:
         requested_fields = tuple(fields)
         if not requested_fields:
             raise InvalidQueryError("At least one field is required")
@@ -692,8 +607,7 @@ class DataClient:
             raise InvalidQueryError("Field names must be non-empty strings")
         if len(set(requested_fields)) != len(requested_fields):
             raise InvalidQueryError("Fields cannot contain duplicates")
-        time_column, instrument_column = DataClient._panel_keys(dataset)
-        keys = {time_column, instrument_column}
+        keys = {dataset.time_column, dataset.instrument_column}
         invalid_keys = keys.intersection(requested_fields)
         if invalid_keys:
             raise InvalidQueryError(f"Key columns cannot be requested as fields: {invalid_keys}")
@@ -701,17 +615,13 @@ class DataClient:
         if missing:
             raise FieldNotFoundError(f"Fields not found in dataset: {sorted(missing)}")
 
-        query_timezone = (
-            None if isinstance(dataset.spec, DatasetSpec) else dataset.contract.timezone
-        )
-        parsed_start = DataClient._parse_time(start, "start", query_timezone)
-        parsed_end = DataClient._parse_time(end, "end", query_timezone)
+        parsed_start = DataClient._parse_time(start, "start", dataset.query_timezone)
+        parsed_end = DataClient._parse_time(end, "end", dataset.query_timezone)
         if parsed_start is not None and parsed_end is not None and parsed_start > parsed_end:
             raise InvalidQueryError("start must be earlier than or equal to end")
-        requires_range = dataset.contract.panel_requires_time_range
-        if requires_range and (parsed_start is None or parsed_end is None):
+        if dataset.requires_range and (parsed_start is None or parsed_end is None):
             raise InvalidQueryError(
-                f"Dataset {dataset.spec.name!r} panel query requires both start and end"
+                f"Dataset {dataset_name!r} panel query requires both start and end"
             )
 
         requested_instruments: tuple[str, ...] | None = None
@@ -726,18 +636,24 @@ class DataClient:
                 raise InvalidQueryError("Instrument identifiers must be non-empty strings")
             if len(set(requested_instruments)) != len(requested_instruments):
                 raise InvalidQueryError("Instruments cannot contain duplicates")
-            if DataClient._returns_suffixed_clickhouse_codes(dataset):
+            if dataset.instrument_suffixes is not None:
                 missing_suffix = [
                     item
                     for item in requested_instruments
-                    if not DataClient._is_suffixed_instrument(item)
+                    if not item.endswith(dataset.instrument_suffixes)
                 ]
                 if missing_suffix:
                     raise InvalidQueryError(
-                        f"Dataset {dataset.spec.name!r} requires instrument identifiers "
+                        f"Dataset {dataset_name!r} requires instrument identifiers "
                         "with exchange suffixes such as '000001.SZ'"
                     )
-        return DataQuery(requested_fields, parsed_start, parsed_end, requested_instruments)
+        return Query(
+            dataset=dataset_name,
+            fields=requested_fields,
+            start=parsed_start,
+            end=parsed_end,
+            instruments=requested_instruments,
+        )
 
     @staticmethod
     def _parse_time(value: Any | None, name: str, timezone_name: str | None) -> datetime | None:
@@ -759,43 +675,6 @@ class DataClient:
         return result
 
     @staticmethod
-    def _empty_table(
-        dataset: RegisteredDataset,
-        fields: tuple[str, ...],
-    ) -> pa.Table:
-        time_column, instrument_column = DataClient._panel_keys(dataset)
-        columns = (time_column, instrument_column, *fields)
-        arrays: dict[str, pa.Array] = {}
-        for column in columns:
-            data_type = (
-                dataset.schema.field(column).type if column in dataset.schema.names else pa.date32()
-            )
-            arrays[column] = pa.array([], type=data_type)
-        return pa.table(arrays)
-
-    @staticmethod
-    def _validate_table_keys(
-        table: pa.Table,
-        dataset: RegisteredDataset,
-        *,
-        time_column: str,
-        instrument_column: str,
-    ) -> None:
-        for column in (time_column, instrument_column):
-            if column not in table.column_names:
-                raise SchemaMismatchError(f"Query result is missing key column {column!r}")
-            if pc.any(pc.is_null(table[column])).as_py():
-                raise SchemaMismatchError(
-                    f"Dataset {dataset.spec.name!r} contains null values in key column {column!r}"
-                )
-
-    @staticmethod
-    def _panel_keys(dataset: RegisteredDataset) -> tuple[str, str]:
-        contract = dataset.contract
-        time_column = contract.panel_time_column
-        return time_column, contract.instrument_column
-
-    @staticmethod
     def _audit_value(value: Any | None) -> str | None:
         if value is None:
             return None
@@ -803,3 +682,12 @@ class DataClient:
             return str(pd.Timestamp(value).isoformat())
         except (TypeError, ValueError):
             return repr(value)
+
+
+def _safe_list(value: Any) -> list[Any]:
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    try:
+        return list(value)
+    except TypeError:
+        return [repr(value)]

@@ -12,12 +12,11 @@ import pytest
 from quant_data import (
     BackendConnectionError,
     ClickHouseConfig,
-    ClickHouseDatasetSpec,
     DataClient,
     DatasetRegistrationError,
     InvalidQueryError,
 )
-from quant_data.initialize import clickhouse_dataset_specs
+from quant_data.initialize import ClickHouseRegistration, clickhouse_registrations
 
 
 CLICKHOUSE_TYPES = {
@@ -95,6 +94,18 @@ def make_remote_client(
     return client, fake, factory
 
 
+def register(client: DataClient, spec: ClickHouseRegistration) -> None:
+    client.register_clickhouse(
+        spec.name,
+        connection=spec.connection,
+        table=spec.table,
+        time_column=spec.time_column,
+        partition_column=spec.partition_column,
+        order_columns=spec.order_columns,
+        frequency=spec.frequency,
+    )
+
+
 def test_daily_panel_and_connection_reuse(tmp_path: Path) -> None:
     result = pa.table(
         {
@@ -105,14 +116,14 @@ def test_daily_panel_and_connection_reuse(tmp_path: Path) -> None:
         }
     )
     client, fake, factory = make_remote_client(tmp_path, result)
-    spec = ClickHouseDatasetSpec(
+    spec = ClickHouseRegistration(
         name="minghu_daily",
         connection="minghu",
         table="stock_base.daily",
         time_column="date",
         frequency="1d",
     )
-    client.register(spec)
+    register(client,spec)
     assert fake.calls == []
     assert factory.calls == []
     panel = client.get_panel("minghu_daily", ["close"], start="2026-03-02", end="2026-03-02")[
@@ -139,8 +150,8 @@ def test_all_builtin_minghu_specs_register_without_connecting(tmp_path: Path) ->
     result = pa.table({"date": [], "code": [], "close": []})
     client, fake, factory = make_remote_client(tmp_path, result)
 
-    for spec in clickhouse_dataset_specs("minghu"):
-        client.register(spec)
+    for spec in clickhouse_registrations("minghu"):
+        register(client,spec)
 
     assert fake.calls == []
     assert factory.calls == []
@@ -158,8 +169,8 @@ def test_flow_minute_panel_uses_synthesized_time_and_suffixed_codes(tmp_path: Pa
     )
     client, fake, factory = make_remote_client(tmp_path, result)
     with client:
-        client.register(
-            next(spec for spec in clickhouse_dataset_specs() if spec.name == "zb_cj_flow_min")
+        register(client,
+            next(spec for spec in clickhouse_registrations() if spec.name == "zb_cj_flow_min")
         )
         assert factory.calls == []
         with pytest.raises(InvalidQueryError, match="requires both start and end"):
@@ -207,8 +218,8 @@ def test_daily_rejects_unsuffixed_instruments(tmp_path: Path) -> None:
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -238,8 +249,8 @@ def test_daily_accepts_suffixed_instruments(tmp_path: Path) -> None:
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -272,8 +283,8 @@ def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) ->
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -309,8 +320,8 @@ def test_index_daily_supports_panel_with_suffixes(tmp_path: Path) -> None:
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="minghu_index_daily",
             connection="minghu",
             table="index_base.daily",
@@ -358,8 +369,8 @@ def test_daily_can_return_raw_prices_and_hides_factor(tmp_path: Path) -> None:
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -386,8 +397,8 @@ def test_daily_adjustment_preserves_null_factor(tmp_path: Path) -> None:
         }
     )
     client, _, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -407,8 +418,8 @@ def test_m1_requires_range_and_pushes_partition_filter(tmp_path: Path) -> None:
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="minghu_m1",
             connection="minghu",
             table="stock_base.m1",
@@ -461,8 +472,8 @@ def test_minute_synthesized_time(
         }
     )
     client, fake, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="minute",
             connection="minghu",
             table="custom.minute",
@@ -506,8 +517,8 @@ def test_remote_audit_is_sanitized(tmp_path: Path) -> None:
         }
     )
     client, _, _ = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -536,8 +547,8 @@ def test_missing_password_environment_variable(
         password=None,
         password_env="MISSING_CLICKHOUSE_PASSWORD",
     )
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="daily",
             connection="minghu",
             table="stock_base.daily",
@@ -557,8 +568,8 @@ def test_custom_table_falls_back_to_remote_describe(tmp_path: Path) -> None:
         }
     )
     client, fake, factory = make_remote_client(tmp_path, result)
-    client.register(
-        ClickHouseDatasetSpec(
+    register(client,
+        ClickHouseRegistration(
             name="custom_daily",
             connection="minghu",
             table="custom.daily",
@@ -581,8 +592,8 @@ def test_catalog_schema_validation_does_not_connect(tmp_path: Path) -> None:
     client, fake, factory = make_remote_client(tmp_path, result)
 
     with pytest.raises(DatasetRegistrationError, match="missing configured columns"):
-        client.register(
-            ClickHouseDatasetSpec(
+        register(client,
+            ClickHouseRegistration(
                 name="invalid_daily",
                 connection="minghu",
                 table="stock_base.daily",

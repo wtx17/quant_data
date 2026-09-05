@@ -4,25 +4,24 @@ from pathlib import Path
 
 import pytest
 
-from quant_data import BuiltInDatasetSpec
 from quant_data.initialize import (
-    clickhouse_dataset_specs,
+    TUSHARE_DATASET_NAMES,
+    clickhouse_registrations,
     initialize_data_client,
     registered_dataset_names,
-    tushare_dataset_specs,
 )
 
 
-def test_clickhouse_dataset_specs_only_include_panel_datasets() -> None:
-    specs = clickhouse_dataset_specs("research")
-    assert [spec.name for spec in specs] == [
+def test_clickhouse_registrations_only_include_panel_datasets() -> None:
+    registrations = clickhouse_registrations("research")
+    assert [item.name for item in registrations] == [
         "minghu_daily",
         "minghu_index_daily",
         "minghu_m1",
         "zb_cj_flow_min",
     ]
 
-    by_name = {spec.name: spec for spec in specs}
+    by_name = {item.name: item for item in registrations}
     index_daily = by_name["minghu_index_daily"]
     assert index_daily.connection == "research"
     assert index_daily.table == "index_base.daily"
@@ -31,17 +30,20 @@ def test_clickhouse_dataset_specs_only_include_panel_datasets() -> None:
     assert index_daily.partition_column is None
 
 
-def test_registered_dataset_names_match_supported_specs() -> None:
+def test_registered_dataset_names_match_default_registrations() -> None:
     names = registered_dataset_names()
     assert names == tuple(
-        spec.name
-        for spec in (*clickhouse_dataset_specs(), BuiltInDatasetSpec(), *tushare_dataset_specs())
+        name
+        for name in (
+            *(item.name for item in clickhouse_registrations()),
+            "membership_events",
+            *TUSHARE_DATASET_NAMES,
+        )
     )
 
 
-def test_tushare_specs_contain_one_entry_per_logical_dataset() -> None:
-    specs = tushare_dataset_specs("research")
-    assert [spec.name for spec in specs] == [
+def test_tushare_names_contain_one_entry_per_logical_dataset() -> None:
+    assert TUSHARE_DATASET_NAMES == (
         "daily_basic",
         "income",
         "balancesheet",
@@ -52,10 +54,8 @@ def test_tushare_specs_contain_one_entry_per_logical_dataset() -> None:
         "stk_holdernumber",
         "ci_index_member",
         "index_member_all",
-    ]
-    assert all(spec.connection == "research" for spec in specs)
-    assert all(spec.dataset is None for spec in specs)
-    assert not any(spec.name.endswith(("_vip", "_pit")) for spec in specs)
+    )
+    assert not any(name.endswith(("_vip", "_pit")) for name in TUSHARE_DATASET_NAMES)
 
 
 def test_default_initialization_is_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
