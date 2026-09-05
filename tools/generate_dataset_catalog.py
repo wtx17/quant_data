@@ -86,6 +86,12 @@ def collect_references() -> tuple[DatasetReference, ...]:
                 f"Initialized ClickHouse table {clickhouse_spec.table!r} "
                 "has no local schema catalog"
             )
+        # The backend synthesizes the panel timestamp from the physical minute keys.
+        if (
+            clickhouse_spec.time_column == "date_time"
+            and {"date", "time_int"} <= dict(fields).keys()
+        ):
+            fields = tuple((dict(fields) | {"date_time": "DateTime64(3, 'Asia/Shanghai')"}).items())
         _add_reference(
             references,
             DatasetReference(
@@ -212,10 +218,12 @@ def load_notes(
                 raise CatalogError(
                     f"Field {reference.name}.{field_name} must only define description"
                 )
-            descriptions[field_name] = _nonempty_text(
-                raw_field["description"],
-                f"Description for {reference.name}.{field_name}",
-            )
+            description = raw_field["description"]
+            if not isinstance(description, str):
+                raise CatalogError(
+                    f"Description for {reference.name}.{field_name} must be a string"
+                )
+            descriptions[field_name] = description.strip()
         notes[reference.name] = DatasetNotes(
             title=_nonempty_text(raw_note["title"], f"Title for {reference.name}"),
             summary=_nonempty_text(raw_note["summary"], f"Summary for {reference.name}"),

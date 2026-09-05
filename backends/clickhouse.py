@@ -283,7 +283,8 @@ class ClickHouseBackend:
         -----
         Time, partition, and instrument values are bound parameters.
         Minghu ``code`` values are projected and filtered with their ``.SZ``,
-        ``.SH``, or ``.BJ`` suffix derived from ``exg``.
+        ``.SH``, or ``.BJ`` suffix derived from ``exg``. The Shanghai/Shenzhen
+        flow table derives its suffix from the stock code prefix.
         """
 
         spec = dataset.spec
@@ -293,12 +294,16 @@ class ClickHouseBackend:
         client = self._client(source.connection)
         selected = (spec.time_column, spec.instrument_column, *query.fields)
         add_code_suffix = self._adds_code_suffix(spec, source)
+        code_expression = (
+            self._suffixed_code_expression(_QUERY_TABLE_ALIAS, source) if add_code_suffix else None
+        )
         projection = self._projection(
             selected,
             source.column_types,
             table_alias=_QUERY_TABLE_ALIAS,
             suffixed_column=spec.instrument_column if add_code_suffix else None,
             time_expression=source.time_expression,
+            code_expression=code_expression,
         )
         sql = (
             f"SELECT {projection} FROM {_quote_identifier(source.table)} "
@@ -355,8 +360,8 @@ class ClickHouseBackend:
                 parameters["partition_end"] = int(query.end.strftime("%Y%m%d"))
         if query.instruments is not None:
             instrument = _qualified_identifier(spec.instrument_column, _QUERY_TABLE_ALIAS)
-            if add_code_suffix:
-                instrument = self._suffixed_code_expression(_QUERY_TABLE_ALIAS)
+            if code_expression is not None:
+                instrument = code_expression
             # clickhouse-connect serializes lists as ClickHouse Array literals (`[...]`).
             # Tuples become SQL tuple literals (`(...)`) and cannot bind to Array(String).
             clauses.append(f"{instrument} IN {{instruments:Array(String)}}")
@@ -480,11 +485,19 @@ class ClickHouseBackend:
 
     @staticmethod
     def _adds_code_suffix(spec: ClickHouseDatasetSpec, source: ClickHouseSource) -> bool:
-        return spec.instrument_column == "code" and "exg" in source.column_types
+        return spec.instrument_column == "code" and (
+            "exg" in source.column_types or source.table == "zhangruiqi.zb_cj_flow_min"
+        )
 
     @staticmethod
-    def _suffixed_code_expression(table_alias: str) -> str:
+    def _suffixed_code_expression(table_alias: str, source: ClickHouseSource) -> str:
         code = _qualified_identifier("code", table_alias)
+        if source.table == "zhangruiqi.zb_cj_flow_min":
+            suffix = (
+                f"multiIf(startsWith({code}, '6'), '.SH', "
+                f"startsWith({code}, '0') OR startsWith({code}, '3'), '.SZ', '')"
+            )
+            return f"concat({code}, {suffix})"
         exchange = _qualified_identifier("exg", table_alias)
         suffix = f"multiIf({exchange} = 1, '.SZ', {exchange} = 2, '.SH', {exchange} = 3, '.BJ', '')"
         return f"concat({code}, {suffix})"
@@ -497,6 +510,7 @@ class ClickHouseBackend:
         table_alias: str,
         suffixed_column: str | None,
         time_expression: str | None = None,
+        code_expression: str | None = None,
     ) -> str:
         expressions = []
         for column in columns:
@@ -504,10 +518,8 @@ class ClickHouseBackend:
             qualified = _qualified_identifier(column, table_alias)
             if column == "date_time" and time_expression:
                 expressions.append(f"{time_expression} AS {output}")
-            elif column == suffixed_column:
-                expressions.append(
-                    f"{ClickHouseBackend._suffixed_code_expression(table_alias)} AS {output}"
-                )
+            elif column == suffixed_column and code_expression is not None:
+                expressions.append(f"{code_expression} AS {output}")
             elif column_types[column].startswith("FixedString"):
                 expressions.append(f"toString({qualified}) AS {output}")
             else:

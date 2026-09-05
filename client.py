@@ -17,7 +17,7 @@ import pyarrow.compute as pc
 from ._version import __version__
 from .audit import AuditWriter
 from .backends.base import DataBackend, TushareSemanticBackend
-from .backends.clickhouse import ClickHouseBackend
+from .backends.clickhouse import ClickHouseBackend, ClickHouseSource
 from .backends.parquet import DuckDBParquetBackend
 from .backends.tushare import TushareBackend
 from .exceptions import (
@@ -623,8 +623,8 @@ class DataClient:
         spec = dataset.spec
         return (
             isinstance(spec, ClickHouseDatasetSpec)
-            and dataset.contract.instrument_column == "code"
-            and "exg" in dataset.schema.names
+            and isinstance(dataset.source, ClickHouseSource)
+            and ClickHouseBackend._adds_code_suffix(spec, dataset.source)
         )
 
     @staticmethod

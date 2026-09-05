@@ -17,6 +17,7 @@
 | [`minghu_daily`](#dataset-minghu-daily) | 宽表 |
 | [`minghu_index_daily`](#dataset-minghu-index-daily) | 宽表 |
 | [`minghu_m1`](#dataset-minghu-m1) | 宽表 |
+| [`zb_cj_flow_min`](#dataset-zb-cj-flow-min) | 宽表 |
 | [`membership_events`](#dataset-membership-events) | 宽表 |
 | [`daily_basic`](#dataset-daily-basic) | 宽表 |
 | [`income`](#dataset-income) | 宽表 |
@@ -32,7 +33,7 @@
 <a id="dataset-minghu-daily"></a>
 ## `minghu_daily`：明湖股票日线
 
-明湖汇`stock_base.daily`表描述。以 `date × code` 为键。使用`get_panel()`方法取宽表时，价格字段默认乘以 `hfq`；成交量、成交额、涨跌额和涨跌幅保持原值；股票编号自动附上交易所后缀（此点对所有明湖汇数据都一样）。
+明湖汇`stock_base.daily`表描述。以 `date × code` 为键。使用`get_panel()`方法取宽表时，价格字段默认乘以 `hfq`；成交量、成交额、涨跌额和涨跌幅保持原值；股票编号自动附上交易所后缀（源表提供 `exg` 时）。
 
 - `get_panel()`：按 `date × code` 返回每个请求字段的宽表。
 
@@ -86,7 +87,7 @@
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
 | `code` | `String` | `get_panel()` 列键 | 证券代码 |
-| `date_time` | `DateTime('Asia/Shanghai')` | `get_panel()` 索引 | SQL 用 date 加 time_int（当日零点起的毫秒数）合成；输出 DateTime64(3, 'Asia/Shanghai')，面板索引为带时区的 DatetimeIndex。此处类型栏为源表物理类型。 |
+| `date_time` | `DateTime64(3, 'Asia/Shanghai')` | `get_panel()` 索引 | SQL 用 date 加 time_int（当日零点起的毫秒数）合成；输出 DateTime64(3, 'Asia/Shanghai')，面板索引为带时区的 DatetimeIndex。此处类型栏为源表物理类型。 |
 | `exg` | `UInt8` | `get_panel()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
 | `time_int` | `Int32` | `get_panel()` 可请求值 | 当日零点起的毫秒数，用于 SQL 合成 date_time。 |
 | `open` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟开盘价。 |
@@ -97,10 +98,175 @@
 | `amount` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟成交额。 |
 | `date` | `Date` | `get_panel()` 可请求值 | 日期 |
 
+<a id="dataset-zb-cj-flow-min"></a>
+## `zb_cj_flow_min`：成交资金流分钟数据
+
+`zhangruiqi.zb_cj_flow_min`；使用 `date` 加零点起毫秒数 `time_int` 合成 `date_time`，按 `date_time × code` 返回分钟宽表。必须同时提供 start/end。仅包含沪深股票：code 以 6 开头补 .SH，以 0 或 3 开头补 .SZ。instruments 必须带交易所后缀（如 000001.SZ），返回列名同样带后缀；支持包内 universe。
+
+- `get_panel()`：按 `date_time × code` 返回每个请求字段的宽表。
+
+| 字段 | 类型 | 使用方式 | 说明 |
+| --- | --- | --- | --- |
+| `code` | `String` | `get_panel()` 列键 |  |
+| `date` | `Date` | `get_panel()` 可请求值 |  |
+| `time_int` | `Int32` | `get_panel()` 可请求值 |  |
+| `cj_all_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_all_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_all_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_all_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_s_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_m_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_l_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_abuy_xl_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_s_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_m_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_l_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pmean_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pocp_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pocv_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pstd_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pskew_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_pgini_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_asell_xl_tent_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_all_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_all_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_all_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_all_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_all_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_all_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_s_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_s_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_s_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_m_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_m_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_m_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_l_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_l_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_l_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_xl_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_xl_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_pbuy_xl_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_s_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_s_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_s_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_m_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_m_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_m_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_l_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_l_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_l_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_xl_vl_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_xl_mn_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `cj_psell_xl_td_min` | `Float64` | `get_panel()` 可请求值 |  |
+| `date_time` | `DateTime64(3, 'Asia/Shanghai')` | `get_panel()` 索引 |  |
+
 <a id="dataset-membership-events"></a>
 ## `membership_events`：历史指数成分归属
 
-包内 membership_events.parquet 累计事件状态，变更当日起生效。交易日和全市场证券来自 ClickHouse stock_base.daily；证券并集范围为 start 向前一个自然月至 end，输入证券不在该并集则报错，输出交易日仍限定在原始 start/end。首个事件前为 0，末个事件后延续状态。
+包内 membership_events.parquet 累计事件状态，变更当日起生效。交易日和全市场证券从 ClickHouse stock_base.daily 推断；证券并集范围为 start 向前一个自然月至 end，输入证券不在该并集则报错，输出交易日仍限定在原始 start/end。首个事件前为 0，末个事件后延续状态。
 
 - `get_panel()`：按 `date × code` 返回每个请求字段的宽表。
 

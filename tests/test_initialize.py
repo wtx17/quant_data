@@ -19,6 +19,7 @@ def test_clickhouse_dataset_specs_only_include_panel_datasets() -> None:
         "minghu_daily",
         "minghu_index_daily",
         "minghu_m1",
+        "zb_cj_flow_min",
     ]
 
     by_name = {spec.name: spec for spec in specs}

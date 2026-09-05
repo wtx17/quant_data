@@ -3,7 +3,7 @@
 
 [datasets.minghu_daily]
 title = "明湖股票日线"
-summary = "明湖汇`stock_base.daily`表描述。以 `date × code` 为键。使用`get_panel()`方法取宽表时，价格字段默认乘以 `hfq`；成交量、成交额、涨跌额和涨跌幅保持原值；股票编号自动附上交易所后缀（此点对所有明湖汇数据都一样）。"
+summary = "明湖汇`stock_base.daily`表描述。以 `date × code` 为键。使用`get_panel()`方法取宽表时，价格字段默认乘以 `hfq`；成交量、成交额、涨跌额和涨跌幅保持原值；股票编号自动附上交易所后缀（源表提供 `exg` 时）。"
 
 [datasets.minghu_daily.fields.code]
 description = "证券代码；返回时依据 `exg` 自动补 `.SZ`、`.SH` 或 `.BJ`。"
@@ -1991,3 +1991,472 @@ description = "ClickHouse stock_base.daily 中的交易日。"
 description = "带交易所后缀的股票代码。"
 [datasets.membership_events.fields.membership]
 description = "0：均不属于；1：沪深300；2：中证500；3：中证1000。"
+
+[datasets.zb_cj_flow_min]
+title = "成交资金流分钟数据"
+summary = "`zhangruiqi.zb_cj_flow_min`；使用 `date` 加零点起毫秒数 `time_int` 合成 `date_time`，按 `date_time × code` 返回分钟宽表。必须同时提供 start/end。仅包含沪深股票：code 以 6 开头补 .SH，以 0 或 3 开头补 .SZ。instruments 必须带交易所后缀（如 000001.SZ），返回列名同样带后缀；支持包内 universe。"
+
+[datasets.zb_cj_flow_min.fields.code]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.date]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.time_int]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_all_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_all_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_all_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_s_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_m_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_l_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_abuy_xl_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_s_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_m_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_l_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pmean_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pocp_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pocv_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pstd_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pskew_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_pgini_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_asell_xl_tent_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_all_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_all_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_all_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_all_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_all_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_all_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_s_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_s_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_s_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_m_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_m_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_m_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_l_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_l_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_l_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_xl_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_xl_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_pbuy_xl_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_s_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_s_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_s_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_m_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_m_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_m_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_l_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_l_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_l_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_xl_vl_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_xl_mn_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.cj_psell_xl_td_min]
+description = ""
+
+[datasets.zb_cj_flow_min.fields.date_time]
+description = ""

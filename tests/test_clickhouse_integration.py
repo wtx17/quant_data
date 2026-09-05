@@ -11,6 +11,7 @@ import pyarrow as pa
 
 from quant_data import ClickHouseConfig, ClickHouseDatasetSpec, DataClient
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES
+from quant_data.initialize import clickhouse_dataset_specs
 
 pytestmark = pytest.mark.clickhouse
 CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
@@ -92,6 +93,25 @@ def test_minghu_tables_smoke(tmp_path: Path) -> None:
                 frequency="1min",
             )
         )
+        data.register(
+            next(spec for spec in clickhouse_dataset_specs() if spec.name == "zb_cj_flow_min")
+        )
+        flow = data.get_panel(
+            "zb_cj_flow_min",
+            ["cj_all_mn_min", "cj_psell_xl_td_min"],
+            start=f"{query_date} 09:30:00",
+            end=f"{query_date} 09:31:00",
+            instruments=["000001.SZ", "600000.SH", "300750.SZ"],
+        )
+        for panel in flow.values():
+            assert not panel.empty
+            assert panel.index.name == "date_time"
+            assert list(panel.columns) == ["000001.SZ", "600000.SH", "300750.SZ"]
+            assert panel.notna().any().all()
+            assert isinstance(panel.index, pd.DatetimeIndex)
+            assert str(panel.index.tz) == "Asia/Shanghai"
+            assert panel.index.min() >= pd.Timestamp(f"{query_date} 09:30:00", tz="Asia/Shanghai")
+            assert panel.index.max() <= pd.Timestamp(f"{query_date} 09:31:00", tz="Asia/Shanghai")
         daily = data.get_panel(
             "daily",
             ["close"],

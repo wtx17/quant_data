@@ -146,6 +146,57 @@ def test_all_builtin_minghu_specs_register_without_connecting(tmp_path: Path) ->
     assert factory.calls == []
 
 
+def test_flow_minute_panel_uses_synthesized_time_and_suffixed_codes(tmp_path: Path) -> None:
+    expected = pd.Timestamp("2026-03-02 09:30:00", tz="Asia/Shanghai")
+    result = pa.table(
+        {
+            "date_time": pa.array([expected], type=pa.timestamp("ms", tz="Asia/Shanghai")),
+            "code": ["000001.SZ"],
+            "cj_all_mn_min": [123.5],
+            "cj_psell_xl_td_min": [2.0],
+        }
+    )
+    client, fake, factory = make_remote_client(tmp_path, result)
+    with client:
+        client.register(
+            next(spec for spec in clickhouse_dataset_specs() if spec.name == "zb_cj_flow_min")
+        )
+        assert factory.calls == []
+        with pytest.raises(InvalidQueryError, match="requires both start and end"):
+            client.get_panel("zb_cj_flow_min", ["cj_all_mn_min"], start=expected)
+        with pytest.raises(InvalidQueryError, match="requires instrument identifiers"):
+            client.get_panel(
+                "zb_cj_flow_min",
+                ["cj_all_mn_min"],
+                start=expected,
+                end=expected,
+                instruments=["000001"],
+            )
+        assert fake.calls == []
+        panels = client.get_panel(
+            "zb_cj_flow_min",
+            ["cj_all_mn_min", "cj_psell_xl_td_min"],
+            start=expected,
+            end=expected,
+            instruments=["000001.SZ"],
+        )
+    assert panels["cj_all_mn_min"].loc[expected, "000001.SZ"] == 123.5
+    assert panels["cj_psell_xl_td_min"].loc[expected, "000001.SZ"] == 2.0
+    sql, parameters, _ = fake.calls[-1]
+    assert "FROM `zhangruiqi`.`zb_cj_flow_min`" in sql
+    assert "toIntervalMillisecond(`_q`.`time_int`)" in sql
+    assert "`_q`.`date_time`" not in sql
+    expression = (
+        "concat(`_q`.`code`, multiIf(startsWith(`_q`.`code`, '6'), '.SH', "
+        "startsWith(`_q`.`code`, '0') OR startsWith(`_q`.`code`, '3'), '.SZ', ''))"
+    )
+    assert f"{expression} AS `code`" in sql
+    assert f"{expression} IN {{instruments:Array(String)}}" in sql
+    assert parameters["instruments"] == ["000001.SZ"]
+    assert parameters["partition_start"] == expected.date()
+    assert parameters["partition_end"] == expected.date()
+
+
 def test_daily_rejects_unsuffixed_instruments(tmp_path: Path) -> None:
     result = pa.table(
         {

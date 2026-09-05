@@ -68,6 +68,14 @@ _CLICKHOUSE_PANEL_SPECS = (
         order_columns=("date_time", "code"),
         frequency="1min",
     ),
+    _ClickHouseRegistration(
+        name="zb_cj_flow_min",
+        table="zhangruiqi.zb_cj_flow_min",
+        time_column="date_time",
+        partition_column="date",
+        order_columns=("date_time", "code"),
+        frequency="1min",
+    ),
 )
 
 
