@@ -67,9 +67,7 @@ def build_panels(
             )
 
         duplicates = (
-            frame.group_by([time_column, instrument_column])
-            .len()
-            .filter(pl.col("len") > 1)
+            frame.group_by([time_column, instrument_column]).len().filter(pl.col("len") > 1)
         )
         if duplicates.height:
             sample = duplicates.head(5).to_dicts()
@@ -100,6 +98,13 @@ def build_panels(
         else:
             panel = pd.DataFrame(columns=column_order)
             panel.index = pd.DatetimeIndex([], name=time_column)
+        if pa.types.is_timestamp(table.schema.field(time_column).type):
+            if frame.height:
+                panel.index = pd.DatetimeIndex(wide[time_column].to_pandas(), name=time_column)
+            else:
+                panel.index = pd.DatetimeIndex(
+                    [], name=time_column, tz=table.schema.field(time_column).type.tz
+                )
         panel.columns.name = instrument_column
         panels[field] = panel
     return panels

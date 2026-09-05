@@ -85,9 +85,9 @@
 | 字段 | 类型 | 使用方式 | 说明 |
 | --- | --- | --- | --- |
 | `code` | `String` | `get_panel()` 列键 | 证券代码 |
-| `date_time` | `DateTime('Asia/Shanghai')` | `get_panel()` 索引 | 日期详情 |
+| `date_time` | `DateTime('Asia/Shanghai')` | `get_panel()` 索引 | SQL 用 date 加 time_int（当日零点起的毫秒数）合成；输出 DateTime64(3, 'Asia/Shanghai')，面板索引为带时区的 DatetimeIndex。此处类型栏为源表物理类型。 |
 | `exg` | `UInt8` | `get_panel()` 可请求值 | 交易所编码：1 为深市，2 为沪市，3 为北交所。 |
-| `time_int` | `Int32` | `get_panel()` 可请求值 | 日期详情整形 |
+| `time_int` | `Int32` | `get_panel()` 可请求值 | 当日零点起的毫秒数，用于 SQL 合成 date_time。 |
 | `open` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟开盘价。 |
 | `close` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟收盘价。 |
 | `high` | `Nullable(Float64)` | `get_panel()` 可请求值 | 分钟最高价。 |

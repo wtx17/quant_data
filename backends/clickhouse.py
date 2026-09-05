@@ -60,6 +60,8 @@ class ClickHouseSource:
     schema_source
         ``"catalog"`` for built-in schemas or ``"remote"`` after a
         ``DESCRIBE TABLE`` lookup.
+    time_expression
+        SQL expression for a synthesized minute timestamp, if applicable.
     """
 
     connection: str
@@ -67,6 +69,7 @@ class ClickHouseSource:
     column_types: dict[str, str]
     schema_hash: str
     schema_source: str
+    time_expression: str | None = None
 
 
 def _quote_identifier(value: str) -> str:
@@ -171,11 +174,32 @@ class ClickHouseBackend:
             column_types = dict(catalog_columns)
             schema_source = "catalog"
 
+        time_expression = None
+        result_column_types = dict(column_types)
+        if definition.time_column == "date_time" and {"date", "time_int"} <= column_types.keys():
+            date_type = self._arrow_type(column_types["date"])
+            if not (pa.types.is_date(date_type) or pa.types.is_integer(date_type)):
+                raise DatasetRegistrationError(
+                    "Minute date must be Date, Date32 or YYYYMMDD integer"
+                )
+            if not pa.types.is_integer(self._arrow_type(column_types["time_int"])):
+                raise DatasetRegistrationError(
+                    "Minute time_int must be integer milliseconds since midnight"
+                )
+            day = _qualified_identifier("date", _QUERY_TABLE_ALIAS)
+            if pa.types.is_integer(date_type):
+                day = f"YYYYMMDDToDate({day})"
+            time_expression = (
+                f"(toDateTime64({day}, 3, 'Asia/Shanghai') + "
+                f"toIntervalMillisecond({_qualified_identifier('time_int', _QUERY_TABLE_ALIAS)}))"
+            )
+            result_column_types["date_time"] = "DateTime64(3, 'Asia/Shanghai')"
+
         required = {definition.time_column, definition.instrument_column}
         if definition.partition_column:
             required.add(definition.partition_column)
         required.update(definition.order_columns)
-        missing = required.difference(column_types)
+        missing = required.difference(result_column_types)
         if missing:
             raise DatasetRegistrationError(
                 f"ClickHouse table {definition.table!r} is missing configured columns: "
@@ -186,7 +210,7 @@ class ClickHouseBackend:
             schema = pa.schema(
                 [
                     pa.field(name, self._arrow_type(type_name))
-                    for name, type_name in column_types.items()
+                    for name, type_name in result_column_types.items()
                 ]
             )
         except Exception as exc:
@@ -200,6 +224,7 @@ class ClickHouseBackend:
             column_types,
             hashlib.sha256(normalized.encode()).hexdigest(),
             schema_source,
+            time_expression,
         )
         adjustment = None
         if definition.table.lower() == "stock_base.daily" and "hfq" in column_types:
@@ -218,7 +243,7 @@ class ClickHouseBackend:
             instrument_column=definition.instrument_column,
             panel_time_column=definition.time_column,
             panel_frequency=definition.frequency,
-            timezone=definition.timezone,
+            timezone="Asia/Shanghai" if time_expression else definition.timezone,
             version=definition.version,
             panel_requires_time_range=requires_time_range,
         )
@@ -273,6 +298,7 @@ class ClickHouseBackend:
             source.column_types,
             table_alias=_QUERY_TABLE_ALIAS,
             suffixed_column=spec.instrument_column if add_code_suffix else None,
+            time_expression=source.time_expression,
         )
         sql = (
             f"SELECT {projection} FROM {_quote_identifier(source.table)} "
@@ -281,27 +307,34 @@ class ClickHouseBackend:
         clauses: list[str] = []
         parameters: dict[str, object] = {}
 
-        time_type = source.column_types[spec.time_column]
+        time_type = (
+            "DateTime64(3, 'Asia/Shanghai')"
+            if source.time_expression
+            else source.column_types[spec.time_column]
+        )
+        time_expression = source.time_expression or _qualified_identifier(
+            spec.time_column, _QUERY_TABLE_ALIAS
+        )
         if query.start is not None:
-            clauses.append(
-                f"{_qualified_identifier(spec.time_column, _QUERY_TABLE_ALIAS)} "
-                f">= {{start:{time_type}}}"
-            )
+            clauses.append(f"{time_expression} >= {{start:{time_type}}}")
             parameters["start"] = (
                 query.start.date()
                 if time_type.startswith("Date") and not time_type.startswith("DateTime")
                 else query.start
             )
         if query.end is not None:
-            clauses.append(
-                f"{_qualified_identifier(spec.time_column, _QUERY_TABLE_ALIAS)} "
-                f"<= {{end:{time_type}}}"
-            )
+            clauses.append(f"{time_expression} <= {{end:{time_type}}}")
             parameters["end"] = (
                 query.end.date()
                 if time_type.startswith("Date") and not time_type.startswith("DateTime")
                 else query.end
             )
+        # Bind local timestamp text to preserve milliseconds with older drivers too.
+        if source.time_expression:
+            if query.start is not None:
+                parameters["start"] = query.start.strftime("%Y-%m-%d %H:%M:%S.%f")
+            if query.end is not None:
+                parameters["end"] = query.end.strftime("%Y-%m-%d %H:%M:%S.%f")
         if spec.partition_column and query.start is not None and query.end is not None:
             partition = _qualified_identifier(spec.partition_column, _QUERY_TABLE_ALIAS)
             partition_type = source.column_types[spec.partition_column]
@@ -313,6 +346,13 @@ class ClickHouseBackend:
             )
             parameters["partition_start"] = query.start.date()
             parameters["partition_end"] = query.end.date()
+            if (
+                source.time_expression
+                and spec.partition_column == "date"
+                and pa.types.is_integer(self._arrow_type(partition_type))
+            ):
+                parameters["partition_start"] = int(query.start.strftime("%Y%m%d"))
+                parameters["partition_end"] = int(query.end.strftime("%Y%m%d"))
         if query.instruments is not None:
             instrument = _qualified_identifier(spec.instrument_column, _QUERY_TABLE_ALIAS)
             if add_code_suffix:
@@ -325,7 +365,10 @@ class ClickHouseBackend:
             sql += " WHERE " + " AND ".join(clauses)
         order_columns = spec.order_columns or (spec.time_column, spec.instrument_column)
         sql += " ORDER BY " + ", ".join(
-            _qualified_identifier(item, _QUERY_TABLE_ALIAS) for item in order_columns
+            time_expression
+            if item == spec.time_column
+            else _qualified_identifier(item, _QUERY_TABLE_ALIAS)
+            for item in order_columns
         )
         try:
             return client.query_arrow(sql, parameters=parameters, use_strings=True)
@@ -367,6 +410,7 @@ class ClickHouseBackend:
             "table": source.table,
             "schema_hash": source.schema_hash,
             "schema_source": source.schema_source,
+            "time_expression": source.time_expression,
         }
 
     def close(self) -> None:
@@ -452,12 +496,15 @@ class ClickHouseBackend:
         *,
         table_alias: str,
         suffixed_column: str | None,
+        time_expression: str | None = None,
     ) -> str:
         expressions = []
         for column in columns:
             output = _quote_identifier(column)
             qualified = _qualified_identifier(column, table_alias)
-            if column == suffixed_column:
+            if column == "date_time" and time_expression:
+                expressions.append(f"{time_expression} AS {output}")
+            elif column == suffixed_column:
                 expressions.append(
                     f"{ClickHouseBackend._suffixed_code_expression(table_alias)} AS {output}"
                 )

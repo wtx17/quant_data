@@ -107,6 +107,10 @@ class ClickHouseDatasetSpec:
         ClickHouse table in ``database.table`` form.
     time_column
         Column used for time filtering and panel rows.
+        With ``"date_time"`` and source columns ``date`` / ``time_int``, SQL
+        synthesizes a millisecond timestamp in Asia/Shanghai. ``date`` is Date,
+        Date32 or a YYYYMMDD integer; ``time_int`` is milliseconds since midnight.
+        A physical ``date_time`` column is not required and is ignored if present.
     instrument_column
         Column used for instrument filtering and panel columns.
     partition_column

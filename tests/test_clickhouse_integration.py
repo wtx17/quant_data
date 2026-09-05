@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 
 import pytest
+import pandas as pd
+import pyarrow as pa
 
 from quant_data import ClickHouseConfig, ClickHouseDatasetSpec, DataClient
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES
@@ -122,3 +124,67 @@ def test_minghu_tables_smoke(tmp_path: Path) -> None:
             assert panel.index.name == index_name
             assert list(panel.columns) == [instrument]
             assert not panel.empty
+    for panel in m1.values():
+        assert isinstance(panel.index, pd.DatetimeIndex)
+        assert str(panel.index.tz) == "Asia/Shanghai"
+        assert panel.index.min() >= pd.Timestamp(f"{query_date} 09:30:00", tz="Asia/Shanghai")
+        assert panel.index.max() <= pd.Timestamp(f"{query_date} 09:31:00", tz="Asia/Shanghai")
+
+
+@pytest.mark.parametrize(
+    "date_expression,date_type", [("20260302", "UInt32"), ("toDate('2026-03-02')", "Date")]
+)
+@pytest.mark.parametrize("physical_time", [False, True])
+def test_minute_sql_time_synthesis(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    date_expression: str,
+    date_type: str,
+    physical_time: bool,
+) -> None:
+    """Execute generated SQL against inline rows; no database writes required."""
+    require_environment()
+    from clickhouse_connect import get_client
+
+    remote = get_client(
+        host=os.environ["MINGHU_CLICKHOUSE_HOST"],
+        port=int(os.getenv("MINGHU_CLICKHOUSE_PORT", "8123")),
+        username=os.environ["MINGHU_CLICKHOUSE_USERNAME"],
+        password=os.environ["MINGHU_CLICKHOUSE_PASSWORD"],
+        secure=os.getenv("MINGHU_CLICKHOUSE_SECURE", "").lower() in {"1", "true", "yes", "y", "on"},
+    )
+    query_arrow = remote.query_arrow
+    columns = {"date": date_type, "time_int": "Int32", "code": "String", "close": "Float64"}
+    physical_sql = ""
+    if physical_time:
+        columns["date_time"] = "Int64"
+        physical_sql = ", toInt64(0) AS date_time"
+    rows = (
+        f"(SELECT {date_expression} AS date, "
+        "arrayJoin([34200122, 34200123, 34200124]) AS time_int, "
+        f"'000001.SZ' AS code, 10.3 AS close{physical_sql})"
+    )
+
+    def query_inline(sql: str, **kwargs: object) -> pa.Table:
+        if sql.startswith("DESCRIBE TABLE"):
+            return pa.table({"name": list(columns), "type": list(columns.values())})
+        return query_arrow(sql.replace("`custom`.`minute`", rows), **kwargs)
+
+    monkeypatch.setattr(remote, "query_arrow", query_inline)
+    with DataClient(tmp_path / "audit", clickhouse_client_factory=lambda **kwargs: remote) as data:
+        data.add_clickhouse_connection("test", ClickHouseConfig(host="inline"))
+        data.register(
+            ClickHouseDatasetSpec(
+                name="minute",
+                connection="test",
+                table="custom.minute",
+                time_column="date_time",
+                partition_column="date",
+            )
+        )
+        expected = pd.Timestamp("2026-03-02 09:30:00.123", tz="Asia/Shanghai")
+        panel = data.get_panel("minute", ["close"], start=expected, end=expected)["close"]
+        assert isinstance(panel.index, pd.DatetimeIndex)
+        assert str(panel.index.tz) == "Asia/Shanghai"
+        assert panel.index.tolist() == [expected]
+        assert panel.loc[expected, "000001.SZ"] == pytest.approx(10.3)

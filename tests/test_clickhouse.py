@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pyarrow as pa
+import pandas as pd
 import pytest
 
 from quant_data import (
@@ -382,6 +383,66 @@ def test_m1_requires_range_and_pushes_partition_filter(tmp_path: Path) -> None:
     assert "DROP TABLE" not in sql
     assert parameters["instruments"] == ["x'); DROP TABLE stock_base.m1; --.SZ"]
     assert parameters["partition_start"] == date(2026, 3, 2)
+
+
+@pytest.mark.parametrize("date_type", ["Date", "Date32", "UInt32"])
+@pytest.mark.parametrize("physical_time", [False, True])
+@pytest.mark.parametrize("empty", [False, True])
+def test_minute_synthesized_time(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    date_type: str,
+    physical_time: bool,
+    empty: bool,
+) -> None:
+    columns = {"date": date_type, "time_int": "Int32", "code": "String", "close": "Float64"}
+    if physical_time:
+        columns["date_time"] = "Int64"
+    monkeypatch.setattr(f"{__name__}.CLICKHOUSE_TYPES", columns)
+    expected = pd.Timestamp("2026-03-02 09:30:00.123", tz="Asia/Shanghai")
+    result = pa.table(
+        {
+            "date_time": pa.array(
+                [] if empty else [expected], type=pa.timestamp("ms", tz="Asia/Shanghai")
+            ),
+            "code": pa.array([] if empty else ["000001.SZ"], type=pa.string()),
+            "close": pa.array([] if empty else [10.3], type=pa.float64()),
+        }
+    )
+    client, fake, _ = make_remote_client(tmp_path, result)
+    client.register(
+        ClickHouseDatasetSpec(
+            name="minute",
+            connection="minghu",
+            table="custom.minute",
+            time_column="date_time",
+            partition_column="date",
+            order_columns=("date_time", "code"),
+        )
+    )
+    panel = client.get_panel(
+        "minute", ["close"], start=expected, end=expected, instruments=["000001.SZ"]
+    )["close"]
+    assert isinstance(panel.index, pd.DatetimeIndex)
+    assert str(panel.index.tz) == "Asia/Shanghai"
+    if not empty:
+        assert panel.loc[expected, "000001.SZ"] == 10.3
+    sql, parameters, _ = fake.calls[-1]
+    assert "`_q`.`date_time`" not in sql
+    assert "toIntervalMillisecond(`_q`.`time_int`)" in sql
+    assert "AS `date_time`" in sql
+    assert "start:DateTime64(3, 'Asia/Shanghai')" in sql
+    assert ("YYYYMMDDToDate(`_q`.`date`)" in sql) == (date_type == "UInt32")
+    assert parameters["partition_start"] == (20260302 if date_type == "UInt32" else expected.date())
+    assert parameters["partition_end"] == parameters["partition_start"]
+    assert parameters["start"] == "2026-03-02 09:30:00.123000"
+    assert parameters["end"] == parameters["start"]
+    empty_panel = client.get_panel(
+        "minute", ["close"], start=expected, end=expected, instruments=[]
+    )["close"]
+    assert isinstance(empty_panel.index, pd.DatetimeIndex)
+    assert str(empty_panel.index.tz) == "Asia/Shanghai"
+    client.close()
 
 
 def test_remote_audit_is_sanitized(tmp_path: Path) -> None:

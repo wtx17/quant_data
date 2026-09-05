@@ -56,6 +56,10 @@ Catalog 负责静态 schema 和数据语义。
 - 内置 Minghu 表从 `MINGHU_TABLE_COLUMN_TYPES` 离线注册。
 - 自定义表通过 `DESCRIBE TABLE` 获取 schema。
 - 查询使用参数绑定；标识符单独校验和引用。
+- 注册 `time_column="date_time"` 且源表含 `date` / `time_int` 时，SQL 用日期加
+  当日零点起的毫秒数合成 `DateTime64(3, 'Asia/Shanghai')`，投影、过滤和排序共用
+  此表达式。`date` 支持 Date、Date32 和 YYYYMMDD 整数；无需物理 `date_time`。
+  Catalog 保留物理 schema，注册后的 Arrow schema 描述合成时间列的输出类型。
 - Minghu `code + exg` 在查询层转换为 `.SZ/.SH/.BJ` 代码。
 - `stock_base.daily` 可按 `hfq` 对价格字段做乘法复权。
 

@@ -98,13 +98,13 @@ summary = "明湖汇`stock_base.m1`表描述。查询必须同时给出 `start` 
 description = "证券代码"
 
 [datasets.minghu_m1.fields.date_time]
-description = "日期详情"
+description = "SQL 用 date 加 time_int（当日零点起的毫秒数）合成；输出 DateTime64(3, 'Asia/Shanghai')，面板索引为带时区的 DatetimeIndex。此处类型栏为源表物理类型。"
 
 [datasets.minghu_m1.fields.exg]
 description = "交易所编码：1 为深市，2 为沪市，3 为北交所。"
 
 [datasets.minghu_m1.fields.time_int]
-description = "日期详情整形"
+description = "当日零点起的毫秒数，用于 SQL 合成 date_time。"
 
 [datasets.minghu_m1.fields.open]
 description = "分钟开盘价。"

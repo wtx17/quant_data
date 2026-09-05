@@ -45,6 +45,12 @@ with initialize_data_client() as data:
 
 财务面板的 `start/end` 表示交易日查询区间，数值是当时已披露的最新报告期状态。
 
+ClickHouse 分钟表统一注册 `time_column="date_time"`。当源表包含 `date` 和
+`time_int` 时，SQL 会用日期加当日零点起的毫秒数合成时间，物理 `date_time` 列可省略；
+即使存在也不参与取数。`date` 支持 `Date`、`Date32` 或 `YYYYMMDD` 整数，
+可继续设置 `partition_column="date"` 做分区过滤，无需声明 `frequency`。
+输出索引为带 `Asia/Shanghai` 时区的 Pandas `DatetimeIndex`，保留毫秒精度。
+
 `get_panel()` 也可以通过 `universe` 选择内置股票池：
 
 ```python
