@@ -18,15 +18,10 @@ if str(ROOT.parent) not in sys.path:
     sys.path.insert(0, str(ROOT.parent))
 
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES  # noqa: E402
-from quant_data.backends.tushare_catalog import (  # noqa: E402
-    DisclosureSemantics,
-    MembershipSemantics,
-    ObservationSemantics,
-    TUSHARE_DATASETS,
-)
+from quant_data.backends.tushare_catalog import TUSHARE_DATASETS  # noqa: E402
 from quant_data.initialize import (  # noqa: E402
     TUSHARE_DATASET_NAMES,
-    clickhouse_registrations,
+    CLICKHOUSE_PANEL_DEFS,
     registered_dataset_names,
 )
 
@@ -79,28 +74,24 @@ def collect_references() -> tuple[DatasetReference, ...]:
 
     references: dict[str, DatasetReference] = {}
 
-    for clickhouse_registration in clickhouse_registrations():
-        fields = MINGHU_TABLE_COLUMN_TYPES.get(clickhouse_registration.table)
+    for definition in CLICKHOUSE_PANEL_DEFS:
+        fields = MINGHU_TABLE_COLUMN_TYPES.get(definition["table"])
         if fields is None:
             raise CatalogError(
-                f"Initialized ClickHouse table {clickhouse_registration.table!r} "
-                "has no local schema catalog"
+                f"Initialized ClickHouse table {definition['table']!r} has no local schema catalog"
             )
         # The backend synthesizes the panel timestamp from the physical minute keys.
-        if (
-            clickhouse_registration.time_column == "date_time"
-            and {"date", "time_int"} <= dict(fields).keys()
-        ):
+        if definition["time_column"] == "date_time" and {"date", "time_int"} <= dict(fields).keys():
             fields = tuple((dict(fields) | {"date_time": "DateTime64(3, 'Asia/Shanghai')"}).items())
         _add_reference(
             references,
             DatasetReference(
-                name=clickhouse_registration.name,
+                name=definition["name"],
                 fields=fields,
-                source_time_column=clickhouse_registration.time_column,
+                source_time_column=definition["time_column"],
                 instrument_column="code",
                 identity_columns=(),
-                panel_time_column=clickhouse_registration.time_column,
+                panel_time_column=definition["time_column"],
             ),
         )
 
@@ -124,27 +115,15 @@ def collect_references() -> tuple[DatasetReference, ...]:
             raise CatalogError(
                 f"Initialized Tushare dataset {dataset_name!r} has no local schema catalog"
             )
-        semantics = catalog.semantics
-        if isinstance(semantics, DisclosureSemantics):
-            source_time_column = semantics.period_column
-            panel_time_column: str = semantics.panel_time_column
-        elif isinstance(semantics, MembershipSemantics):
-            source_time_column = semantics.source_time_column
-            panel_time_column = semantics.panel_time_column
-        elif isinstance(semantics, ObservationSemantics):
-            source_time_column = semantics.source_time_column
-            panel_time_column = semantics.panel_time_column
-        else:  # pragma: no cover - exhaustive catalog guard
-            raise CatalogError(f"Unsupported semantics for dataset {dataset_name!r}")
         _add_reference(
             references,
             DatasetReference(
                 name=dataset_name,
-                fields=tuple((field.name, str(field.type)) for field in catalog.schema),
-                source_time_column=source_time_column,
-                instrument_column=catalog.instrument_column,
-                identity_columns=semantics.identity_columns,
-                panel_time_column=panel_time_column,
+                fields=tuple((field.name, str(field.type)) for field in catalog["schema"]),
+                source_time_column=catalog["source_time_column"],
+                instrument_column="ts_code",
+                identity_columns=catalog["identity_columns"],
+                panel_time_column=catalog["panel_time_column"],
             ),
         )
 

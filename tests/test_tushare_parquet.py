@@ -1,151 +1,30 @@
 from __future__ import annotations
 
-import hashlib
 import json
-from datetime import date, datetime, timedelta
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
 import pytest
 
 from quant_data import (
     BackendConnectionError,
     DataClient,
     DatasetRegistrationError,
-    FieldNotFoundError,
     InvalidQueryError,
-    TushareConfig,
 )
 from quant_data.backends.tushare_catalog import TUSHARE_DATASETS
 from quant_data.initialize import TUSHARE_DATASET_NAMES, initialize_data_client
 
 
-class CalendarClient:
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, dict[str, Any]]] = []
-
-    def query(self, api_name: str, **params: Any) -> pd.DataFrame:
-        self.calls.append((api_name, dict(params)))
-        if api_name != "trade_cal":
-            raise AssertionError(f"local archive called data API {api_name!r}")
-        start = datetime.strptime(str(params["start_date"]), "%Y%m%d").date()
-        end = datetime.strptime(str(params["end_date"]), "%Y%m%d").date()
-        days: list[str] = []
-        current = start
-        while current <= end:
-            if current.weekday() < 5:
-                days.append(current.strftime("%Y%m%d"))
-            current += timedelta(days=1)
-        return pd.DataFrame({"cal_date": days})
-
-
-class CalendarFactory:
-    def __init__(self, client: CalendarClient) -> None:
-        self.client = client
-        self.calls = 0
-
-    def __call__(self, **kwargs: Any) -> CalendarClient:
-        self.calls += 1
-        return self.client
-
-
-def _archive_schema(dataset: str) -> pa.Schema:
-    fields: list[pa.Field] = []
-    for field in TUSHARE_DATASETS[dataset].schema:
-        data_type = pa.string() if pa.types.is_date32(field.type) else field.type
-        fields.append(pa.field(field.name, data_type))
-    return pa.schema(fields)
-
-
-def write_archive(
-    root: Path,
-    dataset: str,
-    rows: list[dict[str, object]],
-    *,
-    range_start: str = "20240101",
-    range_end: str = "20241231",
-) -> Path:
-    schema = _archive_schema(dataset)
-    normalized = [{field.name: row.get(field.name) for field in schema} for row in rows]
-    table = pa.Table.from_pylist(normalized, schema=schema)
-    dataset_dir = root / dataset
-    dataset_dir.mkdir(parents=True)
-    parquet_path = dataset_dir / "data.parquet"
-    pq.write_table(table, parquet_path)
-    checksum = hashlib.sha256(parquet_path.read_bytes()).hexdigest()
-    manifest = {
-        "manifest_version": 1,
-        "dataset": dataset,
-        "schema_hash": f"schema-{dataset}",
-        "fields": [{"name": field.name} for field in schema],
-        "range_start": range_start,
-        "range_end": range_end,
-        "updated_at": "2026-07-20T00:00:00+00:00",
-        "partitions": {
-            "all": {
-                "relative_path": f"{dataset}/data.parquet",
-                "rows": table.num_rows,
-                "bytes": parquet_path.stat().st_size,
-                "sha256": checksum,
-            }
-        },
-    }
-    manifest_path = dataset_dir / "_manifest.json"
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    return manifest_path
-
-
-def write_daily_basic_archive(
-    root: Path,
-    rows_by_date: dict[str, list[dict[str, object]]],
-) -> Path:
-    schema = _archive_schema("daily_basic")
-    dataset_dir = root / "daily_basic"
-    partitions: dict[str, dict[str, object]] = {}
-    for trade_date, rows in sorted(rows_by_date.items()):
-        normalized = [{field.name: row.get(field.name) for field in schema} for row in rows]
-        table = pa.Table.from_pylist(normalized, schema=schema)
-        relative_path = Path("daily_basic") / "trade_date" / trade_date / "data.parquet"
-        parquet_path = root / relative_path
-        parquet_path.parent.mkdir(parents=True, exist_ok=True)
-        pq.write_table(table, parquet_path)
-        partitions[trade_date] = {
-            "relative_path": relative_path.as_posix(),
-            "query": {"trade_date": trade_date},
-            "rows": table.num_rows,
-            "bytes": parquet_path.stat().st_size,
-            "sha256": hashlib.sha256(parquet_path.read_bytes()).hexdigest(),
-        }
-
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    partition_dates = sorted(rows_by_date)
-    manifest = {
-        "manifest_version": 1,
-        "dataset": "daily_basic",
-        "schema_hash": "schema-daily_basic",
-        "fields": [{"name": field.name} for field in schema],
-        "range_start": partition_dates[0],
-        "range_end": partition_dates[-1],
-        "updated_at": "2026-07-20T00:00:00+00:00",
-        "partitions": partitions,
-    }
-    manifest_path = dataset_dir / "_manifest.json"
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    return manifest_path
-
-
-def make_client(tmp_path: Path) -> tuple[DataClient, CalendarClient, CalendarFactory]:
-    calendar = CalendarClient()
-    factory = CalendarFactory(calendar)
-    client = DataClient(
-        tmp_path / "audit",
-        tushare_client_factory=factory,
-    )
-    client.add_tushare_connection("ts", TushareConfig(token="x"))
-    return client, calendar, factory
+from tushare_fixtures import (  # noqa: F401
+    CalendarClient,
+    CalendarFactory,
+    make_client,
+    write_archive,
+    write_daily_basic_archive,
+)
 
 
 def register_local(
@@ -157,7 +36,7 @@ def register_local(
     client.register_tushare(
         dataset,
         data_dir=root,
-        calendar_connection="ts",
+        calendar_connection="calendar",
         **kwargs,
     )
 
@@ -293,7 +172,8 @@ def test_local_pit_panel_only_fetches_trade_calendar(tmp_path: Path) -> None:
     assert panel.loc[pd.Timestamp("2024-04-30"), "600000.SH"] == pytest.approx(7.0)
     assert factory.calls == 1
     assert calendar.calls
-    assert {api for api, _ in calendar.calls} == {"trade_cal"}
+    assert len(calendar.calls) == 1
+    assert calendar.calls[0][0].startswith("SELECT DISTINCT `date`")
 
 
 def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override(
@@ -348,7 +228,7 @@ def test_local_statement_defaults_to_tushare_report_type_one_and_allows_override
         "income_single_quarter",
         dataset="income",
         data_dir=root,
-        calendar_connection="ts",
+        calendar_connection="calendar",
         fixed_params={"report_type": "2"},
     )
     override_table = override_client.get_panel(
@@ -408,7 +288,8 @@ def test_local_membership_panel_match_interval_semantics(tmp_path: Path) -> None
 
     assert panel.loc[date(2024, 1, 2), "600000.SH"] == "old"
     assert panel.loc[date(2024, 1, 4), "600000.SH"] == "new"
-    assert {api for api, _ in calendar.calls} == {"trade_cal"}
+    assert len(calendar.calls) == 1
+    assert calendar.calls[0][0].startswith("SELECT DISTINCT `date`")
 
 
 def test_local_fixed_params_map_or_fail_at_registration(tmp_path: Path) -> None:
@@ -458,7 +339,7 @@ def test_manifest_metadata_mismatch_fails_registration(tmp_path: Path) -> None:
         register_local(client, root, "income")
 
 
-def test_local_initialization_registers_standard_names_without_token(
+def test_local_initialization_registers_standard_names_without_credentials(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     root = tmp_path / "archive"
@@ -468,14 +349,15 @@ def test_local_initialization_registers_standard_names_without_token(
             write_daily_basic_archive(root, {"20240701": []})
         else:
             write_archive(root, name, [])
-    monkeypatch.delenv("MISSING_LOCAL_CALENDAR_TOKEN", raising=False)
+    monkeypatch.delenv("MISSING_LOCAL_CALENDAR_PASSWORD", raising=False)
+    monkeypatch.delenv("QUANT_DATA_CLICKHOUSE_PASSWORD", raising=False)
 
     client = initialize_data_client(
         audit_dir=tmp_path / "audit",
         register_clickhouse=False,
         tushare_data_dir=root,
-        tushare_connection="calendar",
-        tushare_token_env="MISSING_LOCAL_CALENDAR_TOKEN",
+        clickhouse_connection="calendar",
+        clickhouse_password_env="MISSING_LOCAL_CALENDAR_PASSWORD",
     )
 
     daily = client.get_panel(
@@ -485,7 +367,7 @@ def test_local_initialization_registers_standard_names_without_token(
         end="2024-07-01",
     )
     assert daily["close"].empty
-    with pytest.raises(BackendConnectionError, match="MISSING_LOCAL_CALENDAR_TOKEN"):
+    with pytest.raises(BackendConnectionError, match="MISSING_LOCAL_CALENDAR_PASSWORD"):
         client.get_panel(
             "income",
             ["total_revenue"],
@@ -493,67 +375,6 @@ def test_local_initialization_registers_standard_names_without_token(
             end="2024-07-05",
         )
     client.close()
-
-
-def test_initialization_can_mix_local_and_remote_tushare_datasets(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    root = tmp_path / "archive"
-    write_archive(root, "income", [])
-    monkeypatch.delenv("MISSING_MIXED_TUSHARE_TOKEN", raising=False)
-
-    with initialize_data_client(
-        audit_dir=tmp_path / "audit",
-        register_clickhouse=False,
-        tushare_data_dir=root,
-        tushare_remote_datasets=set(TUSHARE_DATASET_NAMES).difference({"income"}),
-        tushare_connection="mixed",
-        tushare_token_env="MISSING_MIXED_TUSHARE_TOKEN",
-    ) as client:
-        # ``income`` reads the local archive: its audit source is recorded
-        # before field validation fails.
-        with pytest.raises(FieldNotFoundError):
-            client.get_panel(
-                "income",
-                ["nonexistent"],
-                start="2024-03-31",
-                end="2024-03-31",
-            )
-        income_audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
-        assert income_audit["source"]["format"] == "tushare-archive"
-
-        with pytest.raises(BackendConnectionError, match="MISSING_MIXED_TUSHARE_TOKEN"):
-            client.get_panel(
-                "balancesheet",
-                ["total_assets"],
-                start="2024-03-31",
-                end="2024-03-31",
-                instruments=["600000.SH"],
-            )
-
-
-@pytest.mark.parametrize(
-    ("data_dir", "remote_datasets", "message"),
-    [
-        (None, {"income"}, "tushare_data_dir is required"),
-        (Path("/unused"), {"unknown"}, "Unsupported Tushare remote datasets"),
-        (Path("/unused"), "income", "must be a collection"),
-        (Path("/unused"), ["income", 1], "only non-empty strings"),
-    ],
-)
-def test_mixed_initialization_rejects_invalid_remote_selection(
-    tmp_path: Path,
-    data_dir: Path | None,
-    remote_datasets: object,
-    message: str,
-) -> None:
-    with pytest.raises(DatasetRegistrationError, match=message):
-        initialize_data_client(
-            audit_dir=tmp_path / "audit",
-            register_clickhouse=False,
-            tushare_data_dir=data_dir,
-            tushare_remote_datasets=remote_datasets,  # type: ignore[arg-type]
-        )
 
 
 def test_local_pit_preserves_revisions_and_requested_identity_fields(tmp_path: Path) -> None:
@@ -589,4 +410,5 @@ def test_local_pit_preserves_revisions_and_requested_identity_fields(tmp_path: P
     assert pd.Timestamp(
         panels["ann_date"].loc[pd.Timestamp("2024-04-24"), "600000.SH"]
     ) == pd.Timestamp("2024-04-24")
-    assert {api for api, _ in calendar.calls} == {"trade_cal"}
+    assert len(calendar.calls) == 1
+    assert calendar.calls[0][0].startswith("SELECT DISTINCT `date`")

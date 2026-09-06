@@ -1,145 +1,53 @@
-# 架构设计
+# 当前架构
 
-## 核心边界
+`DataClient.get_panel()` 是唯一查询入口，返回字段名到 `time × instrument` Pandas
+宽表的映射。参数风格、校验、调价、命名股票池和审计契约保持不变。
 
-```text
-DatasetSpec
-    -> DataClient.register()
-    -> Backend.prepare()
-    -> RegisteredDataset(schema, source, contract, adjustment)
+## 调用链
 
-get_panel()
-    -> 审计初始化与数据集契约检查
-    -> 通用参数规范化
-    -> get_panel() 命名股票池历史区间展开
-    -> Backend.scan() 或 Tushare 语义扫描
-    -> Arrow 长表校验
-    -> 调价 / PIT / 区间展开 / 普通透视
-    -> Pandas 面板
-    -> 审计落盘
-```
+`DataClient → registry[name] → Dataset.read_panel(Query, QueryAudit) → 宽表`。
+`Dataset` 保存 schema、查询约束、读取函数和来源指纹；不再保留 Spec、RegisteredDataset
+或各来源数据集类。注册工厂直接完成配置校验和函数绑定。
 
-`DataClient` 是唯一的公共编排层。Backend 负责存储访问，Transform 负责纯数据变换，
-Catalog 负责静态 schema 和数据语义。
+- `datasets/parquet.py`：自定义本地观测表。
+- `datasets/clickhouse.py`：ClickHouse 观测表和调价配置。
+- `datasets/builtin.py`：包内 membership_events，使用 ClickHouse 行情日期和证券。
+- `datasets/tushare.py`：本地存档的普通观测、财务 PIT、行业区间三种处理。
+- `datasets/validation.py`：注册参数校验。
+- `backends/`：连接、查询、存档校验和 Arrow/日期规范化。
+- `transforms/`：透视、财务 PIT、有效区间展开等纯变换。
 
-## 分层
+## Tushare 本地链路
 
-| 层 | 文件 | 职责 |
-| --- | --- | --- |
-| 公共 API | `__init__.py`, `client.py` | 注册、查询、校验、调价、结果元数据、审计编排 |
-| 股票池 | `_universes.py`, `resources/universes/` | 历史成分 panel 加载、校验、区间选择和内容指纹 |
-| 初始化 | `initialize.py` | 默认连接配置和默认数据集注册 |
-| 数据模型 | `models.py` | Spec、Contract、Prepared state、Query、Audit |
-| Backend 协议 | `backends/base.py` | 通用扫描协议和 Tushare 语义扩展协议 |
-| Parquet | `backends/parquet.py` | DuckDB 扫描、schema 合并、manifest 快照校验 |
-| ClickHouse | `backends/clickhouse.py` | 参数化 SQL、类型映射、连接复用、代码后缀 |
-| Tushare | `backends/tushare.py` | API 路由、远端请求、日期规范化、交易日历 |
-| Catalog | `backends/*_catalog.py`, `backends/tushare_schemas.py` | 内置字段、类型、路由和时间语义 |
-| Transform | `transforms/` | 普通宽表透视和 point-in-time 状态构建 |
-| 审计 | `audit.py` | 原子写入 JSON 查询记录 |
-| 文档生成 | `tools/generate_dataset_catalog.py` | 合并源码 catalog 与人工说明，生成 `DATASETS.md` |
+所有 Tushare 数据只读带 manifest 的 Parquet 存档，无 SDK、token、远端 API、VIP
+路由或远端回退。`tushare_catalog.py` 用一个平铺 TypedDict 保存每个数据集的 schema、
+处理类型、时间列、身份列、修订顺序和本地过滤字段；不再为语义或路由建类。
 
-## Backend 设计
+`initialize_data_client()` 要求 `tushare_data_dir` 或 `QUANT_DATA_TUSHARE_DATA_DIR`，
+未提供则报错；只使用 ClickHouse 可关闭 `register_tushare`。初始化将所有默认
+Tushare 名称注册到同一存档根目录，并复用 `clickhouse_connection` 获取日历。
+手动 `register_tushare()` 必须提供 `data_dir`；`calendar_connection` 指向已注册
+ClickHouse 连接，默认 minghu。连接及凭据在真正读取日历时才使用。
 
-### Parquet
+- daily_basic：直接扫描日期分区并透视，无需 ClickHouse 或交易日历。
+- 财务：本地读取公告窗口内事件，保留 carry-in buffer、公告滞后、报告期和修订排序，
+  用 `build_daily_panels()` 构造 PIT；新报告的显式空值不可沿用旧报告。
+- 行业：本地读取有效区间，按 in_date、is_new 解决覆盖，冲突报错，展开并透视。
+- PIT 和行业：从 `stock_base.daily` 查询有界 `SELECT DISTINCT date`，只传输日期，
+  不受 instruments/universe 过滤。PIT 保留前向 buffer 和后向 margin 日历窗口。
+  无日历缓存、工作日猜测或失败回退。ClickHouse 缺失的交易日不会凭空补齐。
 
-- 普通 `DatasetSpec`：递归解析 Parquet，合并 Arrow schema，通过 DuckDB 投影和过滤。
-- `TushareParquetDatasetSpec`：读取 `_manifest.json` 和分区，复用远端 Tushare catalog。
-- 本地 Tushare 扫描不调用数据 API；披露和成分面板只通过 Tushare 获取
-  `trade_cal`，普通观测面板保持全本地。
-- 本地 `daily_basic` 按查询闭区间裁剪 `trade_date` 分区，再通过一次 DuckDB
-  扫描读取；不复用远端逐交易日请求逻辑。
-- manifest 字段、分区字段、行数、类型和固定参数在注册时校验。
+manifest 版本、数据集名、分区路径、范围、文件大小/行数和 schema 校验仍严格执行。
+固定过滤条件在 SQL 下推；财务默认 report_type=1 可显式覆盖。内部保留 Arrow 长表
+与既有财务/区间变换；未增加跨来源中间抽象。
 
-### ClickHouse
+## 公共约束与审计
 
-- 内置 Minghu 表从 `MINGHU_TABLE_COLUMN_TYPES` 离线注册。
-- 自定义表通过 `DESCRIBE TABLE` 获取 schema。
-- 查询使用参数绑定；标识符单独校验和引用。
-- 注册 `time_column="date_time"` 且源表含 `date` / `time_int` 时，SQL 用日期加
-  当日零点起的毫秒数合成 `DateTime64(3, 'Asia/Shanghai')`，投影、过滤和排序共用
-  此表达式。`date` 支持 Date、Date32 和 YYYYMMDD 整数；无需物理 `date_time`。
-  Catalog 保留物理 schema，注册后的 Arrow schema 描述合成时间列的输出类型。
-- Minghu `code + exg` 在查询层转换为 `.SZ/.SH/.BJ` 代码。
-- `stock_base.daily` 可按 `hfq` 对价格字段做乘法复权。
+自定义来源频率可省略，不限制分钟及以上粒度。ClickHouse 分钟时间由 date 和
+以毫秒表示的 time_int 合成，保留时区；调价策略与原行为一致。
+命名股票池仅 hs300/zz500/zz1000，必须给闭区间，与 instruments 互斥；在审计初始化
+后、数据读取前展开历史状态证券并集。保持顺序、CSV SHA-256、完整证券列表与日期元数据。
+不对结果额外施加逐日成分掩码。裸字符串 instruments 必须报错。
 
-### Tushare
-
-- `TUSHARE_SCHEMAS` 定义有序 Arrow schema。
-- `TUSHARE_DATASETS` 将 schema、API route 和时间语义组合成逻辑 catalog。
-- 财务披露数据的单证券查询使用普通 API，全市场查询使用 VIP API；不做失败后的隐式
-  route 回退。
-- `TradeDateQuery` 描述必须按开市日切片的 API；`ObservationSemantics` 描述可直接透视的
-  唯一 `time × instrument` 观测。
-- `daily_basic` 同时要求 `start/end`，复用缓存的 `trade_cal`，然后仅携带
-  `trade_date` 逐日请求。指定证券时先取当日全市场数据，再在标准化后本地过滤。
-- `daily_basic` 单日响应达到 6000 行即视为可能截断并失败，不返回静默缺行的数据。
-- 审计同时记录 `daily_basic` 数据 API 和用于枚举开市日的 `trade_cal`。
-- 返回值统一转换为 catalog 类型，日期字符串转换为 `date32`。
-- 交易日历按连接、交易所、年月缓存。
-
-## 数据语义
-
-### 内部扫描
-
-- Arrow 长表仅作为面板构建的中间数据。
-- 财务披露扫描保留公告和修订，行业成分扫描保留有效区间。
-
-### 普通面板
-
-- `transforms.panel.build_panels()` 校验键非空和键对唯一。
-- 每个请求字段生成一个 Pandas DataFrame。
-- 调用方指定的证券顺序必须保留；无数据证券补全为空列。
-- `get_panel(universe=...)` 将包内历史成分 panel 在查询闭区间内展开为证券并集，后端
-  路由和过滤语义与调用方直接传入该列表一致；panel 首末 change date、选中数量和
-  哈希写入审计。
-- 股票池在审计记录创建之后、Backend 查询之前解析；先由 `DataClient` 规范化查询
-  日期，再按该闭区间选择成分，因此解析失败仍有失败审计，Backend 和 Transform 只
-  看到规范化后的 `.SH/.SZ/.BJ` 证券元组。
-- 审计参数中的 `universe` 保存规范化名称、`first_change_date`、`last_change_date`、
-  选中 `count` 和 `sha256`，`instruments` 保存完整展开列表。panel header 顺序即输出
-  列序。
-- 公共 `get_panel(universe=...)` 是命名股票池选择器，与
-  `TushareApiRoute.universe` 的全市场/单证券路由声明不是同一概念。展开后远端
-  Tushare 仍按普通证券列表选择路由。
-- `daily_basic` 先由 Backend 合并逐交易日响应为 `trade_date × ts_code` 长表，再直接复用
-  此普通透视路径；不在 `DataClient` 中维护专用宽表分支。
-
-### Point-in-time 面板
-
-- 披露日先对齐到下一交易日，再应用交易日 lag。
-- 状态按证券和报告期维护；最新报告期生效。
-- 同报告期修订按 catalog 的 `revision_order` 决胜。
-- 新报告中的显式空值不继承旧报告值。
-
-### 成分面板
-
-- 有效区间与查询范围求交。
-- 在交易日历上展开后再透视。
-- 当前和历史成分按 route 配置请求。
-
-## 不变量
-
-- `RegisteredDataset.schema` 是查询字段和类型的运行时事实来源。
-- `DatasetContract` 是源键、面板键、频率元数据和时间范围要求的事实来源。
-- 注册名称唯一；重复注册替换旧 prepared state。
-- 查询边界闭区间；需要分区或 PIT 的数据集要求同时提供起止时间。
-- `TradeDateQuery` 数据集也必须同时提供起止时间；不能退化为可能受行数上限影响的无界查询。
-- 所有成功和失败查询都必须写审计记录。
-- 审计 fingerprint 只能包含经过清洗的来源信息。
-- `get_panel()` 的 `universe` 与 `instruments` 互斥；不接受裸字符串 `instruments`。
-- 内置股票池是随包发布的历史成分 panel；查询时按 `[start, end]` 选择曾经属于指数的
-  证券并集，不从外部路径或网络自动刷新。
-- 内置 catalog、生成文档和 schema 签名测试必须同步。
-- 配置 Tushare 归档目录后，全部逻辑数据集默认使用本地快照；仅
-  `tushare_remote_datasets` 指定的数据集使用远端 API。
-
-### 包内指数归属
-
-`BuiltInDatasetSpec(dataset="membership_events", connection="minghu")` 声明包内数据集语义
-及辅助 ClickHouse 连接，默认注册名为 `membership_events`，backend 为 `parquet`。
-Parquet backend 读取完整事件历史的 Arrow 长表；`transforms/membership.py` 只负责累计
-事件状态并展开到传入的交易日。`DataClient` 读取 ClickHouse `stock_base.daily` 的日期和代码，
-查询起点向前一个自然月，校验输入证券属于扩展区间并集；输出交易日仍限定原始 start/end。
-通用参数、universe 展开和审计沿用公共流程。事件 SHA-256 和 ClickHouse 来源记入审计。
-空证券选择保留交易日索引；变更当日生效，首事件前为零，末事件后延续。
+每次查询包括失败都写 JSON 审计，不记录凭据。Tushare 来源包含存档指纹；事件面板
+另记 ClickHouse 日历来源和 calendar_table。日历失败也保留来源，可追溯。

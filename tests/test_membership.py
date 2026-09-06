@@ -158,9 +158,7 @@ def test_builtin_alias_and_event_scan(setup_membership):
         "indices", ["membership"], "2024-01-05", "2024-01-09", instruments=["000001.SZ"]
     )["membership"]
     assert result["000001.SZ"].tolist() == [1, 2, 0]
-    assert result.index.tolist() == list(
-        pd.to_datetime(["2024-01-05", "2024-01-08", "2024-01-09"])
-    )
+    assert result.index.tolist() == list(pd.to_datetime(["2024-01-05", "2024-01-08", "2024-01-09"]))
 
 
 def test_unknown_builtin_is_rejected(setup_membership):

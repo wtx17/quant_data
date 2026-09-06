@@ -7,6 +7,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any, Callable
 
 import pyarrow as pa
@@ -267,8 +268,7 @@ def prepare_clickhouse_table(
     missing = required.difference(result_column_types)
     if missing:
         raise DatasetRegistrationError(
-            f"ClickHouse table {table!r} is missing configured columns: "
-            f"{sorted(missing)}"
+            f"ClickHouse table {table!r} is missing configured columns: {sorted(missing)}"
         )
 
     normalized = json.dumps(sorted(column_types.items()), separators=(",", ":"))
@@ -300,9 +300,7 @@ def build_arrow_schema(column_types: dict[str, str], table: str) -> pa.Schema:
             [pa.field(name, arrow_type(type_name)) for name, type_name in column_types.items()]
         )
     except Exception as exc:
-        raise SchemaMismatchError(
-            f"Unable to map ClickHouse schema for {table!r}: {exc}"
-        ) from exc
+        raise SchemaMismatchError(f"Unable to map ClickHouse schema for {table!r}: {exc}") from exc
 
 
 def scan_clickhouse(
@@ -421,7 +419,38 @@ def scan_clickhouse(
         ) from exc
 
 
-def clickhouse_fingerprint(session: ClickHouseSession, source: ClickHouseTable) -> dict[str, object]:
+def read_trade_calendar(
+    session: ClickHouseSession,
+    source: ClickHouseTable,
+    start: datetime,
+    end: datetime,
+) -> list[date]:
+    """Read market trading dates without fetching or filtering individual stocks."""
+
+    column = quote_identifier(source.time_column)
+    sql = (
+        f"SELECT DISTINCT {column} FROM {quote_identifier(source.table)} "
+        f"WHERE {column} >= {{start:Date}} AND {column} <= {{end:Date}} "
+        f"ORDER BY {column}"
+    )
+    client = session.client(source.connection)
+    try:
+        table = client.query_arrow(
+            sql, parameters={"start": start.date(), "end": end.date()}, use_strings=True
+        )
+    except Exception as exc:
+        raise RemoteQueryError(f"ClickHouse calendar query failed for {source.table!r}") from exc
+    if source.time_column not in table.column_names:
+        raise SchemaMismatchError("ClickHouse calendar result is missing its date column")
+    values = table[source.time_column].to_pylist()
+    if any(not isinstance(value, date) or isinstance(value, datetime) for value in values):
+        raise SchemaMismatchError("ClickHouse calendar must contain non-null dates")
+    return sorted(set(values))
+
+
+def clickhouse_fingerprint(
+    session: ClickHouseSession, source: ClickHouseTable
+) -> dict[str, object]:
     """Return sanitized connection, table, and schema provenance."""
 
     config = session.connection_config(source.connection)
@@ -570,13 +599,7 @@ def arrow_type(type_name: str) -> pa.DataType:
     if datetime64_match:
         precision = int(datetime64_match.group(1))
         unit = (
-            "s"
-            if precision == 0
-            else "ms"
-            if precision <= 3
-            else "us"
-            if precision <= 6
-            else "ns"
+            "s" if precision == 0 else "ms" if precision <= 3 else "us" if precision <= 6 else "ns"
         )
         return pa.timestamp(unit, tz=datetime64_match.group(2))
 

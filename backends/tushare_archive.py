@@ -17,8 +17,7 @@ import pyarrow.parquet as pq
 from ..exceptions import DatasetRegistrationError, InvalidQueryError, SchemaMismatchError
 from ..models import Query
 from .parquet import quote_identifier
-from .tushare_catalog import MembershipSemantics, TushareDatasetCatalog
-from .tushare_common import coerce_frame, fixed_param_value
+from .tushare_catalog import TushareTable
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,86 +48,35 @@ class TushareArchive:
     partitions: tuple[ArchivePartition, ...]
 
 
-# Fixed parameters a local snapshot can reconstruct from stored columns.
-_LOCAL_FIXED_PARAM_COLUMNS: dict[str, dict[str, str]] = {
-    "daily_basic": {},
-    "income": {
-        "ann_date": "ann_date",
-        "f_ann_date": "f_ann_date",
-        "report_type": "report_type",
-        "comp_type": "comp_type",
-    },
-    "balancesheet": {
-        "ann_date": "ann_date",
-        "report_type": "report_type",
-        "comp_type": "comp_type",
-    },
-    "cashflow": {
-        "ann_date": "ann_date",
-        "f_ann_date": "f_ann_date",
-        "report_type": "report_type",
-        "comp_type": "comp_type",
-    },
-    "fina_indicator": {"ann_date": "ann_date"},
-    "express": {"ann_date": "ann_date"},
-    "forecast": {"ann_date": "ann_date", "type": "type"},
-    "stk_holdernumber": {"ann_date": "ann_date", "enddate": "end_date"},
-    "ci_index_member": {
-        "l1_code": "l1_code",
-        "l2_code": "l2_code",
-        "l3_code": "l3_code",
-        "is_new": "is_new",
-    },
-    "index_member_all": {
-        "l1_code": "l1_code",
-        "l2_code": "l2_code",
-        "l3_code": "l3_code",
-        "is_new": "is_new",
-    },
-}
-
-
-# Tushare's statement APIs default to the latest consolidated statement when
-# ``report_type`` is omitted. The archive deliberately contains all twelve
-# report types, so local scans must make that remote default explicit.
-LOCAL_DEFAULT_FIXED_PARAMS: dict[str, dict[str, object]] = {
-    "income": {"report_type": "1"},
-    "balancesheet": {"report_type": "1"},
-    "cashflow": {"report_type": "1"},
-}
-
-
 def effective_local_fixed_params(
-    catalog: TushareDatasetCatalog,
+    catalog: TushareTable,
     fixed_params: Mapping[str, object],
 ) -> dict[str, object]:
     """Merge archive statement defaults with caller-provided parameters."""
 
     return {
-        **LOCAL_DEFAULT_FIXED_PARAMS.get(catalog.name, {}),
+        **catalog["default_filters"],
         **dict(fixed_params),
     }
 
 
 def validate_local_fixed_params(
-    catalog: TushareDatasetCatalog,
+    catalog: TushareTable,
     fixed_params: Mapping[str, object],
 ) -> None:
     """Reject parameters a stored snapshot cannot reconstruct."""
 
-    allowed = _LOCAL_FIXED_PARAM_COLUMNS[catalog.name]
+    allowed = catalog["filter_columns"]
     unsupported = set(fixed_params).difference(allowed)
     if unsupported:
         raise DatasetRegistrationError(
-            f"Tushare Parquet dataset {catalog.name!r} cannot reconstruct "
+            f"Tushare Parquet dataset {catalog['name']!r} cannot reconstruct "
             f"fixed parameters: {sorted(unsupported)}"
         )
     invalid_values = [
         key
         for key, value in fixed_params.items()
-        if value is None
-        or isinstance(value, (Mapping, Sequence))
-        and not isinstance(value, str)
+        if value is None or isinstance(value, (Mapping, Sequence)) and not isinstance(value, str)
     ]
     if invalid_values:
         raise DatasetRegistrationError(
@@ -140,7 +88,7 @@ def validate_local_fixed_params(
 def load_archive(
     data_dir: str | Path,
     dataset_name: str,
-    catalog: TushareDatasetCatalog,
+    catalog: TushareTable,
     fixed_params: Mapping[str, object],
 ) -> TushareArchive:
     """Load and fully validate one manifest-backed local dataset.
@@ -156,9 +104,7 @@ def load_archive(
 
     root = Path(data_dir).expanduser().resolve()
     if not root.is_dir():
-        raise DatasetRegistrationError(
-            f"Tushare Parquet data directory does not exist: {root}"
-        )
+        raise DatasetRegistrationError(f"Tushare Parquet data directory does not exist: {root}")
     manifest_path = root / dataset_name / "_manifest.json"
     manifest = _load_manifest(manifest_path)
     if manifest.get("manifest_version") != 1:
@@ -240,12 +186,12 @@ def validate_snapshot_bounds(
 def read_archive_frame(
     archive: TushareArchive,
     dataset_name: str,
-    catalog: TushareDatasetCatalog,
+    catalog: TushareTable,
     query: Query,
     columns: tuple[str, ...],
     *,
     date_column: str | None = None,
-    membership: MembershipSemantics | None = None,
+    membership: bool = False,
     order_columns: tuple[str, ...] = (),
 ) -> pd.DataFrame:
     """Read normalized archive rows with DuckDB.
@@ -282,16 +228,16 @@ def read_archive_frame(
     """
 
     if query.instruments == ():
-        return coerce_frame(pd.DataFrame(columns=columns), catalog.schema)
+        return coerce_frame(pd.DataFrame(columns=columns), catalog["schema"])
     partitions = select_archive_partitions(archive, query)
     if not partitions:
-        return coerce_frame(pd.DataFrame(columns=columns), catalog.schema)
+        return coerce_frame(pd.DataFrame(columns=columns), catalog["schema"])
 
     projected = ", ".join(quote_identifier(column) for column in columns)
     sql = f"SELECT {projected} FROM read_parquet(?, union_by_name = true) AS source"
     params: list[object] = [[str(partition.path) for partition in partitions]]
     clauses: list[str] = []
-    fixed_columns = _LOCAL_FIXED_PARAM_COLUMNS[catalog.name]
+    fixed_columns = catalog["filter_columns"]
     for key, value in archive.fixed_params.items():
         column = fixed_columns[key]
         clauses.append(f"source.{quote_identifier(column)} = ?")
@@ -304,13 +250,12 @@ def read_archive_frame(
         if query.end is not None:
             clauses.append(f"source.{quote_identifier(date_column)} <= ?")
             params.append(query.end.strftime("%Y%m%d"))
-    elif membership is not None:
-        start_col = quote_identifier(membership.interval_start_column)
-        end_col = quote_identifier(membership.interval_end_column)
+    elif membership:
+        start_col = quote_identifier(catalog["source_time_column"])
+        end_col = quote_identifier(catalog["interval_end_column"])
         if query.start is not None:
             clauses.append(
-                f"(NULLIF(CAST(source.{end_col} AS VARCHAR), '') IS NULL "
-                f"OR source.{end_col} >= ?)"
+                f"(NULLIF(CAST(source.{end_col} AS VARCHAR), '') IS NULL OR source.{end_col} >= ?)"
             )
             params.append(query.start.strftime("%Y%m%d"))
         if query.end is not None:
@@ -321,17 +266,15 @@ def read_archive_frame(
     connection = duckdb.connect(database=":memory:")
     try:
         if query.instruments is not None:
-            requested = pa.table({catalog.instrument_column: list(query.instruments)})
+            requested = pa.table({"ts_code": list(query.instruments)})
             connection.register("requested_instruments", requested)
-            instrument = quote_identifier(catalog.instrument_column)
+            instrument = quote_identifier("ts_code")
             sql += f" INNER JOIN requested_instruments AS requested USING ({instrument})"
         if clauses:
             sql += " WHERE " + " AND ".join(clauses)
         available_order = [column for column in order_columns if column in columns]
         if available_order:
-            sql += " ORDER BY " + ", ".join(
-                quote_identifier(column) for column in available_order
-            )
+            sql += " ORDER BY " + ", ".join(quote_identifier(column) for column in available_order)
         frame = connection.execute(sql, params).fetchdf()
     except (duckdb.Error, pa.ArrowException, ValueError, TypeError) as exc:
         raise SchemaMismatchError(
@@ -339,7 +282,7 @@ def read_archive_frame(
         ) from exc
     finally:
         connection.close()
-    return coerce_frame(frame, catalog.schema)
+    return coerce_frame(frame, catalog["schema"])
 
 
 def select_archive_partitions(
@@ -361,7 +304,6 @@ def select_archive_partitions(
 
 def archive_fingerprint(
     archive: TushareArchive,
-    calendar_connection: str,
 ) -> dict[str, object]:
     """Return manifest metadata and current partition file statistics."""
 
@@ -391,10 +333,7 @@ def archive_fingerprint(
         "range_start": archive.range_start.isoformat(),
         "range_end": archive.range_end.isoformat(),
         "updated_at": archive.updated_at,
-        "calendar_connection": calendar_connection,
-        "fixed_params": {
-            str(key): str(value) for key, value in archive.fixed_params.items()
-        },
+        "fixed_params": {str(key): str(value) for key, value in archive.fixed_params.items()},
         "partitions": partitions,
     }
 
@@ -420,28 +359,26 @@ def _parse_manifest_date(value: object, label: str) -> date:
         raise DatasetRegistrationError(f"{label} must use YYYYMMDD format: {value!r}") from exc
 
 
-def _validate_manifest_fields(
-    manifest: Mapping[str, Any], catalog: TushareDatasetCatalog
-) -> None:
+def _validate_manifest_fields(manifest: Mapping[str, Any], catalog: TushareTable) -> None:
     fields = manifest.get("fields")
     if not isinstance(fields, list):
-        raise DatasetRegistrationError(f"Manifest fields are invalid for {catalog.name!r}")
+        raise DatasetRegistrationError(f"Manifest fields are invalid for {catalog['name']!r}")
     names = {
         item.get("name")
         for item in fields
         if isinstance(item, Mapping) and isinstance(item.get("name"), str)
     }
-    missing = set(catalog.schema.names).difference(names)
+    missing = set(catalog["schema"].names).difference(names)
     if missing:
         raise DatasetRegistrationError(
-            f"Manifest for {catalog.name!r} is missing catalog fields: {sorted(missing)}"
+            f"Manifest for {catalog['name']!r} is missing catalog fields: {sorted(missing)}"
         )
 
 
 def _resolve_manifest_partitions(
     data_dir: Path,
     manifest: Mapping[str, Any],
-    catalog: TushareDatasetCatalog,
+    catalog: TushareTable,
     logical_name: str,
 ) -> tuple[ArchivePartition, ...]:
     raw_partitions = manifest.get("partitions")
@@ -481,9 +418,7 @@ def _resolve_manifest_partitions(
             raise DatasetRegistrationError(f"Parquet partition does not exist: {path}")
         stat = path.stat()
         if stat.st_size != size:
-            raise DatasetRegistrationError(
-                f"Parquet partition size differs from manifest: {path}"
-            )
+            raise DatasetRegistrationError(f"Parquet partition size differs from manifest: {path}")
         try:
             parquet = pq.ParquetFile(path)
             file_schema = parquet.schema_arrow
@@ -496,12 +431,12 @@ def _resolve_manifest_partitions(
             raise DatasetRegistrationError(
                 f"Parquet partition row count differs from manifest: {path}"
             )
-        missing = set(catalog.schema.names).difference(file_schema.names)
+        missing = set(catalog["schema"].names).difference(file_schema.names)
         if missing:
             raise SchemaMismatchError(
                 f"Parquet partition {path} is missing catalog fields: {sorted(missing)}"
             )
-        for field in catalog.schema:
+        for field in catalog["schema"]:
             stored = file_schema.field(field.name)
             if not _archive_type_compatible(stored.type, field.type):
                 raise SchemaMismatchError(
@@ -525,3 +460,125 @@ def _archive_type_compatible(stored: pa.DataType, public: pa.DataType) -> bool:
     if pa.types.is_date32(public):
         return bool(pa.types.is_string(stored) or pa.types.is_date32(stored))
     return bool(stored.equals(public))
+
+
+def coerce_frame(frame: pd.DataFrame, schema: pa.Schema) -> pd.DataFrame:
+    """Coerce stored values to the catalog schema types."""
+
+    for field in schema:
+        if field.name not in frame.columns:
+            continue
+        if pa.types.is_date32(field.type):
+            frame[field.name] = coerce_yyyymmdd(frame[field.name], field.name)
+        elif pa.types.is_string(field.type):
+            frame[field.name] = frame[field.name].astype("string")
+        elif pa.types.is_integer(field.type):
+            frame[field.name] = pd.to_numeric(frame[field.name], errors="coerce").astype("Int64")
+        elif pa.types.is_floating(field.type):
+            frame[field.name] = pd.to_numeric(frame[field.name], errors="coerce")
+    return frame
+
+
+def coerce_yyyymmdd(series: pd.Series, name: str) -> pd.Series:
+    """Parse a YYYYMMDD string column into dates, rejecting invalid values."""
+
+    result = pd.Series(pd.NaT, index=series.index, dtype="datetime64[ns]")
+    mask = series.notna() & (series.astype("string") != "")
+    if mask.any():
+        parsed = pd.to_datetime(series.loc[mask].astype("string"), format="%Y%m%d", errors="coerce")
+        if parsed.isna().any():
+            bad = series.loc[mask][parsed.isna()].head(5).to_list()
+            raise SchemaMismatchError(
+                f"Tushare column {name!r} contains invalid YYYYMMDD values: {bad}"
+            )
+        result.loc[mask] = parsed
+    return result.dt.date
+
+
+def filter_time(
+    frame: pd.DataFrame,
+    time_column: str,
+    start: datetime | None,
+    end: datetime | None,
+) -> pd.DataFrame:
+    """Keep rows whose date-granular time value lies within closed bounds."""
+
+    if frame.empty:
+        return frame
+    values = pd.to_datetime(frame[time_column])
+    if start is not None:
+        start_bound = pd.Timestamp(start.date())
+        frame = frame.loc[values.notna() & (values >= start_bound)]
+        values = values.loc[frame.index]
+    if end is not None:
+        end_bound = pd.Timestamp(end.date())
+        frame = frame.loc[values.notna() & (values <= end_bound)]
+    return frame
+
+
+def sort_by(frame: pd.DataFrame, columns: tuple[str, ...]) -> pd.DataFrame:
+    """Sort a frame by the columns present, with null values last."""
+
+    if frame.empty:
+        return frame
+    available = [column for column in columns if column in frame.columns]
+    if not available:
+        return frame
+    return frame.sort_values(available, kind="mergesort", na_position="last")
+
+
+def frame_to_arrow(
+    frame: pd.DataFrame,
+    schema: pa.Schema,
+    selected: tuple[str, ...],
+) -> pa.Table:
+    """Convert a normalized frame to a typed Arrow table."""
+
+    selected_schema = pa.schema([schema.field(column) for column in selected])
+    if frame.empty:
+        return pa.table({field.name: pa.array([], type=field.type) for field in selected_schema})
+    try:
+        return pa.Table.from_pandas(
+            frame.loc[:, list(selected)],
+            schema=selected_schema,
+            preserve_index=False,
+        )
+    except (pa.ArrowException, ValueError, TypeError) as exc:
+        raise SchemaMismatchError(f"Unable to convert Tushare result to Arrow: {exc}") from exc
+
+
+def membership_frame_to_arrow(
+    frame: pd.DataFrame,
+    schema: pa.Schema,
+    panel_time_column: str,
+    selected: tuple[str, ...],
+) -> pa.Table:
+    """Convert an expanded membership frame with a date32 panel index."""
+
+    fields = [
+        pa.field(column, pa.date32()) if column == panel_time_column else schema.field(column)
+        for column in selected
+    ]
+    selected_schema = pa.schema(fields)
+    if frame.empty:
+        return pa.table({field.name: pa.array([], type=field.type) for field in selected_schema})
+    try:
+        return pa.Table.from_pandas(
+            frame.loc[:, list(selected)],
+            schema=selected_schema,
+            preserve_index=False,
+        )
+    except (pa.ArrowException, ValueError, TypeError) as exc:
+        raise SchemaMismatchError(
+            f"Unable to convert Tushare membership panel to Arrow: {exc}"
+        ) from exc
+
+
+def fixed_param_value(value: object) -> object:
+    """Render a fixed parameter value the way archive columns store it."""
+
+    if isinstance(value, datetime):
+        return value.strftime("%Y%m%d")
+    if isinstance(value, date):
+        return value.strftime("%Y%m%d")
+    return value

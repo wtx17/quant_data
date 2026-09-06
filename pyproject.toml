@@ -19,9 +19,6 @@ dependencies = [
 clickhouse = [
   "clickhouse-connect>=0.8",
 ]
-tushare = [
-  "tushare>=1.4",
-]
 dev = [
   "mypy>=1.14,<2",
   "pytest>=8.3,<10",
@@ -37,7 +34,7 @@ only-include = [
   "audit.py",
   "backends",
   "client.py",
-  "datasets.py",
+  "datasets",
   "exceptions.py",
   "initialize.py",
   "models.py",
@@ -50,6 +47,7 @@ only-include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = [".."]
 addopts = "-q"
 markers = [
   "clickhouse: tests that require access to the real ClickHouse service",
@@ -69,8 +67,6 @@ exclude = ["^tests/"]
 module = [
   "clickhouse_connect",
   "clickhouse_connect.*",
-  "tushare",
-  "tushare.*",
   "pandas",
   "pandas.*",
   "pyarrow",

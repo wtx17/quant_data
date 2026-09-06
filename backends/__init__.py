@@ -1,4 +1,5 @@
-from .clickhouse import ClickHouseSession
-from .tushare import TushareSession
+"""Connection resources used by data readers."""
 
-__all__ = ["ClickHouseSession", "TushareSession"]
+from .clickhouse import ClickHouseSession
+
+__all__ = ["ClickHouseSession"]

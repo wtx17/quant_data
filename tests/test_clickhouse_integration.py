@@ -11,7 +11,7 @@ import pyarrow as pa
 
 from quant_data import ClickHouseConfig, DataClient
 from quant_data.backends.clickhouse_catalog import MINGHU_TABLE_COLUMN_TYPES
-from quant_data.initialize import clickhouse_registrations
+from quant_data.initialize import CLICKHOUSE_PANEL_DEFS
 
 pytestmark = pytest.mark.clickhouse
 CODE_SUFFIXES = (".SZ", ".SH", ".BJ")
@@ -87,17 +87,15 @@ def test_minghu_tables_smoke(tmp_path: Path) -> None:
             order_columns=("date_time", "code"),
             frequency="1min",
         )
-        flow_registration = next(
-            item for item in clickhouse_registrations() if item.name == "zb_cj_flow_min"
-        )
+        flow = next(d for d in CLICKHOUSE_PANEL_DEFS if d["name"] == "zb_cj_flow_min")
         data.register_clickhouse(
-            flow_registration.name,
-            connection=flow_registration.connection,
-            table=flow_registration.table,
-            time_column=flow_registration.time_column,
-            partition_column=flow_registration.partition_column,
-            order_columns=flow_registration.order_columns,
-            frequency=flow_registration.frequency,
+            "zb_cj_flow_min",
+            connection="minghu",
+            table=flow["table"],
+            time_column=flow["time_column"],
+            partition_column=flow["partition_column"],
+            order_columns=flow["order_columns"],
+            frequency=flow["frequency"],
         )
         flow = data.get_panel(
             "zb_cj_flow_min",
@@ -277,3 +275,45 @@ def test_membership_events_real_daily(tmp_path: Path, monkeypatch: pytest.Monkey
     assert len(reads) == 3
     print(f"date={query_date}, reads(rows, Arrow bytes)={reads}")
     print(f"membership={panel.iloc[0].to_dict()}, hs300 missing from market={missing_members}")
+
+
+def test_real_calendar_drives_local_industry(tmp_path):
+    """Exercise the new distinct-date SQL through a real local-event panel."""
+    from datetime import date, datetime
+    from quant_data.backends.clickhouse import prepare_clickhouse_table, read_trade_calendar
+    from tushare_fixtures import industry_frame, write_archive
+
+    require_environment()
+    root = tmp_path / "archive"
+    write_archive(
+        root, "ci_index_member", industry_frame().to_dict("records"), range_start="20190101"
+    )
+    with DataClient(tmp_path / "audit") as client:
+        client.add_clickhouse_connection(
+            "calendar",
+            ClickHouseConfig(
+                host=os.environ["MINGHU_CLICKHOUSE_HOST"],
+                port=int(os.getenv("MINGHU_CLICKHOUSE_PORT", "8123")),
+                username=os.environ["MINGHU_CLICKHOUSE_USERNAME"],
+                password_env="MINGHU_CLICKHOUSE_PASSWORD",
+                secure=os.getenv("MINGHU_CLICKHOUSE_SECURE", "").lower()
+                in {"1", "true", "yes", "y", "on"},
+            ),
+        )
+        source = prepare_clickhouse_table(
+            client._clickhouse,
+            connection="calendar",
+            table="stock_base.daily",
+            time_column="date",
+            instrument_column="code",
+        )
+        days = read_trade_calendar(
+            client._clickhouse, source, datetime(2024, 1, 1), datetime(2024, 1, 7)
+        )
+        assert days == [date(2024, 1, n) for n in (2, 3, 4, 5)]
+        client.register_tushare("ci_index_member", data_dir=root, calendar_connection="calendar")
+        panel = client.get_panel(
+            "ci_index_member", ["l1_name"], "2024-01-01", "2024-01-07", ["600000.SH"]
+        )["l1_name"]
+        assert list(panel.index) == days
+        assert panel.iloc[:, 0].tolist() == ["old", "old", "new", "new"]

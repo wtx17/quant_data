@@ -16,14 +16,13 @@ import pandas as pd
 from ._version import __version__
 from .audit import AuditWriter
 from .backends.clickhouse import ClickHouseSession
-from .backends.tushare import TushareSession
 from . import datasets as dataset_factories
 from .exceptions import (
     DatasetNotFoundError,
     FieldNotFoundError,
     InvalidQueryError,
 )
-from .models import ClickHouseConfig, Dataset, Query, QueryAudit, TushareConfig
+from .models import ClickHouseConfig, Dataset, Query, QueryAudit
 from ._universes import load_universe
 
 
@@ -37,13 +36,10 @@ class DataClient:
     clickhouse_client_factory
         Optional factory used to create ClickHouse clients. This is primarily
         useful for dependency injection and offline tests.
-    tushare_client_factory
-        Optional factory used to create Tushare clients. This is primarily
-        useful for dependency injection and offline tests.
 
     Notes
     -----
-    A client starts with ClickHouse and Tushare sessions but no datasets.
+    A client starts with a ClickHouse session but no datasets.
     Remote connections are cached and released by :meth:`close`. Use the
     client as a context manager to close them automatically.
 
@@ -63,11 +59,9 @@ class DataClient:
         audit_dir: str | Path = ".quant_data/audit",
         *,
         clickhouse_client_factory: Callable[..., Any] | None = None,
-        tushare_client_factory: Callable[..., Any] | None = None,
     ) -> None:
         self._datasets: dict[str, Dataset] = {}
         self._clickhouse = ClickHouseSession(clickhouse_client_factory)
-        self._tushare = TushareSession(tushare_client_factory)
         self._audit = AuditWriter(audit_dir)
 
     def add_clickhouse_connection(self, name: str, config: ClickHouseConfig) -> None:
@@ -92,28 +86,6 @@ class DataClient:
         """
 
         self._clickhouse.add_connection(name, config)
-
-    def add_tushare_connection(self, name: str, config: TushareConfig) -> None:
-        """Add or replace a named Tushare connection profile.
-
-        Parameters
-        ----------
-        name
-            Identifier referenced by Tushare dataset registrations.
-        config
-            Token or token-environment configuration.
-
-        Raises
-        ------
-        DatasetRegistrationError
-            If the name or token configuration is invalid.
-
-        Notes
-        -----
-        Replacing an already initialized profile closes its client.
-        """
-
-        self._tushare.add_connection(name, config)
 
     def register_parquet(
         self,
@@ -256,82 +228,34 @@ class DataClient:
         self,
         name: str,
         *,
+        data_dir: str | Path,
         dataset: str | None = None,
-        connection: str | None = None,
-        data_dir: str | Path | None = None,
-        calendar_connection: str | None = None,
+        calendar_connection: str = "minghu",
         fixed_params: dict[str, object] | None = None,
         timezone: str | None = "Asia/Shanghai",
         version: str | None = None,
         disclosure_lag: int = 0,
-        calendar_exchange: str = "SSE",
         fetch_buffer_days: int = 180,
         fetch_margin_days: int = 31,
     ) -> None:
-        """Register one logical catalog-backed Tushare dataset.
+        """Register a manifest-backed local Tushare archive.
 
-        Parameters
-        ----------
-        name
-            Stable registration name.
-        dataset
-            Optional logical catalog name. When omitted, ``name`` is used.
-            Supply this only when registering an alias or a fixed-parameter
-            view.
-        connection
-            Named Tushare connection used by the remote API source. Mutually
-            exclusive with ``data_dir``.
-        data_dir
-            Root directory of a manifest-backed local Parquet snapshot. When
-            provided, table data never calls a Tushare data API.
-        calendar_connection
-            Tushare connection used only to fetch ``trade_cal`` for local
-            snapshot panel queries. Required with ``data_dir``.
-        fixed_params
-            Constant API parameters added to every request. Backend-managed
-            parameters such as fields, dates, and instruments are reserved.
-        timezone
-            IANA timezone used to interpret query bounds.
-        version
-            Optional dataset version stored in result metadata.
-        disclosure_lag
-            Number of trading sessions between the snapped disclosure date
-            and first availability in a point-in-time panel.
-        calendar_exchange
-            Tushare exchange code used to request the trading calendar.
-        fetch_buffer_days
-            Calendar days fetched before ``start`` so earlier disclosures
-            can be carried into the requested panel.
-        fetch_margin_days
-            Calendar days fetched after ``end`` to make disclosure-lag
-            alignment possible near the right boundary.
-
-        Raises
-        ------
-        DatasetRegistrationError
-            If the definition, catalog name, connection, archive, or fixed
-            parameters are invalid.
-
-        Notes
-        -----
-        Disclosure datasets automatically produce point-in-time panels; keys,
-        table ordering, and panel behavior come exclusively from the logical
-        catalog. Local statement scans add the remote default
-        ``report_type="1"`` unless overridden in ``fixed_params``.
+        ``dataset`` selects the logical dataset when ``name`` is an alias.
+        ``calendar_connection`` names a ClickHouse connection used for PIT and
+        industry calendars from stock_base.daily. daily_basic needs no connection.
+        Fixed parameters filter archive columns; disclosure lag and history/calendar
+        windows retain their existing meaning. No Tushare API or token is used.
         """
-
         self._datasets[name] = dataset_factories.tushare_dataset(
-            self._tushare,
+            self._clickhouse,
             name,
-            dataset=dataset,
-            connection=connection,
             data_dir=data_dir,
+            dataset=dataset,
             calendar_connection=calendar_connection,
             fixed_params=fixed_params,
             timezone=timezone,
             version=version,
             disclosure_lag=disclosure_lag,
-            calendar_exchange=calendar_exchange,
             fetch_buffer_days=fetch_buffer_days,
             fetch_margin_days=fetch_margin_days,
         )
@@ -464,7 +388,6 @@ class DataClient:
         """
 
         self._clickhouse.close()
-        self._tushare.close()
 
     def __enter__(self) -> DataClient:
         """Return this client when entering a context manager."""

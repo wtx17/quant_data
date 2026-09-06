@@ -14,7 +14,7 @@ from .exceptions import (
     RemoteQueryError,
     SchemaMismatchError,
 )
-from .models import ClickHouseConfig, TushareConfig
+from .models import ClickHouseConfig
 
 __all__ = [
     "AuditWriteError",
@@ -29,6 +29,5 @@ __all__ = [
     "QuantDataError",
     "RemoteQueryError",
     "SchemaMismatchError",
-    "TushareConfig",
     "__version__",
 ]

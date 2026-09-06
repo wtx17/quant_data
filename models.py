@@ -138,23 +138,6 @@ class ClickHouseConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class TushareConfig:
-    """Configure credentials for a Tushare Pro connection.
-
-    Parameters
-    ----------
-    token
-        Optional token value. The field is excluded from ``repr`` output.
-    token_env
-        Environment variable read when the client is first initialized and
-        ``token`` is not supplied.
-    """
-
-    token: str | None = field(default=None, repr=False)
-    token_env: str | None = "TUSHARE_TOKEN"
-
-
-@dataclass(frozen=True, slots=True)
 class PriceAdjustment:
     """Describe multiplicative price adjustment for selected fields.
 

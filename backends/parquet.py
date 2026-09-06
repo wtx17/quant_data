@@ -173,7 +173,5 @@ def parquet_fingerprint(files: tuple[Path, ...]) -> dict[str, object]:
     fingerprints: list[dict[str, object]] = []
     for path in files:
         stat = os.stat(path)
-        fingerprints.append(
-            {"path": str(path), "size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
-        )
+        fingerprints.append({"path": str(path), "size": stat.st_size, "mtime_ns": stat.st_mtime_ns})
     return {"backend": "parquet", "files": fingerprints}

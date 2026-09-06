@@ -4,30 +4,59 @@ from pathlib import Path
 
 import pytest
 
+from quant_data import FieldNotFoundError
 from quant_data.initialize import (
+    CLICKHOUSE_PANEL_DEFS,
     TUSHARE_DATASET_NAMES,
-    clickhouse_registrations,
     initialize_data_client,
     registered_dataset_names,
 )
 
 
-def test_clickhouse_registrations_only_include_panel_datasets() -> None:
-    registrations = clickhouse_registrations("research")
-    assert [item.name for item in registrations] == [
-        "minghu_daily",
-        "minghu_index_daily",
-        "minghu_m1",
-        "zb_cj_flow_min",
+def test_default_clickhouse_definitions_list_standard_panels() -> None:
+    assert [(definition["name"], definition["table"]) for definition in CLICKHOUSE_PANEL_DEFS] == [
+        ("minghu_daily", "stock_base.daily"),
+        ("minghu_index_daily", "index_base.daily"),
+        ("minghu_m1", "stock_base.m1"),
+        ("zb_cj_flow_min", "zhangruiqi.zb_cj_flow_min"),
     ]
+    minute = next(d for d in CLICKHOUSE_PANEL_DEFS if d["name"] == "minghu_m1")
+    assert minute["partition_column"] == "date"
+    assert minute["order_columns"] == ("date_time", "code")
+    assert minute["frequency"] == "1min"
+    daily = next(d for d in CLICKHOUSE_PANEL_DEFS if d["name"] == "minghu_daily")
+    assert daily["partition_column"] is None
+    assert daily["time_column"] == "date"
 
-    by_name = {item.name: item for item in registrations}
-    index_daily = by_name["minghu_index_daily"]
-    assert index_daily.connection == "research"
-    assert index_daily.table == "index_base.daily"
-    assert index_daily.time_column == "date"
-    assert index_daily.frequency == "1d"
-    assert index_daily.partition_column is None
+
+def test_initialize_registers_clickhouse_datasets_without_a_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Field validation precedes any connection, so registration is observable offline."""
+
+    monkeypatch.setenv("QUANT_DATA_CLICKHOUSE_HOST", "offline-invalid.example")
+    client = initialize_data_client(
+        audit_dir=tmp_path / "audit",
+        register_tushare=False,
+    )
+    try:
+        for definition in CLICKHOUSE_PANEL_DEFS:
+            with pytest.raises(FieldNotFoundError):
+                client.get_panel(
+                    definition["name"],
+                    ["no_such_field"],
+                    start="2026-03-02",
+                    end="2026-03-03",
+                )
+        with pytest.raises(FieldNotFoundError):
+            client.get_panel(
+                "membership_events",
+                ["no_such_field"],
+                start="2026-03-02",
+                end="2026-03-03",
+            )
+    finally:
+        client.close()
 
 
 def test_registered_dataset_names_match_default_registrations() -> None:
@@ -35,7 +64,7 @@ def test_registered_dataset_names_match_default_registrations() -> None:
     assert names == tuple(
         name
         for name in (
-            *(item.name for item in clickhouse_registrations()),
+            *(str(definition["name"]) for definition in CLICKHOUSE_PANEL_DEFS),
             "membership_events",
             *TUSHARE_DATASET_NAMES,
         )
@@ -58,11 +87,9 @@ def test_tushare_names_contain_one_entry_per_logical_dataset() -> None:
     assert not any(name.endswith(("_vip", "_pit")) for name in TUSHARE_DATASET_NAMES)
 
 
-def test_default_initialization_is_offline(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("TUSHARE_TOKEN", raising=False)
-    monkeypatch.delenv("QUANT_DATA_TUSHARE_TOKEN", raising=False)
-    client = initialize_data_client(audit_dir=tmp_path / "audit")
-    try:
-        assert registered_dataset_names()
-    finally:
-        client.close()
+def test_default_initialization_requires_local_archive(tmp_path, monkeypatch):
+    from quant_data import DatasetRegistrationError
+
+    monkeypatch.delenv("QUANT_DATA_TUSHARE_DATA_DIR", raising=False)
+    with pytest.raises(DatasetRegistrationError, match="tushare_data_dir"):
+        initialize_data_client(audit_dir=tmp_path / "audit")

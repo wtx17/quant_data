@@ -8,7 +8,7 @@
 - `get_panel(universe=...)` 支持 `hs300`、`zz500`、`zz1000` 三个包内
   历史成分面板。
 - ClickHouse 支持内置 Minghu 表和自定义表。
-- Tushare 支持远端 API，以及带 manifest 的本地 Parquet 快照。
+- Tushare 只读取带 manifest 的本地 Parquet 快照；PIT 和行业日历来自 ClickHouse stock_base.daily。
 - Tushare `daily_basic` 支持普通日频宽表；
 - Tushare 财务披露数据支持交易日对齐的 point-in-time 面板。
 - 行业成分支持有效区间展开。
@@ -30,7 +30,7 @@ conda activate qt
 conda 环境已经配置好以下环境变量：
 
 - ClickHouse：`QUANT_DATA_CLICKHOUSE_*`、`MINGHU_CLICKHOUSE_*`。
-- Tushare：`TUSHARE_TOKEN`。
+- 本地存档：`QUANT_DATA_TUSHARE_DATA_DIR`（也可显式传 tushare_data_dir）。
 
 
 ## 测试环境
@@ -87,20 +87,20 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
   `<name>_panel.csv` 的第一列为 `change_date`，后续列为全历史证券，行是从该日期
   起生效的 0/1 状态；日期、代码、行宽和掩码严格校验，每行 1 的数量分别为
   300/500/1000。
-- 命名股票池必须在审计初始化后、Backend 查询前展开。对 `[start, end]`，选择
+- 命名股票池必须在审计初始化后、数据集读取前展开。对 `[start, end]`，选择
   `start` 当日状态以及之后至 `end` 的所有调仓状态的证券并集；首行之前为空，末行
   之后延续末状态。审计和面板参数需要保留规范化名称、panel 首末 change date、
   选中数量、CSV SHA-256 以及完整展开列表；解析失败也必须写失败审计。
-- 展开后的股票池与手工传入完整 `instruments` 列表使用相同 Backend 路由。不要隐式
-  改成全市场查询；远端 Tushare 财务数据因此可能产生逐证券请求。
+- 展开后的股票池与手工传入完整 `instruments` 列表使用相同的读取路径。不要隐式
+  改成全市场数据扫描；日历独立查询全市场去重日期。
 - 修改 Tushare 字段时，同步更新：
   - `backends/tushare_schemas.py`
   - `tools/dataset_descriptions.toml`
   - `tests/test_tushare_schemas.py`
   - 重新生成 `DATASETS.md`
 - 修改 ClickHouse 内置字段时，同步更新 `backends/clickhouse_catalog.py` 和集成校验。
-- 配置 `tushare_data_dir` 后，全部 Tushare 数据集（包括 `daily_basic`）默认注册为
-  本地数据源；只有 `tushare_remote_datasets` 指定的数据集使用远端 API。
+- 全部 Tushare 数据集必须使用本地存档。初始化要求 `tushare_data_dir` 或对应环境变量；
+  `daily_basic` 无需日历，财务及行业通过 ClickHouse `stock_base.daily` 获取日历。
 - 内部扫描仍使用 Arrow 长表；保留财务 PIT 的公告、修订及行业成分的有效区间。
 - 自定义数据源不要求声明频率，也不检查分钟及以上粒度。
 - 不要在审计、异常、日志或 `repr` 中写入密码和 token。

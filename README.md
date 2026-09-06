@@ -15,7 +15,7 @@ python -m pip install -e .
 按实际使用的数据源安装远程后端：
 
 ```bash
-python -m pip install -e ".[clickhouse,tushare]"
+python -m pip install -e ".[clickhouse]"
 ```
 
 ## 使用
@@ -25,7 +25,7 @@ python -m pip install -e ".[clickhouse,tushare]"
 ```python
 from quant_data.initialize import initialize_data_client
 
-with initialize_data_client() as data:
+with initialize_data_client(tushare_data_dir="/data/tushare") as data:
     close = data.get_panel(
         "minghu_daily",
         ["close"],
@@ -54,7 +54,7 @@ ClickHouse 分钟表统一注册 `time_column="date_time"`。当源表包含 `da
 `get_panel()` 也可以通过 `universe` 选择内置股票池：
 
 ```python
-with initialize_data_client() as data:
+with initialize_data_client(tushare_data_dir="/data/tushare") as data:
     hs300_close = data.get_panel(
         "minghu_daily",
         ["close"],
@@ -69,29 +69,17 @@ with initialize_data_client() as data:
 给出闭区间 `start/end`，返回区间内曾经属于该指数的证券并集：变更日当天的新状态
 立即生效，区间首日的有效状态也会纳入，查询区间跨越多次调仓时保留所有相关证券。
 `universe` 与 `instruments` 不能同时使用。股票池名称、首末变更日期、内容哈希和展开
-后的证券列表会写入查询审计及面板元数据。展开后的列表沿用现有后端路由，因此远端
-Tushare 财务面板可能产生逐证券 API 请求。
+后的证券列表会写入查询审计及面板元数据，并直接用于本地扫描过滤。
 
-配置 `tushare_data_dir` 后，全部 Tushare 数据集默认从同一 Parquet 归档读取。
-只有 `tushare_remote_datasets` 中列出的数据集继续调用远端 API：
+全部 Tushare 数据集只读取带 manifest 的本地 Parquet 存档。初始化必须提供
+`tushare_data_dir`，或设置 `QUANT_DATA_TUSHARE_DATA_DIR`；缺少配置立即报错。
+只使用 ClickHouse 时可设置 `register_tushare=False`。不再需要 Tushare SDK 或 token。
 
-```python
-with initialize_data_client(
-    tushare_data_dir="/data/tushare",
-    tushare_remote_datasets={"forecast"},
-) as data:
-    income = data.get_panel(
-        "income", ["total_revenue"], start="2026-07-01", end="2026-07-31"
-    )["total_revenue"]
-    forecast = data.get_panel(
-        "forecast", ["p_change_min", "p_change_max"],
-        start="2026-07-01", end="2026-07-31",
-    )
-```
-
-不传 `tushare_data_dir` 时，全部 Tushare 数据集使用远端 API。财务披露和行业成分的
-本地 `get_panel()` 为了交易日对齐，仍会通过配置的 Tushare 连接读取 `trade_cal`；
-本地 `daily_basic` 直接扫描请求范围内的日期分区，不调用 Tushare API。
+`daily_basic` 完全本地读取，无需交易日历。财务 PIT 和行业成分面板使用 ClickHouse
+`stock_base.daily` 的去重日期对齐，日历不受请求股票过滤影响，只传输日期。
+初始化时使用 `clickhouse_connection`；手动注册通过 `calendar_connection` 指定
+已添加的 ClickHouse 连接（默认 `minghu`）。本地缺文件、日历连接失败都直接报错，
+不回退到远端 Tushare。manifest 和分区 schema 的严格校验保持不变。
 
 全部数据集、字段类型及字段含义见 [默认数据集手册](DATASETS.md)。
 
@@ -126,5 +114,54 @@ membership = client.get_panel(
 输出交易日仍严格限定在原始 `start/end`；不要求每个证券每天都有行情。
 证券缺少某日行情时仍按事件状态填值。省略 `instruments/universe` 查询上述扩展区间的全市场，
 空 `instruments=[]` 保留交易日索引、返回零列。`start/end` 必填。
-手动注册可使用 `client.register(BuiltInDatasetSpec(connection="minghu"))`
-（从 `quant_data` 导入 `BuiltInDatasetSpec`）。
+手动注册可使用 `client.register_builtin("membership_events", connection="minghu")`。
+
+### 自定义注册与旧接口迁移
+
+`get_panel()` 的参数和返回结构保持不变。注册时直接传参数，不再构造 `DatasetSpec`
+等对象。默认数据集名称保留；初始化与注册中的 Tushare 远端配置已删除。
+
+| 旧注册对象 | 当前方法 |
+| --- | --- |
+| `DatasetSpec` | `client.register_parquet(name, paths, ...)` |
+| `ClickHouseDatasetSpec` | `client.register_clickhouse(name, connection=..., table=..., time_column=..., ...)` |
+| `TushareDatasetSpec` | 已删除远端链路；先准备本地存档，再使用下方本地注册 |
+| `TushareParquetDatasetSpec` | `client.register_tushare(name, data_dir=..., calendar_connection=..., dataset=..., ...)` |
+| `BuiltInDatasetSpec` | `client.register_builtin(name, connection=..., dataset=...)` |
+
+例如：
+
+```python
+from quant_data import DataClient
+
+with DataClient() as data:
+    data.register_parquet(
+        "factors", ["/data/factors/*.parquet"],
+        time_column="date", instrument_column="code",
+    )
+    factors = data.get_panel("factors", ["value"], start="2026-01-01", end="2026-01-31")
+```
+
+### 验证重构兼容性
+
+在 `qt` 环境、仓库根目录执行：
+
+```bash
+pytest -m "not clickhouse"
+pytest -m clickhouse tests/test_clickhouse_integration.py tests/test_panel_compatibility.py
+ruff check .
+mypy .
+python tools/generate_dataset_catalog.py --check
+```
+
+`tests/test_panel_compatibility.py` 从本地 Git 历史加载重构前的 `680ab80`，在独立模块
+命名空间中运行原实现与当前实现。两边使用同一份文件和相同的模拟响应，只适配注册
+语法，不修改查询代码；还包含四个默认 ClickHouse 数据集的真实查询对照。
+比较覆盖面板值、缺失值、dtype、轴名称/顺序、稳定 attrs 和审计、模拟 SQL 请求。
+查询 UUID、开始时间和耗时不要求相等；Tushare 日历来源元数据按新契约单独验证。
+本地 Tushare 对照向新旧实现提供相同交易日，严格比较数值与结构。没有本地基线提交时会明确跳过该组测试，
+不下载旧代码；验收时需确认这组测试实际执行。
+
+测试配置优先从当前 checkout 导入包，避免另一目录的 editable 安装干扰工作树验证。
+构建 wheel 可使用 `python -m pip wheel . --no-deps --wheel-dir dist`；从源码目录外
+安装验证，并检查 `datasets/` 模块和 `resources/universes/` 下的 CSV、Parquet 已打包。

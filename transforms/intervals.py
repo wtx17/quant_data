@@ -124,9 +124,7 @@ def expand_intervals(
             tied = group
             for column in precedence:
                 value = latest[column]
-                tied = tied.loc[
-                    tied[column].isna() if pd.isna(value) else tied[column].eq(value)
-                ]
+                tied = tied.loc[tied[column].isna() if pd.isna(value) else tied[column].eq(value)]
         else:
             tied = group
         comparable = [column for column in columns if column not in keys]
