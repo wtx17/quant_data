@@ -1,0 +1,111 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "index_member_all",
+  "dataset_version": null,
+  "duration_ms": 584.901833004551,
+  "error": null,
+  "fields": [
+    "l1_code",
+    "l1_name",
+    "l2_code",
+    "l2_name",
+    "l3_code",
+    "l3_name",
+    "name",
+    "in_date",
+    "out_date",
+    "is_new"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_api": "trade_cal",
+    "effective_end": "2025-06-30T00:00:00+08:00",
+    "effective_start": "2025-01-01T00:00:00+08:00",
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "81f95bfe-f6dc-42f4-96ef-fa346e6a074c",
+  "result_shapes": {
+    "in_date": [
+      117,
+      5
+    ],
+    "is_new": [
+      117,
+      5
+    ],
+    "l1_code": [
+      117,
+      5
+    ],
+    "l1_name": [
+      117,
+      5
+    ],
+    "l2_code": [
+      117,
+      5
+    ],
+    "l2_name": [
+      117,
+      5
+    ],
+    "l3_code": [
+      117,
+      5
+    ],
+    "l3_name": [
+      117,
+      5
+    ],
+    "name": [
+      117,
+      5
+    ],
+    "out_date": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar_api": "trade_cal",
+    "calendar_connection": "live",
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "index_member_all",
+    "fixed_params": {},
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/index_member_all/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 120129,
+        "key": "all",
+        "mtime_ns": 1784564596799632428,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/index_member_all/data.parquet",
+        "relative_path": "index_member_all/data.parquet",
+        "rows": 7275,
+        "sha256": "ce1556547eb23c2285f1dc4aae0a650fabb9499dce5099f2fb3c7b0664a9d531",
+        "size": 120129
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "5d6bb349f88644fcc85876809cf057ce7d5a743bccd4159ad3197a2d0410e46b",
+    "updated_at": "2026-07-20T16:23:16+00:00"
+  },
+  "started_at": "2026-09-06T04:02:24.005649+00:00",
+  "status": "success"
+}

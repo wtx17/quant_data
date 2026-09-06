@@ -1,0 +1,47 @@
+{
+  "adjusted": false,
+  "calendar_aligned": false,
+  "dataset": "minghu_index_daily",
+  "dataset_version": null,
+  "duration_ms": 955.2677500032587,
+  "error": {
+    "message": "Dataset 'minghu_index_daily' has 6 duplicate key pairs; sample=[{'date': datetime.date(2026, 1, 28), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 3, 30), 'code': '000852.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '899050.BJ', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '399001.SZ', 'len': 2}]",
+    "type": "DuplicateObservationError"
+  },
+  "fields": [
+    "open",
+    "close",
+    "volume"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2026-06-30T00:00:00",
+    "instruments": [
+      "000982.SH",
+      "000852.SH",
+      "899050.BJ",
+      "399001.SZ",
+      "000902.SH"
+    ],
+    "start": "2026-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "af3a3d09-2d5a-4f9a-aded-edb8f20839fd",
+  "result_shapes": {},
+  "source": {
+    "backend": "clickhouse",
+    "connection": "live",
+    "host": "chdb.tradegdb.com",
+    "port": 8123,
+    "schema_hash": "4697e63dc32cf87ff54ffb5ab98ccafef6396e7f647cac308d66ea1e2273000a",
+    "schema_source": "catalog",
+    "secure": false,
+    "table": "index_base.daily",
+    "time_expression": null
+  },
+  "started_at": "2026-09-06T03:58:25.424636+00:00",
+  "status": "failed"
+}

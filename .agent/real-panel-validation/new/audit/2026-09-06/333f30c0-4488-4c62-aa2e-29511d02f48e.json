@@ -1,0 +1,120 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "ci_index_member",
+  "dataset_version": null,
+  "duration_ms": 638.2567079999717,
+  "error": null,
+  "fields": [
+    "l1_code",
+    "l1_name",
+    "l2_code",
+    "l2_name",
+    "l3_code",
+    "l3_name",
+    "name",
+    "in_date",
+    "out_date",
+    "is_new"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_table": "stock_base.daily",
+    "effective_end": "2025-06-30T00:00:00+08:00",
+    "effective_start": "2025-01-01T00:00:00+08:00",
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "333f30c0-4488-4c62-aa2e-29511d02f48e",
+  "result_shapes": {
+    "in_date": [
+      117,
+      5
+    ],
+    "is_new": [
+      117,
+      5
+    ],
+    "l1_code": [
+      117,
+      5
+    ],
+    "l1_name": [
+      117,
+      5
+    ],
+    "l2_code": [
+      117,
+      5
+    ],
+    "l2_name": [
+      117,
+      5
+    ],
+    "l3_code": [
+      117,
+      5
+    ],
+    "l3_name": [
+      117,
+      5
+    ],
+    "name": [
+      117,
+      5
+    ],
+    "out_date": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar": {
+      "backend": "clickhouse",
+      "connection": "live",
+      "host": "chdb.tradegdb.com",
+      "port": 8123,
+      "schema_hash": "e588a483efa913a86d786077a14d93152d3fefd561643cfa6fbfcd44a77b3738",
+      "schema_source": "catalog",
+      "secure": false,
+      "table": "stock_base.daily",
+      "time_expression": null
+    },
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "ci_index_member",
+    "fixed_params": {},
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/ci_index_member/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 149152,
+        "key": "all",
+        "mtime_ns": 1784564603213548567,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/ci_index_member/data.parquet",
+        "relative_path": "ci_index_member/data.parquet",
+        "rows": 7974,
+        "sha256": "8fead281b5919f8b5761f7a66e88f2bd379056036b687be215f1c5f0d11d796b",
+        "size": 149152
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "5d6bb349f88644fcc85876809cf057ce7d5a743bccd4159ad3197a2d0410e46b",
+    "updated_at": "2026-07-20T16:23:23+00:00"
+  },
+  "started_at": "2026-09-06T04:02:17.822033+00:00",
+  "status": "success"
+}

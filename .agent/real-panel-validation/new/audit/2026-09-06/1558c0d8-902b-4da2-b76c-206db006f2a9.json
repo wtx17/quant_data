@@ -1,0 +1,943 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "cashflow",
+  "dataset_version": null,
+  "duration_ms": 669.803458993556,
+  "error": null,
+  "fields": [
+    "ann_date",
+    "f_ann_date",
+    "end_date",
+    "comp_type",
+    "report_type",
+    "end_type",
+    "net_profit",
+    "finan_exp",
+    "c_fr_sale_sg",
+    "recp_tax_rends",
+    "n_depos_incr_fi",
+    "n_incr_loans_cb",
+    "n_inc_borr_oth_fi",
+    "prem_fr_orig_contr",
+    "n_incr_insured_dep",
+    "n_reinsur_prem",
+    "n_incr_disp_tfa",
+    "ifc_cash_incr",
+    "n_incr_disp_faas",
+    "n_incr_loans_oth_bank",
+    "n_cap_incr_repur",
+    "c_fr_oth_operate_a",
+    "c_inf_fr_operate_a",
+    "c_paid_goods_s",
+    "c_paid_to_for_empl",
+    "c_paid_for_taxes",
+    "n_incr_clt_loan_adv",
+    "n_incr_dep_cbob",
+    "c_pay_claims_orig_inco",
+    "pay_handling_chrg",
+    "pay_comm_insur_plcy",
+    "oth_cash_pay_oper_act",
+    "st_cash_out_act",
+    "n_cashflow_act",
+    "oth_recp_ral_inv_act",
+    "c_disp_withdrwl_invest",
+    "c_recp_return_invest",
+    "n_recp_disp_fiolta",
+    "n_recp_disp_sobu",
+    "stot_inflows_inv_act",
+    "c_pay_acq_const_fiolta",
+    "c_paid_invest",
+    "n_disp_subs_oth_biz",
+    "oth_pay_ral_inv_act",
+    "n_incr_pledge_loan",
+    "stot_out_inv_act",
+    "n_cashflow_inv_act",
+    "c_recp_borrow",
+    "proc_issue_bonds",
+    "oth_cash_recp_ral_fnc_act",
+    "stot_cash_in_fnc_act",
+    "free_cashflow",
+    "c_prepay_amt_borr",
+    "c_pay_dist_dpcp_int_exp",
+    "incl_dvd_profit_paid_sc_ms",
+    "oth_cashpay_ral_fnc_act",
+    "stot_cashout_fnc_act",
+    "n_cash_flows_fnc_act",
+    "eff_fx_flu_cash",
+    "n_incr_cash_cash_equ",
+    "c_cash_equ_beg_period",
+    "c_cash_equ_end_period",
+    "c_recp_cap_contrib",
+    "incl_cash_rec_saims",
+    "uncon_invest_loss",
+    "prov_depr_assets",
+    "depr_fa_coga_dpba",
+    "amort_intang_assets",
+    "lt_amort_deferred_exp",
+    "decr_deferred_exp",
+    "incr_acc_exp",
+    "loss_disp_fiolta",
+    "loss_scr_fa",
+    "loss_fv_chg",
+    "invest_loss",
+    "decr_def_inc_tax_assets",
+    "incr_def_inc_tax_liab",
+    "decr_inventories",
+    "decr_oper_payable",
+    "incr_oper_payable",
+    "others",
+    "im_net_cashflow_oper_act",
+    "conv_debt_into_cap",
+    "conv_copbonds_due_within_1y",
+    "fa_fnc_leases",
+    "im_n_incr_cash_equ",
+    "net_dism_capital_add",
+    "net_cash_rece_sec",
+    "credit_impa_loss",
+    "use_right_asset_dep",
+    "oth_loss_asset",
+    "end_bal_cash",
+    "beg_bal_cash",
+    "end_bal_cash_equ",
+    "beg_bal_cash_equ",
+    "update_flag"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_table": "stock_base.daily",
+    "disclosure_lag": 0,
+    "effective_end": "2025-06-30T00:00:00+08:00",
+    "effective_start": "2025-01-01T00:00:00+08:00",
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "1558c0d8-902b-4da2-b76c-206db006f2a9",
+  "result_shapes": {
+    "amort_intang_assets": [
+      117,
+      5
+    ],
+    "ann_date": [
+      117,
+      5
+    ],
+    "beg_bal_cash": [
+      117,
+      5
+    ],
+    "beg_bal_cash_equ": [
+      117,
+      5
+    ],
+    "c_cash_equ_beg_period": [
+      117,
+      5
+    ],
+    "c_cash_equ_end_period": [
+      117,
+      5
+    ],
+    "c_disp_withdrwl_invest": [
+      117,
+      5
+    ],
+    "c_fr_oth_operate_a": [
+      117,
+      5
+    ],
+    "c_fr_sale_sg": [
+      117,
+      5
+    ],
+    "c_inf_fr_operate_a": [
+      117,
+      5
+    ],
+    "c_paid_for_taxes": [
+      117,
+      5
+    ],
+    "c_paid_goods_s": [
+      117,
+      5
+    ],
+    "c_paid_invest": [
+      117,
+      5
+    ],
+    "c_paid_to_for_empl": [
+      117,
+      5
+    ],
+    "c_pay_acq_const_fiolta": [
+      117,
+      5
+    ],
+    "c_pay_claims_orig_inco": [
+      117,
+      5
+    ],
+    "c_pay_dist_dpcp_int_exp": [
+      117,
+      5
+    ],
+    "c_prepay_amt_borr": [
+      117,
+      5
+    ],
+    "c_recp_borrow": [
+      117,
+      5
+    ],
+    "c_recp_cap_contrib": [
+      117,
+      5
+    ],
+    "c_recp_return_invest": [
+      117,
+      5
+    ],
+    "comp_type": [
+      117,
+      5
+    ],
+    "conv_copbonds_due_within_1y": [
+      117,
+      5
+    ],
+    "conv_debt_into_cap": [
+      117,
+      5
+    ],
+    "credit_impa_loss": [
+      117,
+      5
+    ],
+    "decr_def_inc_tax_assets": [
+      117,
+      5
+    ],
+    "decr_deferred_exp": [
+      117,
+      5
+    ],
+    "decr_inventories": [
+      117,
+      5
+    ],
+    "decr_oper_payable": [
+      117,
+      5
+    ],
+    "depr_fa_coga_dpba": [
+      117,
+      5
+    ],
+    "eff_fx_flu_cash": [
+      117,
+      5
+    ],
+    "end_bal_cash": [
+      117,
+      5
+    ],
+    "end_bal_cash_equ": [
+      117,
+      5
+    ],
+    "end_date": [
+      117,
+      5
+    ],
+    "end_type": [
+      117,
+      5
+    ],
+    "f_ann_date": [
+      117,
+      5
+    ],
+    "fa_fnc_leases": [
+      117,
+      5
+    ],
+    "finan_exp": [
+      117,
+      5
+    ],
+    "free_cashflow": [
+      117,
+      5
+    ],
+    "ifc_cash_incr": [
+      117,
+      5
+    ],
+    "im_n_incr_cash_equ": [
+      117,
+      5
+    ],
+    "im_net_cashflow_oper_act": [
+      117,
+      5
+    ],
+    "incl_cash_rec_saims": [
+      117,
+      5
+    ],
+    "incl_dvd_profit_paid_sc_ms": [
+      117,
+      5
+    ],
+    "incr_acc_exp": [
+      117,
+      5
+    ],
+    "incr_def_inc_tax_liab": [
+      117,
+      5
+    ],
+    "incr_oper_payable": [
+      117,
+      5
+    ],
+    "invest_loss": [
+      117,
+      5
+    ],
+    "loss_disp_fiolta": [
+      117,
+      5
+    ],
+    "loss_fv_chg": [
+      117,
+      5
+    ],
+    "loss_scr_fa": [
+      117,
+      5
+    ],
+    "lt_amort_deferred_exp": [
+      117,
+      5
+    ],
+    "n_cap_incr_repur": [
+      117,
+      5
+    ],
+    "n_cash_flows_fnc_act": [
+      117,
+      5
+    ],
+    "n_cashflow_act": [
+      117,
+      5
+    ],
+    "n_cashflow_inv_act": [
+      117,
+      5
+    ],
+    "n_depos_incr_fi": [
+      117,
+      5
+    ],
+    "n_disp_subs_oth_biz": [
+      117,
+      5
+    ],
+    "n_inc_borr_oth_fi": [
+      117,
+      5
+    ],
+    "n_incr_cash_cash_equ": [
+      117,
+      5
+    ],
+    "n_incr_clt_loan_adv": [
+      117,
+      5
+    ],
+    "n_incr_dep_cbob": [
+      117,
+      5
+    ],
+    "n_incr_disp_faas": [
+      117,
+      5
+    ],
+    "n_incr_disp_tfa": [
+      117,
+      5
+    ],
+    "n_incr_insured_dep": [
+      117,
+      5
+    ],
+    "n_incr_loans_cb": [
+      117,
+      5
+    ],
+    "n_incr_loans_oth_bank": [
+      117,
+      5
+    ],
+    "n_incr_pledge_loan": [
+      117,
+      5
+    ],
+    "n_recp_disp_fiolta": [
+      117,
+      5
+    ],
+    "n_recp_disp_sobu": [
+      117,
+      5
+    ],
+    "n_reinsur_prem": [
+      117,
+      5
+    ],
+    "net_cash_rece_sec": [
+      117,
+      5
+    ],
+    "net_dism_capital_add": [
+      117,
+      5
+    ],
+    "net_profit": [
+      117,
+      5
+    ],
+    "oth_cash_pay_oper_act": [
+      117,
+      5
+    ],
+    "oth_cash_recp_ral_fnc_act": [
+      117,
+      5
+    ],
+    "oth_cashpay_ral_fnc_act": [
+      117,
+      5
+    ],
+    "oth_loss_asset": [
+      117,
+      5
+    ],
+    "oth_pay_ral_inv_act": [
+      117,
+      5
+    ],
+    "oth_recp_ral_inv_act": [
+      117,
+      5
+    ],
+    "others": [
+      117,
+      5
+    ],
+    "pay_comm_insur_plcy": [
+      117,
+      5
+    ],
+    "pay_handling_chrg": [
+      117,
+      5
+    ],
+    "prem_fr_orig_contr": [
+      117,
+      5
+    ],
+    "proc_issue_bonds": [
+      117,
+      5
+    ],
+    "prov_depr_assets": [
+      117,
+      5
+    ],
+    "recp_tax_rends": [
+      117,
+      5
+    ],
+    "report_type": [
+      117,
+      5
+    ],
+    "st_cash_out_act": [
+      117,
+      5
+    ],
+    "stot_cash_in_fnc_act": [
+      117,
+      5
+    ],
+    "stot_cashout_fnc_act": [
+      117,
+      5
+    ],
+    "stot_inflows_inv_act": [
+      117,
+      5
+    ],
+    "stot_out_inv_act": [
+      117,
+      5
+    ],
+    "uncon_invest_loss": [
+      117,
+      5
+    ],
+    "update_flag": [
+      117,
+      5
+    ],
+    "use_right_asset_dep": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar": {
+      "backend": "clickhouse",
+      "connection": "live",
+      "host": "chdb.tradegdb.com",
+      "port": 8123,
+      "schema_hash": "e588a483efa913a86d786077a14d93152d3fefd561643cfa6fbfcd44a77b3738",
+      "schema_source": "catalog",
+      "secure": false,
+      "table": "stock_base.daily",
+      "time_expression": null
+    },
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "cashflow",
+    "fixed_params": {
+      "report_type": "1"
+    },
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 3829331,
+        "key": "20160930",
+        "mtime_ns": 1784568070227977644,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20160930/data.parquet",
+        "relative_path": "cashflow/period/20160930/data.parquet",
+        "rows": 27293,
+        "sha256": "1c79ddbd5511acdbcbfcf343393ed84bbcca46126fb3c258a00aac82c460ddcc",
+        "size": 3829331
+      },
+      {
+        "expected_size": 5637511,
+        "key": "20161231",
+        "mtime_ns": 1784568119277481362,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20161231/data.parquet",
+        "relative_path": "cashflow/period/20161231/data.parquet",
+        "rows": 31473,
+        "sha256": "37368b1867e3ef414db548ba54a2249ea54289af37c0e8193ac9eac2ca28eacd",
+        "size": 5637511
+      },
+      {
+        "expected_size": 2509888,
+        "key": "20170331",
+        "mtime_ns": 1784568157937926108,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20170331/data.parquet",
+        "relative_path": "cashflow/period/20170331/data.parquet",
+        "rows": 29293,
+        "sha256": "c101133c12410893df116470b27756cad8eeefb00c23da79de2d734e78a129e0",
+        "size": 2509888
+      },
+      {
+        "expected_size": 4868432,
+        "key": "20170630",
+        "mtime_ns": 1784568198941420044,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20170630/data.parquet",
+        "relative_path": "cashflow/period/20170630/data.parquet",
+        "rows": 30404,
+        "sha256": "fd798aa77e58cb65d82b2f419bec818f6b6cae2e4176227c161ad961a0aee004",
+        "size": 4868432
+      },
+      {
+        "expected_size": 4107377,
+        "key": "20170930",
+        "mtime_ns": 1784568237980662504,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20170930/data.parquet",
+        "relative_path": "cashflow/period/20170930/data.parquet",
+        "rows": 29359,
+        "sha256": "883cd98bdbc12cfd69ce03056174c5478621926e10bfb4b8431844d8074f3fac",
+        "size": 4107377
+      },
+      {
+        "expected_size": 6175581,
+        "key": "20171231",
+        "mtime_ns": 1784568286190710661,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20171231/data.parquet",
+        "relative_path": "cashflow/period/20171231/data.parquet",
+        "rows": 33760,
+        "sha256": "c7dfeb3ce641bc08e0793d8273f5b2473f3ca10113c94905e2cfdfeb953a5c15",
+        "size": 6175581
+      },
+      {
+        "expected_size": 2636910,
+        "key": "20180331",
+        "mtime_ns": 1784568325851349395,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20180331/data.parquet",
+        "relative_path": "cashflow/period/20180331/data.parquet",
+        "rows": 30109,
+        "sha256": "783d1c57c8c25be2fa28cb4721902b2eed0d52eadb08b7824f2dd39ea0a8f95c",
+        "size": 2636910
+      },
+      {
+        "expected_size": 5477486,
+        "key": "20180630",
+        "mtime_ns": 1784568371683071876,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20180630/data.parquet",
+        "relative_path": "cashflow/period/20180630/data.parquet",
+        "rows": 34162,
+        "sha256": "4061fad0ca04fa88605d53034a570146d9ec497c13050cf1165ed19d103dbae0",
+        "size": 5477486
+      },
+      {
+        "expected_size": 4357533,
+        "key": "20180930",
+        "mtime_ns": 1784568413963203733,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20180930/data.parquet",
+        "relative_path": "cashflow/period/20180930/data.parquet",
+        "rows": 30561,
+        "sha256": "12b199092699be3cbe3a5fcefd623e8d5111d29276b654f58d39742aa0738d5a",
+        "size": 4357533
+      },
+      {
+        "expected_size": 6579721,
+        "key": "20181231",
+        "mtime_ns": 1784568467676440837,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20181231/data.parquet",
+        "relative_path": "cashflow/period/20181231/data.parquet",
+        "rows": 37159,
+        "sha256": "409e79405b3ac27bc66271c039c33491db0bf3e6222266e4bd54955431832b89",
+        "size": 6579721
+      },
+      {
+        "expected_size": 2887922,
+        "key": "20190331",
+        "mtime_ns": 1784568508528832516,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20190331/data.parquet",
+        "relative_path": "cashflow/period/20190331/data.parquet",
+        "rows": 31887,
+        "sha256": "f49ef8e13b2db04f094690792bc87f0daf7ac3b7643a5461d72acd4b27594fe4",
+        "size": 2887922
+      },
+      {
+        "expected_size": 5611865,
+        "key": "20190630",
+        "mtime_ns": 1784568556694773778,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20190630/data.parquet",
+        "relative_path": "cashflow/period/20190630/data.parquet",
+        "rows": 34902,
+        "sha256": "1bf2d43852d97f66d5b84cc088fa4aaae321e12a6dbe91af0b2907a28f17e002",
+        "size": 5611865
+      },
+      {
+        "expected_size": 5023607,
+        "key": "20190930",
+        "mtime_ns": 1784568602368289939,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20190930/data.parquet",
+        "relative_path": "cashflow/period/20190930/data.parquet",
+        "rows": 36834,
+        "sha256": "6dffe8b6150b5e8a28accbcfe03748793be4cd59b6dce768aac22df5c7f19d1d",
+        "size": 5023607
+      },
+      {
+        "expected_size": 7712095,
+        "key": "20191231",
+        "mtime_ns": 1784568670479139559,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20191231/data.parquet",
+        "relative_path": "cashflow/period/20191231/data.parquet",
+        "rows": 46943,
+        "sha256": "da309b3c742a78db33158a6d72653d533d7b7691730bc763a3679967dc75c758",
+        "size": 7712095
+      },
+      {
+        "expected_size": 3240855,
+        "key": "20200331",
+        "mtime_ns": 1784568713109965596,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20200331/data.parquet",
+        "relative_path": "cashflow/period/20200331/data.parquet",
+        "rows": 35945,
+        "sha256": "6f17e0e430eb4e87f9a0234d3c34a922cfa38d8c5f508af9f5248940ca471e9a",
+        "size": 3240855
+      },
+      {
+        "expected_size": 6816792,
+        "key": "20200630",
+        "mtime_ns": 1784568774772246396,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20200630/data.parquet",
+        "relative_path": "cashflow/period/20200630/data.parquet",
+        "rows": 44601,
+        "sha256": "a0ace0454a77aa879e984b801b3133600b0e7c62af6a7db005013d6fe4cbf72e",
+        "size": 6816792
+      },
+      {
+        "expected_size": 4839947,
+        "key": "20200930",
+        "mtime_ns": 1784568813766408346,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20200930/data.parquet",
+        "relative_path": "cashflow/period/20200930/data.parquet",
+        "rows": 28620,
+        "sha256": "116cad92c553e77bfc58563716bb39fe855fa46045dda7ffad20b89f5b96a656",
+        "size": 4839947
+      },
+      {
+        "expected_size": 7755871,
+        "key": "20201231",
+        "mtime_ns": 1784568881887685395,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20201231/data.parquet",
+        "relative_path": "cashflow/period/20201231/data.parquet",
+        "rows": 44085,
+        "sha256": "ca729209e2615204435f4e215aa0edeee33dabf331300904d073bb74ac6dcc77",
+        "size": 7755871
+      },
+      {
+        "expected_size": 3246719,
+        "key": "20210331",
+        "mtime_ns": 1784568927325764239,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20210331/data.parquet",
+        "relative_path": "cashflow/period/20210331/data.parquet",
+        "rows": 31623,
+        "sha256": "8d4d64ac4ad4e0c9a19899076b0df05223cf9a2c21f0f501fd084ad089296c6c",
+        "size": 3246719
+      },
+      {
+        "expected_size": 5021271,
+        "key": "20210630",
+        "mtime_ns": 1784568960338386362,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20210630/data.parquet",
+        "relative_path": "cashflow/period/20210630/data.parquet",
+        "rows": 19190,
+        "sha256": "4be25e504f72287d4920900938237b2218114f13bab3aeb5ad20a3421a31034b",
+        "size": 5021271
+      },
+      {
+        "expected_size": 3903944,
+        "key": "20210930",
+        "mtime_ns": 1784569004817084763,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20210930/data.parquet",
+        "relative_path": "cashflow/period/20210930/data.parquet",
+        "rows": 25422,
+        "sha256": "1dffeaff4688a34453d814fb6b7a88069fa75f4dc9922a6ac2bdab8ebe0eb73f",
+        "size": 3903944
+      },
+      {
+        "expected_size": 7393208,
+        "key": "20211231",
+        "mtime_ns": 1784569074886846014,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20211231/data.parquet",
+        "relative_path": "cashflow/period/20211231/data.parquet",
+        "rows": 41844,
+        "sha256": "d01fceb15dd501da8e13a976064ca905aad92a52b137739fec2b15d2c8f73a9d",
+        "size": 7393208
+      },
+      {
+        "expected_size": 1866898,
+        "key": "20220331",
+        "mtime_ns": 1784569107587023265,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20220331/data.parquet",
+        "relative_path": "cashflow/period/20220331/data.parquet",
+        "rows": 14000,
+        "sha256": "f3e3cbbe14b755e4973e5c3f30b5bd1fc9c560132ccd138a78e0990b4718af98",
+        "size": 1866898
+      },
+      {
+        "expected_size": 4875033,
+        "key": "20220630",
+        "mtime_ns": 1784569148343576541,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20220630/data.parquet",
+        "relative_path": "cashflow/period/20220630/data.parquet",
+        "rows": 18417,
+        "sha256": "ae507c9fc352a0c0892e71258cdad904f8009f1e8b0957ee8702fa9abfe7a8c4",
+        "size": 4875033
+      },
+      {
+        "expected_size": 3235894,
+        "key": "20220930",
+        "mtime_ns": 1784569184337935845,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20220930/data.parquet",
+        "relative_path": "cashflow/period/20220930/data.parquet",
+        "rows": 14760,
+        "sha256": "32d51079cb3f766ab15633adc4a381cfd8042c5cf7c9d0272335d940f965bab3",
+        "size": 3235894
+      },
+      {
+        "expected_size": 7873451,
+        "key": "20221231",
+        "mtime_ns": 1784569260269709691,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20221231/data.parquet",
+        "relative_path": "cashflow/period/20221231/data.parquet",
+        "rows": 43657,
+        "sha256": "2bd2caa6aff43556f938d8f5b7f57ac551818d310e75d87096ed67d98c0a8703",
+        "size": 7873451
+      },
+      {
+        "expected_size": 2242003,
+        "key": "20230331",
+        "mtime_ns": 1784569297824873474,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20230331/data.parquet",
+        "relative_path": "cashflow/period/20230331/data.parquet",
+        "rows": 18833,
+        "sha256": "16be171e8b3126441a7759c11f57f65758513a8abc633858877ce685f06a4216",
+        "size": 2242003
+      },
+      {
+        "expected_size": 6955120,
+        "key": "20230630",
+        "mtime_ns": 1784569359095282486,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20230630/data.parquet",
+        "relative_path": "cashflow/period/20230630/data.parquet",
+        "rows": 40191,
+        "sha256": "36cd1601892f684d98474f15b56d89e3fc9c6e1c1f666f657d75aa17a387b892",
+        "size": 6955120
+      },
+      {
+        "expected_size": 3532529,
+        "key": "20230930",
+        "mtime_ns": 1784569400346831140,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20230930/data.parquet",
+        "relative_path": "cashflow/period/20230930/data.parquet",
+        "rows": 17474,
+        "sha256": "5f006ca19f4fc0b08445ea39d2900f356f6575a6cf14af47aeed802b9d6a54c7",
+        "size": 3532529
+      },
+      {
+        "expected_size": 7676217,
+        "key": "20231231",
+        "mtime_ns": 1784569467860337398,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20231231/data.parquet",
+        "relative_path": "cashflow/period/20231231/data.parquet",
+        "rows": 42380,
+        "sha256": "7c5b61b2bdaab65a7867191d0bb91b9dd4c1218a3c8eac8ef0dd141a6f0ad30d",
+        "size": 7676217
+      },
+      {
+        "expected_size": 2115558,
+        "key": "20240331",
+        "mtime_ns": 1784569517682632968,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20240331/data.parquet",
+        "relative_path": "cashflow/period/20240331/data.parquet",
+        "rows": 16677,
+        "sha256": "e13a1cab1eca16c6406f3107ca77eb1688ff95a57758bf848020f9937df4df45",
+        "size": 2115558
+      },
+      {
+        "expected_size": 5502102,
+        "key": "20240630",
+        "mtime_ns": 1784569560593440804,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20240630/data.parquet",
+        "relative_path": "cashflow/period/20240630/data.parquet",
+        "rows": 22063,
+        "sha256": "a556e0bae620ebfce1f118bf379d879876e103cbfc9777cdf6bbe07e689d0274",
+        "size": 5502102
+      },
+      {
+        "expected_size": 3459102,
+        "key": "20240930",
+        "mtime_ns": 1784569598157544191,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20240930/data.parquet",
+        "relative_path": "cashflow/period/20240930/data.parquet",
+        "rows": 16562,
+        "sha256": "08bc28576a107cd2be9fb4454aad2eb4ea6cf1c62fa2a5c47bfcd92447e73da2",
+        "size": 3459102
+      },
+      {
+        "expected_size": 6537790,
+        "key": "20241231",
+        "mtime_ns": 1784569655112226790,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20241231/data.parquet",
+        "relative_path": "cashflow/period/20241231/data.parquet",
+        "rows": 27465,
+        "sha256": "dd7917ab920427ea219c0f707e15bbf5dfcf9943b2bed8c4a0936dfc4a8cf3d9",
+        "size": 6537790
+      },
+      {
+        "expected_size": 2300924,
+        "key": "20250331",
+        "mtime_ns": 1784569694106102741,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20250331/data.parquet",
+        "relative_path": "cashflow/period/20250331/data.parquet",
+        "rows": 19594,
+        "sha256": "94546669f14782788e7e65d251097222b0a051730fef11322332ae1f41921e02",
+        "size": 2300924
+      },
+      {
+        "expected_size": 5853740,
+        "key": "20250630",
+        "mtime_ns": 1784569737588635938,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20250630/data.parquet",
+        "relative_path": "cashflow/period/20250630/data.parquet",
+        "rows": 23634,
+        "sha256": "71c98c2c86bee244a5c664bc35c353e92f7311d638f3980816d9a4df1f9a7efd",
+        "size": 5853740
+      },
+      {
+        "expected_size": 3800802,
+        "key": "20250930",
+        "mtime_ns": 1784569774777953170,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20250930/data.parquet",
+        "relative_path": "cashflow/period/20250930/data.parquet",
+        "rows": 19599,
+        "sha256": "f85eb58952c7302469e72717db30501012abbf10c9cd80a352eae9e92b18abcf",
+        "size": 3800802
+      },
+      {
+        "expected_size": 6184545,
+        "key": "20251231",
+        "mtime_ns": 1784569815811240754,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20251231/data.parquet",
+        "relative_path": "cashflow/period/20251231/data.parquet",
+        "rows": 22395,
+        "sha256": "6c122366363782a2b6182948d8de88602a18ea4581deff61e442c2c5572cb36d",
+        "size": 6184545
+      },
+      {
+        "expected_size": 2243440,
+        "key": "20260331",
+        "mtime_ns": 1784569852523640015,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20260331/data.parquet",
+        "relative_path": "cashflow/period/20260331/data.parquet",
+        "rows": 17934,
+        "sha256": "c047185b5ba774151ea801eab7726679c3bfefff0cfd29e60ecb92e1064e32c3",
+        "size": 2243440
+      },
+      {
+        "expected_size": 64289,
+        "key": "20260630",
+        "mtime_ns": 1784569871756079275,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/cashflow/period/20260630/data.parquet",
+        "relative_path": "cashflow/period/20260630/data.parquet",
+        "rows": 22,
+        "sha256": "5f5f1f2b60c5481f1c5acbddde41e998bd02fc2656c7501a11efe2bbe1cbace1",
+        "size": 64289
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "1e66588d510d41d08f18f0b248a8b673d4a743331b30fd1ec49ee9d3a6db88fb",
+    "updated_at": "2026-07-20T17:51:11+00:00"
+  },
+  "started_at": "2026-09-06T04:01:27.023914+00:00",
+  "status": "success"
+}

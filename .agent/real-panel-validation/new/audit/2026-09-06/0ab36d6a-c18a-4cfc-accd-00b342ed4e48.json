@@ -1,0 +1,52 @@
+{
+  "adjusted": false,
+  "calendar_aligned": false,
+  "dataset": "zb_cj_flow_min",
+  "dataset_version": null,
+  "duration_ms": 1052.580333998776,
+  "error": null,
+  "fields": [
+    "cj_all_mn_min",
+    "cj_psell_xl_td_min"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1min",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2026-03-11T23:59:59.999999",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2026-03-02T00:00:00",
+    "universe": null
+  },
+  "query_id": "0ab36d6a-c18a-4cfc-accd-00b342ed4e48",
+  "result_shapes": {
+    "cj_all_mn_min": [
+      1928,
+      5
+    ],
+    "cj_psell_xl_td_min": [
+      1928,
+      5
+    ]
+  },
+  "source": {
+    "backend": "clickhouse",
+    "connection": "live",
+    "host": "chdb.tradegdb.com",
+    "port": 8123,
+    "schema_hash": "037b8bb94dd102d05b60b6088346e1d13cb968c19e497cecc0c14c8b20a1d49c",
+    "schema_source": "catalog",
+    "secure": false,
+    "table": "zhangruiqi.zb_cj_flow_min",
+    "time_expression": "(toDateTime64(`_q`.`date`, 3, 'Asia/Shanghai') + toIntervalMillisecond(`_q`.`time_int`))"
+  },
+  "started_at": "2026-09-06T03:58:32.331110+00:00",
+  "status": "success"
+}

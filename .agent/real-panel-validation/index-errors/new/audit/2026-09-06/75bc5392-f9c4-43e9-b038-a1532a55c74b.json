@@ -1,0 +1,58 @@
+{
+  "adjusted": false,
+  "calendar_aligned": false,
+  "dataset": "minghu_index_daily",
+  "dataset_version": null,
+  "duration_ms": 5912.1007089997875,
+  "error": {
+    "message": "Dataset 'minghu_index_daily' has 11 duplicate key pairs; sample=[{'date': datetime.date(2025, 4, 30), 'code': '399905.SZ', 'len': 2}, {'date': datetime.date(2025, 4, 30), 'code': '399102.SZ', 'len': 2}, {'date': datetime.date(2025, 4, 30), 'code': '399006.SZ', 'len': 2}, {'date': datetime.date(2025, 4, 30), 'code': '399005.SZ', 'len': 2}, {'date': datetime.date(2025, 4, 30), 'code': '399300.SZ', 'len': 2}]",
+    "type": "DuplicateObservationError"
+  },
+  "fields": [
+    "open",
+    "close",
+    "volume"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2025-04-30T00:00:00",
+    "instruments": [
+      "000982.SH",
+      "000852.SH",
+      "899050.BJ",
+      "399001.SZ",
+      "000902.SH",
+      "000300.SH",
+      "399006.SZ",
+      "399905.SZ",
+      "399107.SZ",
+      "000984.SH",
+      "399102.SZ",
+      "399106.SZ",
+      "000001.SH",
+      "399300.SZ",
+      "000688.SH",
+      "399005.SZ"
+    ],
+    "start": "2025-04-28T00:00:00",
+    "universe": null
+  },
+  "query_id": "75bc5392-f9c4-43e9-b038-a1532a55c74b",
+  "result_shapes": {},
+  "source": {
+    "backend": "clickhouse",
+    "connection": "live",
+    "host": "chdb.tradegdb.com",
+    "port": 8123,
+    "schema_hash": "4697e63dc32cf87ff54ffb5ab98ccafef6396e7f647cac308d66ea1e2273000a",
+    "schema_source": "catalog",
+    "secure": false,
+    "table": "index_base.daily",
+    "time_expression": null
+  },
+  "started_at": "2026-09-06T03:58:03.800307+00:00",
+  "status": "failed"
+}

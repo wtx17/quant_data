@@ -1,0 +1,80 @@
+{
+  "baseline": "680ab80ed536f959ce6ce563e073dfd87f482cbe",
+  "archive": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+  "calendar": "real stock_base.daily (legacy transport adapted)",
+  "cases": [
+    {
+      "dataset": "minghu_index_daily",
+      "scenario": "short_wide",
+      "start": "2026-04-28",
+      "end": "2026-04-30",
+      "instruments": [
+        "000982.SH",
+        "000852.SH",
+        "899050.BJ",
+        "399001.SZ",
+        "000902.SH",
+        "000300.SH",
+        "399006.SZ",
+        "399905.SZ",
+        "399107.SZ",
+        "000984.SH",
+        "399102.SZ",
+        "399106.SZ",
+        "000001.SH",
+        "399300.SZ",
+        "000688.SH",
+        "399005.SZ"
+      ],
+      "fields": [
+        "open",
+        "close",
+        "volume"
+      ],
+      "status": "both_rejected",
+      "old_seconds": 1.299,
+      "new_seconds": 2.144,
+      "query_errors": {
+        "old": {
+          "type": "DuplicateObservationError",
+          "message": "Dataset 'minghu_index_daily' has 3 duplicate key pairs; sample=[{'date': datetime.date(2026, 4, 28), 'code': '399300.SZ', 'len': 2}, {'date': datetime.date(2026, 4, 28), 'code': '399106.SZ', 'len': 2}, {'date': datetime.date(2026, 4, 28), 'code': '399102.SZ', 'len': 2}]"
+        },
+        "new": {
+          "type": "DuplicateObservationError",
+          "message": "Dataset 'minghu_index_daily' has 3 duplicate key pairs; sample=[{'date': datetime.date(2026, 4, 28), 'code': '399300.SZ', 'len': 2}, {'date': datetime.date(2026, 4, 28), 'code': '399102.SZ', 'len': 2}, {'date': datetime.date(2026, 4, 28), 'code': '399106.SZ', 'len': 2}]"
+        }
+      }
+    },
+    {
+      "dataset": "minghu_index_daily",
+      "scenario": "long_narrow",
+      "start": "2026-01-01",
+      "end": "2026-06-30",
+      "instruments": [
+        "000982.SH",
+        "000852.SH",
+        "899050.BJ",
+        "399001.SZ",
+        "000902.SH"
+      ],
+      "fields": [
+        "open",
+        "close",
+        "volume"
+      ],
+      "status": "both_rejected",
+      "old_seconds": 0.957,
+      "new_seconds": 1.322,
+      "query_errors": {
+        "old": {
+          "type": "DuplicateObservationError",
+          "message": "Dataset 'minghu_index_daily' has 6 duplicate key pairs; sample=[{'date': datetime.date(2026, 1, 28), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 3, 30), 'code': '000852.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '899050.BJ', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '399001.SZ', 'len': 2}]"
+        },
+        "new": {
+          "type": "DuplicateObservationError",
+          "message": "Dataset 'minghu_index_daily' has 6 duplicate key pairs; sample=[{'date': datetime.date(2026, 3, 30), 'code': '000852.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '899050.BJ', 'len': 2}, {'date': datetime.date(2026, 1, 28), 'code': '000982.SH', 'len': 2}, {'date': datetime.date(2026, 6, 30), 'code': '399001.SZ', 'len': 2}]"
+        }
+      }
+    }
+  ]
+}

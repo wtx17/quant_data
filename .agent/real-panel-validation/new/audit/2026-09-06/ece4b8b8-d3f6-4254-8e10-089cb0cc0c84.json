@@ -1,0 +1,1423 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "income",
+  "dataset_version": null,
+  "duration_ms": 6415.165458995034,
+  "error": null,
+  "fields": [
+    "ann_date",
+    "f_ann_date",
+    "end_date",
+    "report_type",
+    "comp_type",
+    "end_type",
+    "basic_eps",
+    "diluted_eps",
+    "total_revenue",
+    "revenue",
+    "int_income",
+    "prem_earned",
+    "comm_income",
+    "n_commis_income",
+    "n_oth_income",
+    "n_oth_b_income",
+    "prem_income",
+    "out_prem",
+    "une_prem_reser",
+    "reins_income",
+    "n_sec_tb_income",
+    "n_sec_uw_income",
+    "n_asset_mg_income",
+    "oth_b_income",
+    "fv_value_chg_gain",
+    "invest_income",
+    "ass_invest_income",
+    "forex_gain",
+    "total_cogs",
+    "oper_cost",
+    "int_exp",
+    "comm_exp",
+    "biz_tax_surchg",
+    "sell_exp",
+    "admin_exp",
+    "fin_exp",
+    "assets_impair_loss",
+    "prem_refund",
+    "compens_payout",
+    "reser_insur_liab",
+    "div_payt",
+    "reins_exp",
+    "oper_exp",
+    "compens_payout_refu",
+    "insur_reser_refu",
+    "reins_cost_refund",
+    "other_bus_cost",
+    "operate_profit",
+    "non_oper_income",
+    "non_oper_exp",
+    "nca_disploss",
+    "total_profit",
+    "income_tax",
+    "n_income",
+    "n_income_attr_p",
+    "minority_gain",
+    "oth_compr_income",
+    "t_compr_income",
+    "compr_inc_attr_p",
+    "compr_inc_attr_m_s",
+    "ebit",
+    "ebitda",
+    "insurance_exp",
+    "undist_profit",
+    "distable_profit",
+    "rd_exp",
+    "fin_exp_int_exp",
+    "fin_exp_int_inc",
+    "transfer_surplus_rese",
+    "transfer_housing_imprest",
+    "transfer_oth",
+    "adj_lossgain",
+    "withdra_legal_surplus",
+    "withdra_legal_pubfund",
+    "withdra_biz_devfund",
+    "withdra_rese_fund",
+    "withdra_oth_ersu",
+    "workers_welfare",
+    "distr_profit_shrhder",
+    "prfshare_payable_dvd",
+    "comshare_payable_dvd",
+    "capit_comstock_div",
+    "net_after_nr_lp_correct",
+    "credit_impa_loss",
+    "net_expo_hedging_benefits",
+    "oth_impair_loss_assets",
+    "total_opcost",
+    "amodcost_fin_assets",
+    "oth_income",
+    "asset_disp_income",
+    "continued_net_profit",
+    "end_net_profit",
+    "update_flag"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_table": "stock_base.daily",
+    "disclosure_lag": 0,
+    "effective_end": "2025-04-30T00:00:00+08:00",
+    "effective_start": "2025-04-28T00:00:00+08:00",
+    "end": "2025-04-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ",
+      "600135.SH",
+      "300878.SZ",
+      "300565.SZ",
+      "600082.SH",
+      "002660.SZ",
+      "601137.SH",
+      "002472.SZ",
+      "603950.SH",
+      "688055.SH",
+      "603121.SH",
+      "002384.SZ",
+      "600697.SH",
+      "603421.SH",
+      "300267.SZ",
+      "301397.SZ",
+      "688051.SH",
+      "002383.SZ",
+      "600613.SH",
+      "300919.SZ",
+      "002466.SZ",
+      "300809.SZ",
+      "001373.SZ",
+      "600864.SH",
+      "300568.SZ",
+      "000639.SZ",
+      "600183.SH",
+      "002329.SZ",
+      "000548.SZ",
+      "688260.SH",
+      "688060.SH",
+      "002173.SZ",
+      "300767.SZ",
+      "600479.SH",
+      "603166.SH",
+      "688611.SH",
+      "300998.SZ",
+      "603843.SH",
+      "603081.SH",
+      "601005.SH",
+      "002193.SZ",
+      "000823.SZ",
+      "600668.SH",
+      "002292.SZ",
+      "000670.SZ",
+      "603778.SH",
+      "300157.SZ",
+      "002162.SZ",
+      "002344.SZ",
+      "002723.SZ",
+      "300599.SZ",
+      "603577.SH",
+      "301281.SZ",
+      "688200.SH",
+      "300866.SZ",
+      "603926.SH",
+      "600892.SH",
+      "601800.SH",
+      "601077.SH",
+      "300441.SZ",
+      "600989.SH",
+      "300485.SZ",
+      "002942.SZ",
+      "600993.SH",
+      "002478.SZ",
+      "603318.SH",
+      "300264.SZ",
+      "601985.SH",
+      "688119.SH",
+      "603079.SH",
+      "300645.SZ",
+      "688553.SH",
+      "300252.SZ",
+      "002377.SZ",
+      "000590.SZ",
+      "300818.SZ",
+      "000407.SZ",
+      "000885.SZ",
+      "603995.SH",
+      "300557.SZ",
+      "002110.SZ",
+      "603618.SH",
+      "001289.SZ",
+      "301040.SZ",
+      "600353.SH",
+      "601609.SH",
+      "300478.SZ",
+      "603065.SH",
+      "301191.SZ",
+      "300633.SZ",
+      "000567.SZ",
+      "300509.SZ",
+      "001336.SZ",
+      "688127.SH",
+      "000032.SZ",
+      "688309.SH",
+      "300126.SZ",
+      "300515.SZ",
+      "688691.SH",
+      "002906.SZ",
+      "600756.SH",
+      "002577.SZ",
+      "600273.SH",
+      "300872.SZ",
+      "300140.SZ",
+      "000055.SZ",
+      "300652.SZ",
+      "001335.SZ",
+      "603069.SH",
+      "300926.SZ",
+      "300146.SZ",
+      "002898.SZ",
+      "688046.SH",
+      "002051.SZ",
+      "300457.SZ",
+      "002171.SZ",
+      "000633.SZ",
+      "300007.SZ",
+      "300945.SZ",
+      "600523.SH",
+      "688648.SH",
+      "002584.SZ",
+      "300758.SZ",
+      "600476.SH",
+      "002410.SZ",
+      "002501.SZ",
+      "688029.SH",
+      "301236.SZ",
+      "601228.SH",
+      "603880.SH",
+      "603031.SH",
+      "000668.SZ",
+      "603500.SH",
+      "600165.SH",
+      "688623.SH",
+      "002033.SZ",
+      "601101.SH",
+      "688383.SH",
+      "605169.SH",
+      "000837.SZ",
+      "002012.SZ",
+      "601608.SH",
+      "600863.SH",
+      "603373.SH",
+      "301607.SZ",
+      "000607.SZ",
+      "605116.SH",
+      "000691.SZ",
+      "688281.SH",
+      "300224.SZ",
+      "000576.SZ",
+      "000703.SZ",
+      "688146.SH",
+      "300887.SZ",
+      "301252.SZ",
+      "000555.SZ",
+      "603266.SH",
+      "300386.SZ",
+      "603316.SH",
+      "301239.SZ",
+      "300111.SZ",
+      "000591.SZ",
+      "002313.SZ",
+      "002155.SZ",
+      "301055.SZ",
+      "002703.SZ",
+      "688556.SH",
+      "300034.SZ",
+      "603072.SH",
+      "605258.SH",
+      "688531.SH",
+      "600373.SH",
+      "300217.SZ",
+      "000625.SZ",
+      "000728.SZ",
+      "002264.SZ",
+      "688435.SH",
+      "300571.SZ",
+      "002205.SZ",
+      "688096.SH",
+      "600468.SH",
+      "600726.SH",
+      "600851.SH",
+      "000795.SZ",
+      "002872.SZ",
+      "002085.SZ",
+      "003023.SZ",
+      "002636.SZ",
+      "600694.SH",
+      "300996.SZ",
+      "300277.SZ",
+      "600664.SH",
+      "002076.SZ",
+      "600179.SH",
+      "301178.SZ",
+      "300236.SZ",
+      "601187.SH",
+      "002623.SZ",
+      "300581.SZ",
+      "600520.SH",
+      "300949.SZ",
+      "000619.SZ",
+      "600066.SH",
+      "300771.SZ",
+      "603077.SH",
+      "601515.SH",
+      "600365.SH",
+      "000859.SZ",
+      "600919.SH",
+      "600491.SH",
+      "300493.SZ",
+      "002440.SZ",
+      "600499.SH",
+      "000422.SZ",
+      "300554.SZ",
+      "688566.SH",
+      "002439.SZ",
+      "601128.SH",
+      "688558.SH",
+      "603386.SH",
+      "002921.SZ",
+      "688339.SH",
+      "601003.SH",
+      "600765.SH",
+      "601969.SH",
+      "301306.SZ",
+      "002123.SZ",
+      "603813.SH",
+      "600512.SH",
+      "600284.SH",
+      "002878.SZ",
+      "001318.SZ",
+      "603707.SH",
+      "688025.SH",
+      "000710.SZ",
+      "603310.SH",
+      "688708.SH",
+      "603599.SH",
+      "600603.SH",
+      "600032.SH",
+      "300578.SZ",
+      "600581.SH",
+      "600257.SH",
+      "300304.SZ",
+      "688080.SH",
+      "300438.SZ",
+      "600795.SH",
+      "600845.SH",
+      "300109.SZ",
+      "300286.SZ",
+      "002760.SZ",
+      "603883.SH",
+      "002209.SZ",
+      "300631.SZ",
+      "300556.SZ",
+      "300792.SZ",
+      "600533.SH",
+      "605368.SH",
+      "600231.SH",
+      "002210.SZ",
+      "300859.SZ",
+      "600266.SH",
+      "600004.SH",
+      "600671.SH",
+      "688469.SH",
+      "301321.SZ",
+      "688525.SH",
+      "301383.SZ",
+      "002980.SZ",
+      "600873.SH",
+      "300235.SZ",
+      "300326.SZ",
+      "600293.SH",
+      "605366.SH",
+      "300848.SZ",
+      "601015.SH",
+      "688085.SH",
+      "601113.SH",
+      "300261.SZ",
+      "600391.SH",
+      "000425.SZ",
+      "601990.SH",
+      "688625.SH",
+      "301439.SZ",
+      "300085.SZ",
+      "603338.SH",
+      "301269.SZ",
+      "300486.SZ",
+      "603236.SH",
+      "300384.SZ",
+      "300416.SZ",
+      "605500.SH",
+      "300134.SZ",
+      "603205.SH",
+      "603619.SH",
+      "603106.SH",
+      "300088.SZ",
+      "600597.SH",
+      "603600.SH",
+      "600180.SH",
+      "002860.SZ",
+      "002816.SZ",
+      "600268.SH",
+      "002768.SZ",
+      "603936.SH",
+      "688371.SH",
+      "600547.SH",
+      "002093.SZ",
+      "301024.SZ",
+      "603833.SH",
+      "603101.SH",
+      "600409.SH",
+      "601866.SH",
+      "601636.SH",
+      "001260.SZ",
+      "605050.SH",
+      "002381.SZ",
+      "600780.SH",
+      "688529.SH",
+      "688268.SH",
+      "000158.SZ",
+      "002054.SZ",
+      "603232.SH",
+      "002733.SZ",
+      "301212.SZ",
+      "603733.SH",
+      "002769.SZ",
+      "300473.SZ",
+      "300987.SZ",
+      "000800.SZ",
+      "301559.SZ",
+      "688418.SH",
+      "300139.SZ",
+      "600727.SH",
+      "301216.SZ",
+      "300317.SZ",
+      "301261.SZ",
+      "600505.SH",
+      "001368.SZ",
+      "688455.SH",
+      "600369.SH",
+      "600757.SH",
+      "603721.SH",
+      "000547.SZ",
+      "603696.SH",
+      "300213.SZ",
+      "002315.SZ",
+      "002905.SZ",
+      "000429.SZ",
+      "002674.SZ",
+      "301548.SZ",
+      "002815.SZ",
+      "002685.SZ",
+      "603328.SH",
+      "601188.SH",
+      "300129.SZ",
+      "600438.SH",
+      "688007.SH",
+      "000503.SZ",
+      "688533.SH",
+      "002661.SZ",
+      "600184.SH",
+      "002628.SZ",
+      "300179.SZ",
+      "002144.SZ",
+      "002378.SZ",
+      "603004.SH",
+      "002243.SZ",
+      "301421.SZ",
+      "002465.SZ",
+      "000488.SZ",
+      "000875.SZ",
+      "603903.SH",
+      "688136.SH",
+      "688750.SH",
+      "688132.SH",
+      "300603.SZ",
+      "605296.SH",
+      "003025.SZ",
+      "301280.SZ",
+      "001308.SZ",
+      "002485.SZ",
+      "300616.SZ",
+      "603171.SH",
+      "601598.SH",
+      "000755.SZ",
+      "000697.SZ",
+      "300713.SZ",
+      "301045.SZ",
+      "688508.SH",
+      "000404.SZ",
+      "688665.SH",
+      "002132.SZ",
+      "000719.SZ",
+      "688335.SH",
+      "002722.SZ",
+      "601200.SH",
+      "603269.SH",
+      "603213.SH",
+      "603919.SH",
+      "300802.SZ",
+      "600120.SH",
+      "301062.SZ",
+      "600618.SH",
+      "002165.SZ",
+      "603331.SH",
+      "600095.SH",
+      "688567.SH",
+      "002191.SZ",
+      "002481.SZ",
+      "300539.SZ",
+      "688449.SH",
+      "603125.SH",
+      "301509.SZ",
+      "301337.SZ",
+      "002666.SZ",
+      "301196.SZ",
+      "002728.SZ",
+      "688660.SH",
+      "300528.SZ",
+      "002141.SZ",
+      "300639.SZ",
+      "000541.SZ",
+      "300092.SZ",
+      "688320.SH",
+      "000402.SZ",
+      "301379.SZ",
+      "300681.SZ",
+      "300820.SZ",
+      "002391.SZ",
+      "300058.SZ",
+      "688282.SH",
+      "600594.SH",
+      "000825.SZ",
+      "603377.SH",
+      "300913.SZ",
+      "002528.SZ",
+      "002553.SZ",
+      "300026.SZ",
+      "688570.SH",
+      "603169.SH",
+      "605055.SH",
+      "002184.SZ",
+      "601956.SH",
+      "605300.SH",
+      "300855.SZ",
+      "600992.SH",
+      "000672.SZ",
+      "300077.SZ",
+      "601279.SH",
+      "300300.SZ",
+      "605186.SH",
+      "603337.SH",
+      "002271.SZ",
+      "600817.SH",
+      "603939.SH",
+      "688349.SH",
+      "002320.SZ",
+      "301168.SZ",
+      "002971.SZ",
+      "600821.SH",
+      "002817.SZ",
+      "600961.SH",
+      "301628.SZ",
+      "002903.SZ",
+      "688279.SH",
+      "002831.SZ",
+      "605488.SH",
+      "301116.SZ",
+      "600249.SH",
+      "603759.SH",
+      "301376.SZ",
+      "002336.SZ",
+      "600803.SH",
+      "300446.SZ",
+      "300218.SZ",
+      "603888.SH",
+      "600208.SH",
+      "300068.SZ",
+      "600635.SH",
+      "002362.SZ",
+      "000605.SZ",
+      "300147.SZ",
+      "603102.SH",
+      "688677.SH",
+      "300687.SZ",
+      "603358.SH",
+      "300005.SZ",
+      "300057.SZ",
+      "603798.SH",
+      "300843.SZ",
+      "000620.SZ",
+      "002909.SZ",
+      "688193.SH",
+      "600569.SH",
+      "002139.SZ"
+    ],
+    "start": "2025-04-28T00:00:00",
+    "universe": null
+  },
+  "query_id": "ece4b8b8-d3f6-4254-8e10-089cb0cc0c84",
+  "result_shapes": {
+    "adj_lossgain": [
+      3,
+      500
+    ],
+    "admin_exp": [
+      3,
+      500
+    ],
+    "amodcost_fin_assets": [
+      3,
+      500
+    ],
+    "ann_date": [
+      3,
+      500
+    ],
+    "ass_invest_income": [
+      3,
+      500
+    ],
+    "asset_disp_income": [
+      3,
+      500
+    ],
+    "assets_impair_loss": [
+      3,
+      500
+    ],
+    "basic_eps": [
+      3,
+      500
+    ],
+    "biz_tax_surchg": [
+      3,
+      500
+    ],
+    "capit_comstock_div": [
+      3,
+      500
+    ],
+    "comm_exp": [
+      3,
+      500
+    ],
+    "comm_income": [
+      3,
+      500
+    ],
+    "comp_type": [
+      3,
+      500
+    ],
+    "compens_payout": [
+      3,
+      500
+    ],
+    "compens_payout_refu": [
+      3,
+      500
+    ],
+    "compr_inc_attr_m_s": [
+      3,
+      500
+    ],
+    "compr_inc_attr_p": [
+      3,
+      500
+    ],
+    "comshare_payable_dvd": [
+      3,
+      500
+    ],
+    "continued_net_profit": [
+      3,
+      500
+    ],
+    "credit_impa_loss": [
+      3,
+      500
+    ],
+    "diluted_eps": [
+      3,
+      500
+    ],
+    "distable_profit": [
+      3,
+      500
+    ],
+    "distr_profit_shrhder": [
+      3,
+      500
+    ],
+    "div_payt": [
+      3,
+      500
+    ],
+    "ebit": [
+      3,
+      500
+    ],
+    "ebitda": [
+      3,
+      500
+    ],
+    "end_date": [
+      3,
+      500
+    ],
+    "end_net_profit": [
+      3,
+      500
+    ],
+    "end_type": [
+      3,
+      500
+    ],
+    "f_ann_date": [
+      3,
+      500
+    ],
+    "fin_exp": [
+      3,
+      500
+    ],
+    "fin_exp_int_exp": [
+      3,
+      500
+    ],
+    "fin_exp_int_inc": [
+      3,
+      500
+    ],
+    "forex_gain": [
+      3,
+      500
+    ],
+    "fv_value_chg_gain": [
+      3,
+      500
+    ],
+    "income_tax": [
+      3,
+      500
+    ],
+    "insur_reser_refu": [
+      3,
+      500
+    ],
+    "insurance_exp": [
+      3,
+      500
+    ],
+    "int_exp": [
+      3,
+      500
+    ],
+    "int_income": [
+      3,
+      500
+    ],
+    "invest_income": [
+      3,
+      500
+    ],
+    "minority_gain": [
+      3,
+      500
+    ],
+    "n_asset_mg_income": [
+      3,
+      500
+    ],
+    "n_commis_income": [
+      3,
+      500
+    ],
+    "n_income": [
+      3,
+      500
+    ],
+    "n_income_attr_p": [
+      3,
+      500
+    ],
+    "n_oth_b_income": [
+      3,
+      500
+    ],
+    "n_oth_income": [
+      3,
+      500
+    ],
+    "n_sec_tb_income": [
+      3,
+      500
+    ],
+    "n_sec_uw_income": [
+      3,
+      500
+    ],
+    "nca_disploss": [
+      3,
+      500
+    ],
+    "net_after_nr_lp_correct": [
+      3,
+      500
+    ],
+    "net_expo_hedging_benefits": [
+      3,
+      500
+    ],
+    "non_oper_exp": [
+      3,
+      500
+    ],
+    "non_oper_income": [
+      3,
+      500
+    ],
+    "oper_cost": [
+      3,
+      500
+    ],
+    "oper_exp": [
+      3,
+      500
+    ],
+    "operate_profit": [
+      3,
+      500
+    ],
+    "oth_b_income": [
+      3,
+      500
+    ],
+    "oth_compr_income": [
+      3,
+      500
+    ],
+    "oth_impair_loss_assets": [
+      3,
+      500
+    ],
+    "oth_income": [
+      3,
+      500
+    ],
+    "other_bus_cost": [
+      3,
+      500
+    ],
+    "out_prem": [
+      3,
+      500
+    ],
+    "prem_earned": [
+      3,
+      500
+    ],
+    "prem_income": [
+      3,
+      500
+    ],
+    "prem_refund": [
+      3,
+      500
+    ],
+    "prfshare_payable_dvd": [
+      3,
+      500
+    ],
+    "rd_exp": [
+      3,
+      500
+    ],
+    "reins_cost_refund": [
+      3,
+      500
+    ],
+    "reins_exp": [
+      3,
+      500
+    ],
+    "reins_income": [
+      3,
+      500
+    ],
+    "report_type": [
+      3,
+      500
+    ],
+    "reser_insur_liab": [
+      3,
+      500
+    ],
+    "revenue": [
+      3,
+      500
+    ],
+    "sell_exp": [
+      3,
+      500
+    ],
+    "t_compr_income": [
+      3,
+      500
+    ],
+    "total_cogs": [
+      3,
+      500
+    ],
+    "total_opcost": [
+      3,
+      500
+    ],
+    "total_profit": [
+      3,
+      500
+    ],
+    "total_revenue": [
+      3,
+      500
+    ],
+    "transfer_housing_imprest": [
+      3,
+      500
+    ],
+    "transfer_oth": [
+      3,
+      500
+    ],
+    "transfer_surplus_rese": [
+      3,
+      500
+    ],
+    "undist_profit": [
+      3,
+      500
+    ],
+    "une_prem_reser": [
+      3,
+      500
+    ],
+    "update_flag": [
+      3,
+      500
+    ],
+    "withdra_biz_devfund": [
+      3,
+      500
+    ],
+    "withdra_legal_pubfund": [
+      3,
+      500
+    ],
+    "withdra_legal_surplus": [
+      3,
+      500
+    ],
+    "withdra_oth_ersu": [
+      3,
+      500
+    ],
+    "withdra_rese_fund": [
+      3,
+      500
+    ],
+    "workers_welfare": [
+      3,
+      500
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar": {
+      "backend": "clickhouse",
+      "connection": "live",
+      "host": "chdb.tradegdb.com",
+      "port": 8123,
+      "schema_hash": "e588a483efa913a86d786077a14d93152d3fefd561643cfa6fbfcd44a77b3738",
+      "schema_source": "catalog",
+      "secure": false,
+      "table": "stock_base.daily",
+      "time_expression": null
+    },
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "income",
+    "fixed_params": {
+      "report_type": "1"
+    },
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 3308635,
+        "key": "20160930",
+        "mtime_ns": 1784564640160531959,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20160930/data.parquet",
+        "relative_path": "income/period/20160930/data.parquet",
+        "rows": 27682,
+        "sha256": "e7a057de213a400643b1af719afb35e2384a6ad8c97c960393afe6009bf44eb6",
+        "size": 3308635
+      },
+      {
+        "expected_size": 4310633,
+        "key": "20161231",
+        "mtime_ns": 1784564682678471157,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20161231/data.parquet",
+        "relative_path": "income/period/20161231/data.parquet",
+        "rows": 33375,
+        "sha256": "477169a414c3823506a956ab080b7a9a152dcc0e64d0f147341e8cf43c7b36bc",
+        "size": 4310633
+      },
+      {
+        "expected_size": 2200303,
+        "key": "20170331",
+        "mtime_ns": 1784564718924055367,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20170331/data.parquet",
+        "relative_path": "income/period/20170331/data.parquet",
+        "rows": 29427,
+        "sha256": "e5ab4572917b4bb4294cf969fcd6d6f20eb66d1ff8ffe512e22e16f946dc384e",
+        "size": 2200303
+      },
+      {
+        "expected_size": 3835856,
+        "key": "20170630",
+        "mtime_ns": 1784564757727332332,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20170630/data.parquet",
+        "relative_path": "income/period/20170630/data.parquet",
+        "rows": 31306,
+        "sha256": "1aa94b4a6a44f74c13c86bf71303c5b3649575eeca9ad6a18cd314f20b6e0ed6",
+        "size": 3835856
+      },
+      {
+        "expected_size": 3993491,
+        "key": "20170930",
+        "mtime_ns": 1784564794610067045,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20170930/data.parquet",
+        "relative_path": "income/period/20170930/data.parquet",
+        "rows": 29561,
+        "sha256": "ae2faacfa21a11d3d821f0bd3128675e4783e056359aa8497f0a16703740e257",
+        "size": 3993491
+      },
+      {
+        "expected_size": 5080477,
+        "key": "20171231",
+        "mtime_ns": 1784564843202674891,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20171231/data.parquet",
+        "relative_path": "income/period/20171231/data.parquet",
+        "rows": 38747,
+        "sha256": "efccf3ebaa041d63d856e2e0c0cdf582e1c5061541f53cb6ecacf4db5e7b1656",
+        "size": 5080477
+      },
+      {
+        "expected_size": 2519146,
+        "key": "20180331",
+        "mtime_ns": 1784564880668763463,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20180331/data.parquet",
+        "relative_path": "income/period/20180331/data.parquet",
+        "rows": 31278,
+        "sha256": "71c276a5bf19db761a031ce67771a082ad8f9203c8bd0557129aa0af0c83a0c6",
+        "size": 2519146
+      },
+      {
+        "expected_size": 4642010,
+        "key": "20180630",
+        "mtime_ns": 1784564926830800801,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20180630/data.parquet",
+        "relative_path": "income/period/20180630/data.parquet",
+        "rows": 37835,
+        "sha256": "0ffab0f12af1d76d75f6d0e422d78f9849e41049b686594af3c8ca103046678c",
+        "size": 4642010
+      },
+      {
+        "expected_size": 4272263,
+        "key": "20180930",
+        "mtime_ns": 1784564977395323214,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20180930/data.parquet",
+        "relative_path": "income/period/20180930/data.parquet",
+        "rows": 34393,
+        "sha256": "9913ed26a5f9a55be6b302f5f64bfd157edc84dddad55258fcbb5a816ecab963",
+        "size": 4272263
+      },
+      {
+        "expected_size": 5475038,
+        "key": "20181231",
+        "mtime_ns": 1784565027976640515,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20181231/data.parquet",
+        "relative_path": "income/period/20181231/data.parquet",
+        "rows": 43326,
+        "sha256": "6d45ddb9661971b65ad3ab2437c28656470dadf80e89bc81ac4ced4da44f5d43",
+        "size": 5475038
+      },
+      {
+        "expected_size": 2744911,
+        "key": "20190331",
+        "mtime_ns": 1784565066484054902,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20190331/data.parquet",
+        "relative_path": "income/period/20190331/data.parquet",
+        "rows": 32378,
+        "sha256": "0781bebc6b182bdeed6cd3f74571aca3dc2ef56a49973bc86b5b648449943c99",
+        "size": 2744911
+      },
+      {
+        "expected_size": 4768785,
+        "key": "20190630",
+        "mtime_ns": 1784565113236958624,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20190630/data.parquet",
+        "relative_path": "income/period/20190630/data.parquet",
+        "rows": 39852,
+        "sha256": "db6c6e4afb975c4778833729a2298e280971164f4c06c2f6bfaff2d83dc4a3de",
+        "size": 4768785
+      },
+      {
+        "expected_size": 4587805,
+        "key": "20190930",
+        "mtime_ns": 1784565154989319106,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20190930/data.parquet",
+        "relative_path": "income/period/20190930/data.parquet",
+        "rows": 36698,
+        "sha256": "73c8db879f0d23500d3aac061cb8006a0e6c1557bb41a04a38e1e2368f99002c",
+        "size": 4587805
+      },
+      {
+        "expected_size": 6074517,
+        "key": "20191231",
+        "mtime_ns": 1784565211909431984,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20191231/data.parquet",
+        "relative_path": "income/period/20191231/data.parquet",
+        "rows": 50904,
+        "sha256": "ea1f46b91135a5073c58d5f6f9f9025e229dd8c64abdf5787c26abcc01bbd051",
+        "size": 6074517
+      },
+      {
+        "expected_size": 3222790,
+        "key": "20200331",
+        "mtime_ns": 1784565256173884514,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20200331/data.parquet",
+        "relative_path": "income/period/20200331/data.parquet",
+        "rows": 39526,
+        "sha256": "e354946d2760cdd67bde5964450948be1361324448206cbca9f1b5f067749f3b",
+        "size": 3222790
+      },
+      {
+        "expected_size": 5668771,
+        "key": "20200630",
+        "mtime_ns": 1784565311903365432,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20200630/data.parquet",
+        "relative_path": "income/period/20200630/data.parquet",
+        "rows": 49958,
+        "sha256": "27ec05576d49a246ec6c1e21a63b896e6ec154fda66fea2711a6d6fdce5d9680",
+        "size": 5668771
+      },
+      {
+        "expected_size": 4707199,
+        "key": "20200930",
+        "mtime_ns": 1784565353100266674,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20200930/data.parquet",
+        "relative_path": "income/period/20200930/data.parquet",
+        "rows": 33691,
+        "sha256": "00f6c5a8702488b5724656b760b3b5828fb002014bc48467981f82e6deffe74c",
+        "size": 4707199
+      },
+      {
+        "expected_size": 6126186,
+        "key": "20201231",
+        "mtime_ns": 1784565416144043162,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20201231/data.parquet",
+        "relative_path": "income/period/20201231/data.parquet",
+        "rows": 49344,
+        "sha256": "d6c7fe4925d4b5a44ede762613db68c49257278e9a9c61144cad2dfbe269f69a",
+        "size": 6126186
+      },
+      {
+        "expected_size": 3084737,
+        "key": "20210331",
+        "mtime_ns": 1784565463658972853,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20210331/data.parquet",
+        "relative_path": "income/period/20210331/data.parquet",
+        "rows": 32371,
+        "sha256": "057fde0d6c9a9318d1defc993bc1a56319ef90d8955e01bd26f771dd57ebac81",
+        "size": 3084737
+      },
+      {
+        "expected_size": 4051963,
+        "key": "20210630",
+        "mtime_ns": 1784565497454662086,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20210630/data.parquet",
+        "relative_path": "income/period/20210630/data.parquet",
+        "rows": 20313,
+        "sha256": "07ae9e9294218db126735caf82630935078770f99d8397d3c2f1b417a6de0331",
+        "size": 4051963
+      },
+      {
+        "expected_size": 3702724,
+        "key": "20210930",
+        "mtime_ns": 1784565540894925683,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20210930/data.parquet",
+        "relative_path": "income/period/20210930/data.parquet",
+        "rows": 27778,
+        "sha256": "2d756d41ab7cb2a98e150ce679de7616ccd6c5f43b0f094420a1c641dc3b56f1",
+        "size": 3702724
+      },
+      {
+        "expected_size": 5533237,
+        "key": "20211231",
+        "mtime_ns": 1784565601932296657,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20211231/data.parquet",
+        "relative_path": "income/period/20211231/data.parquet",
+        "rows": 43495,
+        "sha256": "582c8b170f6179675b89f8bb08820bd19098acf994ba0cba4886698b0489dbf4",
+        "size": 5533237
+      },
+      {
+        "expected_size": 1863128,
+        "key": "20220331",
+        "mtime_ns": 1784565635172710655,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20220331/data.parquet",
+        "relative_path": "income/period/20220331/data.parquet",
+        "rows": 16129,
+        "sha256": "1a489a932c1c007453ae11177926d4c8d9435e182299d4aee30f7bb01e96094f",
+        "size": 1863128
+      },
+      {
+        "expected_size": 3665603,
+        "key": "20220630",
+        "mtime_ns": 1784565672262336072,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20220630/data.parquet",
+        "relative_path": "income/period/20220630/data.parquet",
+        "rows": 17593,
+        "sha256": "79b69455492abf808c4119b07a8e3cf198f70c71703d223f741284eb58a57e92",
+        "size": 3665603
+      },
+      {
+        "expected_size": 2894483,
+        "key": "20220930",
+        "mtime_ns": 1784565702865731750,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20220930/data.parquet",
+        "relative_path": "income/period/20220930/data.parquet",
+        "rows": 13472,
+        "sha256": "ed68b0a7d87e55175b3133ac5b376e576721b24524b9ad504e75e12b003ef477",
+        "size": 2894483
+      },
+      {
+        "expected_size": 5980545,
+        "key": "20221231",
+        "mtime_ns": 1784565770066932744,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20221231/data.parquet",
+        "relative_path": "income/period/20221231/data.parquet",
+        "rows": 43744,
+        "sha256": "6e71e80af0373ea21c1eb7086af75734ffb5a8fc4296d325f348bfd36e91377e",
+        "size": 5980545
+      },
+      {
+        "expected_size": 1989916,
+        "key": "20230331",
+        "mtime_ns": 1784565805718706967,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20230331/data.parquet",
+        "relative_path": "income/period/20230331/data.parquet",
+        "rows": 16425,
+        "sha256": "5a8e98ab337e61441eb3ea91bf31b3585912cdcced5362c9f88fb5c0b6dc7fe5",
+        "size": 1989916
+      },
+      {
+        "expected_size": 5398229,
+        "key": "20230630",
+        "mtime_ns": 1784565861658781843,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20230630/data.parquet",
+        "relative_path": "income/period/20230630/data.parquet",
+        "rows": 41787,
+        "sha256": "b3b6b15993883efb18d5ec80f37aca17fc30a55131ae3b35c428b9d37d20f8ca",
+        "size": 5398229
+      },
+      {
+        "expected_size": 3139505,
+        "key": "20230930",
+        "mtime_ns": 1784565895981981821,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20230930/data.parquet",
+        "relative_path": "income/period/20230930/data.parquet",
+        "rows": 15488,
+        "sha256": "12ac334c4292e3416fd7963cd36c72cad8c7c0c72aad54a8cdccd9aa4d967af6",
+        "size": 3139505
+      },
+      {
+        "expected_size": 5677837,
+        "key": "20231231",
+        "mtime_ns": 1784565953221868698,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20231231/data.parquet",
+        "relative_path": "income/period/20231231/data.parquet",
+        "rows": 41783,
+        "sha256": "c3bac87bdf936932c12b0191c7821d7fe21fd984ef1711a82ae490538c88a674",
+        "size": 5677837
+      },
+      {
+        "expected_size": 1912284,
+        "key": "20240331",
+        "mtime_ns": 1784565986344106687,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20240331/data.parquet",
+        "relative_path": "income/period/20240331/data.parquet",
+        "rows": 15169,
+        "sha256": "93e34a5b0f0ab0e91db77d00fb84babb58d3025bb76641e34d00dee6c80ee962",
+        "size": 1912284
+      },
+      {
+        "expected_size": 4093688,
+        "key": "20240630",
+        "mtime_ns": 1784566029961903338,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20240630/data.parquet",
+        "relative_path": "income/period/20240630/data.parquet",
+        "rows": 20242,
+        "sha256": "80ff927f1b40a02a7efb688e8cdd9832921c6744ffd9e3600e50d7609617f84a",
+        "size": 4093688
+      },
+      {
+        "expected_size": 3173421,
+        "key": "20240930",
+        "mtime_ns": 1784566063893109829,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20240930/data.parquet",
+        "relative_path": "income/period/20240930/data.parquet",
+        "rows": 15793,
+        "sha256": "34be9ae72cc4af3c52ddf3aa6222dd70ebea85ba81ca6d7d6d630cc5818dcc7a",
+        "size": 3173421
+      },
+      {
+        "expected_size": 4709400,
+        "key": "20241231",
+        "mtime_ns": 1784566110936269553,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20241231/data.parquet",
+        "relative_path": "income/period/20241231/data.parquet",
+        "rows": 25464,
+        "sha256": "b0f58c9c8530226033beaa716d5e58830956741a48f2a73e0cfdd718868ad650",
+        "size": 4709400
+      },
+      {
+        "expected_size": 2005034,
+        "key": "20250331",
+        "mtime_ns": 1784566144971209240,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20250331/data.parquet",
+        "relative_path": "income/period/20250331/data.parquet",
+        "rows": 16431,
+        "sha256": "d8a17fc08b6b9ca7999e71e74bf9ef95d53bdc9758918bad90eb3dace6a6ed89",
+        "size": 2005034
+      },
+      {
+        "expected_size": 4340014,
+        "key": "20250630",
+        "mtime_ns": 1784566182922880548,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20250630/data.parquet",
+        "relative_path": "income/period/20250630/data.parquet",
+        "rows": 21732,
+        "sha256": "3d7b80d51b06c4cd191f4165b2421a75aeab68e65c8cb51a1b89b1d7da803962",
+        "size": 4340014
+      },
+      {
+        "expected_size": 3280984,
+        "key": "20250930",
+        "mtime_ns": 1784566216542223035,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20250930/data.parquet",
+        "relative_path": "income/period/20250930/data.parquet",
+        "rows": 15472,
+        "sha256": "43fc147f5822b9b671a0b5415e21447d08b504147152bfce707721d49eea7ff7",
+        "size": 3280984
+      },
+      {
+        "expected_size": 4450311,
+        "key": "20251231",
+        "mtime_ns": 1784566254405488817,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20251231/data.parquet",
+        "relative_path": "income/period/20251231/data.parquet",
+        "rows": 20378,
+        "sha256": "a3846aba42c9a1ee097686cbdc85db20335fc8df128092e6ca490a43e9dca78e",
+        "size": 4450311
+      },
+      {
+        "expected_size": 2005813,
+        "key": "20260331",
+        "mtime_ns": 1784566288441540385,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20260331/data.parquet",
+        "relative_path": "income/period/20260331/data.parquet",
+        "rows": 15459,
+        "sha256": "f76e1726db0f1f29db2a8f6fd09500dbdfa915413751075b93cb0e60a61d747e",
+        "size": 2005813
+      },
+      {
+        "expected_size": 57040,
+        "key": "20260630",
+        "mtime_ns": 1784566307512476727,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/income/period/20260630/data.parquet",
+        "relative_path": "income/period/20260630/data.parquet",
+        "rows": 19,
+        "sha256": "63446c05df3b968d905c81c697bd7e7341fe1775deba852fdb23eba0b63b32c4",
+        "size": 57040
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "4f94f1deba0601277d04b3c4bce09287bd53f8d08be319decce667980937d153",
+    "updated_at": "2026-07-20T16:51:47+00:00"
+  },
+  "started_at": "2026-09-06T04:00:15.529011+00:00",
+  "status": "success"
+}

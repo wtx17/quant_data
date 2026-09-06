@@ -1,0 +1,54 @@
+{
+  "adjusted": false,
+  "calendar_aligned": false,
+  "dataset": "minghu_index_daily",
+  "dataset_version": null,
+  "duration_ms": 72.08579199505039,
+  "error": null,
+  "fields": [
+    "open",
+    "close",
+    "volume"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2026-06-30T00:00:00",
+    "instruments": [
+      "000902.SH",
+      "000984.SH"
+    ],
+    "start": "2026-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "06d97014-4759-4d12-bb10-c6f78ff3a79d",
+  "result_shapes": {
+    "close": [
+      116,
+      2
+    ],
+    "open": [
+      116,
+      2
+    ],
+    "volume": [
+      116,
+      2
+    ]
+  },
+  "source": {
+    "backend": "clickhouse",
+    "connection": "live",
+    "host": "chdb.tradegdb.com",
+    "port": 8123,
+    "schema_hash": "4697e63dc32cf87ff54ffb5ab98ccafef6396e7f647cac308d66ea1e2273000a",
+    "schema_source": "catalog",
+    "secure": false,
+    "table": "index_base.daily",
+    "time_expression": null
+  },
+  "started_at": "2026-09-06T04:00:47.890185+00:00",
+  "status": "success"
+}

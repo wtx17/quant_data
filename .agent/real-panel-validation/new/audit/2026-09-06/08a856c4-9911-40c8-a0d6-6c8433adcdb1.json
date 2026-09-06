@@ -1,0 +1,51 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "membership_events",
+  "dataset_version": null,
+  "duration_ms": 36075.596957991365,
+  "error": null,
+  "fields": [
+    "membership"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "08a856c4-9911-40c8-a0d6-6c8433adcdb1",
+  "result_shapes": {
+    "membership": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "events_path": "/Users/wtx/.codex/worktrees/719e/quant_data/resources/universes/membership_events.parquet",
+    "events_sha256": "e1052a6bb72888aa22f8e64986749be48621dadcb5b1aec5b525616a7a7e296f",
+    "market": {
+      "backend": "clickhouse",
+      "connection": "live",
+      "host": "chdb.tradegdb.com",
+      "port": 8123,
+      "schema_hash": "e588a483efa913a86d786077a14d93152d3fefd561643cfa6fbfcd44a77b3738",
+      "schema_source": "catalog",
+      "secure": false,
+      "table": "stock_base.daily",
+      "time_expression": null
+    }
+  },
+  "started_at": "2026-09-06T03:59:27.288925+00:00",
+  "status": "success"
+}

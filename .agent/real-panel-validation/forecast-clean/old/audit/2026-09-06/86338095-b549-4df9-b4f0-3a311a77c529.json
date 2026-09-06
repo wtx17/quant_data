@@ -1,0 +1,507 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "forecast",
+  "dataset_version": null,
+  "duration_ms": 467.4206659983611,
+  "error": null,
+  "fields": [
+    "ann_date",
+    "end_date",
+    "type",
+    "p_change_min",
+    "p_change_max",
+    "net_profit_min",
+    "net_profit_max",
+    "last_parent_net",
+    "first_ann_date",
+    "summary",
+    "change_reason"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_api": "trade_cal",
+    "disclosure_lag": 0,
+    "effective_end": "2025-06-30T00:00:00+08:00",
+    "effective_start": "2025-01-01T00:00:00+08:00",
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "688155.SH",
+      "300762.SZ",
+      "600468.SH",
+      "300306.SZ",
+      "600708.SH"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "86338095-b549-4df9-b4f0-3a311a77c529",
+  "result_shapes": {
+    "ann_date": [
+      117,
+      5
+    ],
+    "change_reason": [
+      117,
+      5
+    ],
+    "end_date": [
+      117,
+      5
+    ],
+    "first_ann_date": [
+      117,
+      5
+    ],
+    "last_parent_net": [
+      117,
+      5
+    ],
+    "net_profit_max": [
+      117,
+      5
+    ],
+    "net_profit_min": [
+      117,
+      5
+    ],
+    "p_change_max": [
+      117,
+      5
+    ],
+    "p_change_min": [
+      117,
+      5
+    ],
+    "summary": [
+      117,
+      5
+    ],
+    "type": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar_api": "trade_cal",
+    "calendar_connection": "live",
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "forecast",
+    "fixed_params": {},
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 84095,
+        "key": "20160930",
+        "mtime_ns": 1784563971168225714,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20160930/data.parquet",
+        "relative_path": "forecast/period/20160930/data.parquet",
+        "rows": 2060,
+        "sha256": "1058688c0075327f35419cea41b03a35623ee3a2d47679248f753c611ac2e42a",
+        "size": 84095
+      },
+      {
+        "expected_size": 147400,
+        "key": "20161231",
+        "mtime_ns": 1784563973553687984,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20161231/data.parquet",
+        "relative_path": "forecast/period/20161231/data.parquet",
+        "rows": 2898,
+        "sha256": "2f476d6f7d55af17f7530716ac7b0d0d42a4d7f5af0966c780e533ea3e828b46",
+        "size": 147400
+      },
+      {
+        "expected_size": 236983,
+        "key": "20170331",
+        "mtime_ns": 1784563976080607892,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20170331/data.parquet",
+        "relative_path": "forecast/period/20170331/data.parquet",
+        "rows": 1541,
+        "sha256": "49eb0a2596672469ba8689367ac2e1c07b658729c26e03b799c9ae5bee4c8491",
+        "size": 236983
+      },
+      {
+        "expected_size": 384422,
+        "key": "20170630",
+        "mtime_ns": 1784563979110475058,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20170630/data.parquet",
+        "relative_path": "forecast/period/20170630/data.parquet",
+        "rows": 2507,
+        "sha256": "176fea736c144777f01796cd631599e4b0b900bd7e7d2e6b30eee7abda20d649",
+        "size": 384422
+      },
+      {
+        "expected_size": 377895,
+        "key": "20170930",
+        "mtime_ns": 1784563981691985236,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20170930/data.parquet",
+        "relative_path": "forecast/period/20170930/data.parquet",
+        "rows": 2356,
+        "sha256": "a4c0ed83e0d83492e3cc7eb05dfb0d60538241c0bddaaf83cd9476c42827e50e",
+        "size": 377895
+      },
+      {
+        "expected_size": 658658,
+        "key": "20171231",
+        "mtime_ns": 1784563984787141677,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20171231/data.parquet",
+        "relative_path": "forecast/period/20171231/data.parquet",
+        "rows": 3120,
+        "sha256": "84df0aebf7344a7779b2aeee2d32f05b15ba935eb625e6e49b2a9688578efedd",
+        "size": 658658
+      },
+      {
+        "expected_size": 284530,
+        "key": "20180331",
+        "mtime_ns": 1784563987415920802,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20180331/data.parquet",
+        "relative_path": "forecast/period/20180331/data.parquet",
+        "rows": 1559,
+        "sha256": "69f29798ee10d1606cbaa5cdc64be63d2701bc0a10b3c5e57b075d786a8be59e",
+        "size": 284530
+      },
+      {
+        "expected_size": 445360,
+        "key": "20180630",
+        "mtime_ns": 1784563990359161640,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20180630/data.parquet",
+        "relative_path": "forecast/period/20180630/data.parquet",
+        "rows": 2488,
+        "sha256": "276bb49c04268812da6ac636e2284b653b2f9ece97d3d1d691ebc80b4b5a369e",
+        "size": 445360
+      },
+      {
+        "expected_size": 407211,
+        "key": "20180930",
+        "mtime_ns": 1784563993070866412,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20180930/data.parquet",
+        "relative_path": "forecast/period/20180930/data.parquet",
+        "rows": 2277,
+        "sha256": "7497c924e46708ac1ef1068951d8924e3269d2ce745e474d17394e68c71288b7",
+        "size": 407211
+      },
+      {
+        "expected_size": 747377,
+        "key": "20181231",
+        "mtime_ns": 1784563996761032691,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20181231/data.parquet",
+        "relative_path": "forecast/period/20181231/data.parquet",
+        "rows": 3139,
+        "sha256": "42a68dcea4cd3ccb063d067ed5bcfff2bc62f554232e4eb5c122cf57391b6982",
+        "size": 747377
+      },
+      {
+        "expected_size": 289230,
+        "key": "20190331",
+        "mtime_ns": 1784563999205034327,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20190331/data.parquet",
+        "relative_path": "forecast/period/20190331/data.parquet",
+        "rows": 1550,
+        "sha256": "54c31c8bda39711703863b1bf8f67d07765efa240ef6cca4436e7db95832fe49",
+        "size": 289230
+      },
+      {
+        "expected_size": 379473,
+        "key": "20190630",
+        "mtime_ns": 1784564001938188402,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20190630/data.parquet",
+        "relative_path": "forecast/period/20190630/data.parquet",
+        "rows": 1900,
+        "sha256": "0d0bd139e7e6a0da2d37dad86d0dd6696ffbd35bcded1ffc361769beeba69136",
+        "size": 379473
+      },
+      {
+        "expected_size": 375460,
+        "key": "20190930",
+        "mtime_ns": 1784564004360325531,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20190930/data.parquet",
+        "relative_path": "forecast/period/20190930/data.parquet",
+        "rows": 1779,
+        "sha256": "b3cdb0bab77dc9b65c6ec0b715f0829786491dd8fab927b148b389130e6a9754",
+        "size": 375460
+      },
+      {
+        "expected_size": 796854,
+        "key": "20191231",
+        "mtime_ns": 1784564011592665498,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20191231/data.parquet",
+        "relative_path": "forecast/period/20191231/data.parquet",
+        "rows": 2724,
+        "sha256": "a56f80d96f4bea471491cc19e09cadb3f4341dcac1010dc9c1a57a145e133482",
+        "size": 796854
+      },
+      {
+        "expected_size": 407593,
+        "key": "20200331",
+        "mtime_ns": 1784564016860174218,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20200331/data.parquet",
+        "relative_path": "forecast/period/20200331/data.parquet",
+        "rows": 1726,
+        "sha256": "4ecd0beab63d6bfef2949b594baf5326b3eb8c80f584971f31fb975f27a532b6",
+        "size": 407593
+      },
+      {
+        "expected_size": 443923,
+        "key": "20200630",
+        "mtime_ns": 1784564019612686569,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20200630/data.parquet",
+        "relative_path": "forecast/period/20200630/data.parquet",
+        "rows": 1854,
+        "sha256": "47059daddb91bdbedc9a159026ca9fc7f16a73aac6e0965965a41bae4b277e30",
+        "size": 443923
+      },
+      {
+        "expected_size": 344452,
+        "key": "20200930",
+        "mtime_ns": 1784564022041662481,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20200930/data.parquet",
+        "relative_path": "forecast/period/20200930/data.parquet",
+        "rows": 1498,
+        "sha256": "7e31a16330b78f0f9b59f7d535b7ae34acf4db7fcbbe6077e04fcf271bf52c60",
+        "size": 344452
+      },
+      {
+        "expected_size": 946266,
+        "key": "20201231",
+        "mtime_ns": 1784564025277653356,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20201231/data.parquet",
+        "relative_path": "forecast/period/20201231/data.parquet",
+        "rows": 3052,
+        "sha256": "7ecb7497766f6a603b9b15ea242e8c141efff89408885da59b85a73093b15b47",
+        "size": 946266
+      },
+      {
+        "expected_size": 348661,
+        "key": "20210331",
+        "mtime_ns": 1784564028127976119,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20210331/data.parquet",
+        "relative_path": "forecast/period/20210331/data.parquet",
+        "rows": 2869,
+        "sha256": "0f31b83f9370fa6b6cff930361eeaaf0b52e998b30515c163fdec1df55acfacb",
+        "size": 348661
+      },
+      {
+        "expected_size": 500460,
+        "key": "20210630",
+        "mtime_ns": 1784564031088842912,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20210630/data.parquet",
+        "relative_path": "forecast/period/20210630/data.parquet",
+        "rows": 3844,
+        "sha256": "7705a957a233be6d3d367e248ffd3369cbdefae33cb5892cffa04b4f9dc87271",
+        "size": 500460
+      },
+      {
+        "expected_size": 342182,
+        "key": "20210930",
+        "mtime_ns": 1784564033866285040,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20210930/data.parquet",
+        "relative_path": "forecast/period/20210930/data.parquet",
+        "rows": 2396,
+        "sha256": "79ee52b92e950c3f5b050aacdb9ff05c12e07eb3dfbb06e83337b78625c4c9c5",
+        "size": 342182
+      },
+      {
+        "expected_size": 1036934,
+        "key": "20211231",
+        "mtime_ns": 1784564039318297418,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20211231/data.parquet",
+        "relative_path": "forecast/period/20211231/data.parquet",
+        "rows": 5272,
+        "sha256": "9b2853c2651a2d3b355bdbdd21cfdace2c362ba42b57078cebae8586533bb624",
+        "size": 1036934
+      },
+      {
+        "expected_size": 158399,
+        "key": "20220331",
+        "mtime_ns": 1784564041684841117,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20220331/data.parquet",
+        "relative_path": "forecast/period/20220331/data.parquet",
+        "rows": 1323,
+        "sha256": "70fcb4acc370492b27ca3e0eee6c25c529294f19edf292582f6c95faac0aa074",
+        "size": 158399
+      },
+      {
+        "expected_size": 539570,
+        "key": "20220630",
+        "mtime_ns": 1784564044906331431,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20220630/data.parquet",
+        "relative_path": "forecast/period/20220630/data.parquet",
+        "rows": 3776,
+        "sha256": "c4375f2728c9fccdf289049821034763c65805bf36bbead047a16e2cf83621cb",
+        "size": 539570
+      },
+      {
+        "expected_size": 132842,
+        "key": "20220930",
+        "mtime_ns": 1784564047010681580,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20220930/data.parquet",
+        "relative_path": "forecast/period/20220930/data.parquet",
+        "rows": 1071,
+        "sha256": "a84c62c3e75567adae4bd478041ef0c1c69a8fe9a1cbada5b9ad80158b3998e6",
+        "size": 132842
+      },
+      {
+        "expected_size": 1098454,
+        "key": "20221231",
+        "mtime_ns": 1784564052804815636,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20221231/data.parquet",
+        "relative_path": "forecast/period/20221231/data.parquet",
+        "rows": 5301,
+        "sha256": "5eecc67cb099c60ef6fb38f1b013566a7fcabb238cdcb204f8054a0f96de324c",
+        "size": 1098454
+      },
+      {
+        "expected_size": 85842,
+        "key": "20230331",
+        "mtime_ns": 1784564054905132314,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20230331/data.parquet",
+        "relative_path": "forecast/period/20230331/data.parquet",
+        "rows": 744,
+        "sha256": "467cc99af6a8218506ab47cfaf863cc99b26a7b190c8bf9acc5a1d1b114cfd1d",
+        "size": 85842
+      },
+      {
+        "expected_size": 504110,
+        "key": "20230630",
+        "mtime_ns": 1784564057794068630,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20230630/data.parquet",
+        "relative_path": "forecast/period/20230630/data.parquet",
+        "rows": 3749,
+        "sha256": "bcb1ded802b9d6fc0c8900e2cd6b67e82f8023d4e6964864b83e4bacad466b7a",
+        "size": 504110
+      },
+      {
+        "expected_size": 99383,
+        "key": "20230930",
+        "mtime_ns": 1784564059848448143,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20230930/data.parquet",
+        "relative_path": "forecast/period/20230930/data.parquet",
+        "rows": 751,
+        "sha256": "2f0dd3d0f384910626315deebf0b38961de3cb96557c3d5f3cc1f9617554d431",
+        "size": 99383
+      },
+      {
+        "expected_size": 1077110,
+        "key": "20231231",
+        "mtime_ns": 1784564066312444700,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20231231/data.parquet",
+        "relative_path": "forecast/period/20231231/data.parquet",
+        "rows": 5874,
+        "sha256": "e7dff9fce51b082621c6f03734f080d53b876e4a6a760e3525e159c90f9f40bb",
+        "size": 1077110
+      },
+      {
+        "expected_size": 68704,
+        "key": "20240331",
+        "mtime_ns": 1784564068503997840,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20240331/data.parquet",
+        "relative_path": "forecast/period/20240331/data.parquet",
+        "rows": 428,
+        "sha256": "21129b440f265b4d0a5bc1b7e0930196719c822cc976a8cf5c35292c5e2caa7d",
+        "size": 68704
+      },
+      {
+        "expected_size": 501721,
+        "key": "20240630",
+        "mtime_ns": 1784564071656927652,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20240630/data.parquet",
+        "relative_path": "forecast/period/20240630/data.parquet",
+        "rows": 3477,
+        "sha256": "8b01525cc076cd1ab58aafdb720c7da574c9fde458d92d1078818e81e97531c3",
+        "size": 501721
+      },
+      {
+        "expected_size": 67910,
+        "key": "20240930",
+        "mtime_ns": 1784564073515741379,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20240930/data.parquet",
+        "relative_path": "forecast/period/20240930/data.parquet",
+        "rows": 266,
+        "sha256": "d50ff1709b11d8eb5fb8ff907df3d20f2d06c6a0724f75217d5b4af6a3a11ad4",
+        "size": 67910
+      },
+      {
+        "expected_size": 1051991,
+        "key": "20241231",
+        "mtime_ns": 1784564077402385687,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20241231/data.parquet",
+        "relative_path": "forecast/period/20241231/data.parquet",
+        "rows": 3956,
+        "sha256": "45c7f59e03438fabfcd0434ed4b561fb1ca24738c52a6d089ffae630370a91f5",
+        "size": 1051991
+      },
+      {
+        "expected_size": 71906,
+        "key": "20250331",
+        "mtime_ns": 1784564079370968365,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20250331/data.parquet",
+        "relative_path": "forecast/period/20250331/data.parquet",
+        "rows": 308,
+        "sha256": "c627846df1f5a6e79cb1e5375a713c06de57d84dd0d61af13c92b9d997c17591",
+        "size": 71906
+      },
+      {
+        "expected_size": 435259,
+        "key": "20250630",
+        "mtime_ns": 1784564082362058355,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20250630/data.parquet",
+        "relative_path": "forecast/period/20250630/data.parquet",
+        "rows": 1854,
+        "sha256": "d3f44833beb091eb36108035ddfc05f5919e2b57422d345b7fe7a034f95e5a04",
+        "size": 435259
+      },
+      {
+        "expected_size": 52685,
+        "key": "20250930",
+        "mtime_ns": 1784564084155019352,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20250930/data.parquet",
+        "relative_path": "forecast/period/20250930/data.parquet",
+        "rows": 230,
+        "sha256": "731495f9d48839e396a77ccfb98a3e0887b6108fe1cb05b3a3684ee2598d2113",
+        "size": 52685
+      },
+      {
+        "expected_size": 1090862,
+        "key": "20251231",
+        "mtime_ns": 1784564088097906793,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20251231/data.parquet",
+        "relative_path": "forecast/period/20251231/data.parquet",
+        "rows": 4651,
+        "sha256": "ad951fd29ded93d20baf9d58306a79b874705385646f84e65109b04b5b063e6e",
+        "size": 1090862
+      },
+      {
+        "expected_size": 57962,
+        "key": "20260331",
+        "mtime_ns": 1784564089885906952,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20260331/data.parquet",
+        "relative_path": "forecast/period/20260331/data.parquet",
+        "rows": 256,
+        "sha256": "d1277846f43226c5777c2cc40e0ae7495a4ff2735feba34b6d31f33e31bf7cc8",
+        "size": 57962
+      },
+      {
+        "expected_size": 489329,
+        "key": "20260630",
+        "mtime_ns": 1784564092554242748,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/forecast/period/20260630/data.parquet",
+        "relative_path": "forecast/period/20260630/data.parquet",
+        "rows": 1810,
+        "sha256": "77610991ccd2d62ffe66dbb6d52e997e51b9178ae8d8b2e2ba706260ef91f340",
+        "size": 489329
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "c7c6d1485932df85bf8d02e816d95d042c601df792920490666d796cb1954b99",
+    "updated_at": "2026-07-20T16:14:52+00:00"
+  },
+  "started_at": "2026-09-06T04:03:26.859959+00:00",
+  "status": "success"
+}

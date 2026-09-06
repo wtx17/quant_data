@@ -1,0 +1,57 @@
+{
+  "adjusted": false,
+  "calendar_aligned": false,
+  "dataset": "minghu_m1",
+  "dataset_version": null,
+  "duration_ms": 1092.1034589991905,
+  "error": null,
+  "fields": [
+    "open",
+    "close",
+    "volume"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "1min",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "end": "2026-03-11T23:59:59.999999",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2026-03-02T00:00:00",
+    "universe": null
+  },
+  "query_id": "8c0a5710-d50f-4cec-954d-ecb4782a50ce",
+  "result_shapes": {
+    "close": [
+      1928,
+      5
+    ],
+    "open": [
+      1928,
+      5
+    ],
+    "volume": [
+      1928,
+      5
+    ]
+  },
+  "source": {
+    "backend": "clickhouse",
+    "connection": "live",
+    "host": "chdb.tradegdb.com",
+    "port": 8123,
+    "schema_hash": "525c9ac3483d3343f345377a5fed5b81f801fd24806e00977ca8c0f027053863",
+    "schema_source": "catalog",
+    "secure": false,
+    "table": "stock_base.m1",
+    "time_expression": "(toDateTime64(`_q`.`date`, 3, 'Asia/Shanghai') + toIntervalMillisecond(`_q`.`time_int`))"
+  },
+  "started_at": "2026-09-06T03:57:50.203227+00:00",
+  "status": "success"
+}

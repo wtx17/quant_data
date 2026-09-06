@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "sizes": [
+    500,
+    5
+  ],
+  "allowed_difference": "events_path absolute checkout prefix; identical events_sha256; all other stable fields exact"
+}

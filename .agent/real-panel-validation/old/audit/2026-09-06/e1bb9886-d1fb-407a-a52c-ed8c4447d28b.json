@@ -1,0 +1,1239 @@
+{
+  "adjusted": false,
+  "calendar_aligned": true,
+  "dataset": "balancesheet",
+  "dataset_version": null,
+  "duration_ms": 807.1762080071494,
+  "error": null,
+  "fields": [
+    "ann_date",
+    "f_ann_date",
+    "end_date",
+    "report_type",
+    "comp_type",
+    "end_type",
+    "total_share",
+    "cap_rese",
+    "undistr_porfit",
+    "surplus_rese",
+    "special_rese",
+    "money_cap",
+    "trad_asset",
+    "notes_receiv",
+    "accounts_receiv",
+    "oth_receiv",
+    "prepayment",
+    "div_receiv",
+    "int_receiv",
+    "inventories",
+    "amor_exp",
+    "nca_within_1y",
+    "sett_rsrv",
+    "loanto_oth_bank_fi",
+    "premium_receiv",
+    "reinsur_receiv",
+    "reinsur_res_receiv",
+    "pur_resale_fa",
+    "oth_cur_assets",
+    "total_cur_assets",
+    "fa_avail_for_sale",
+    "htm_invest",
+    "lt_eqt_invest",
+    "invest_real_estate",
+    "time_deposits",
+    "oth_assets",
+    "lt_rec",
+    "fix_assets",
+    "cip",
+    "const_materials",
+    "fixed_assets_disp",
+    "produc_bio_assets",
+    "oil_and_gas_assets",
+    "intan_assets",
+    "r_and_d",
+    "goodwill",
+    "lt_amor_exp",
+    "defer_tax_assets",
+    "decr_in_disbur",
+    "oth_nca",
+    "total_nca",
+    "cash_reser_cb",
+    "depos_in_oth_bfi",
+    "prec_metals",
+    "deriv_assets",
+    "rr_reins_une_prem",
+    "rr_reins_outstd_cla",
+    "rr_reins_lins_liab",
+    "rr_reins_lthins_liab",
+    "refund_depos",
+    "ph_pledge_loans",
+    "refund_cap_depos",
+    "indep_acct_assets",
+    "client_depos",
+    "client_prov",
+    "transac_seat_fee",
+    "invest_as_receiv",
+    "total_assets",
+    "lt_borr",
+    "st_borr",
+    "cb_borr",
+    "depos_ib_deposits",
+    "loan_oth_bank",
+    "trading_fl",
+    "notes_payable",
+    "acct_payable",
+    "adv_receipts",
+    "sold_for_repur_fa",
+    "comm_payable",
+    "payroll_payable",
+    "taxes_payable",
+    "int_payable",
+    "div_payable",
+    "oth_payable",
+    "acc_exp",
+    "deferred_inc",
+    "st_bonds_payable",
+    "payable_to_reinsurer",
+    "rsrv_insur_cont",
+    "acting_trading_sec",
+    "acting_uw_sec",
+    "non_cur_liab_due_1y",
+    "oth_cur_liab",
+    "total_cur_liab",
+    "bond_payable",
+    "lt_payable",
+    "specific_payables",
+    "estimated_liab",
+    "defer_tax_liab",
+    "defer_inc_non_cur_liab",
+    "oth_ncl",
+    "total_ncl",
+    "depos_oth_bfi",
+    "deriv_liab",
+    "depos",
+    "agency_bus_liab",
+    "oth_liab",
+    "prem_receiv_adva",
+    "depos_received",
+    "ph_invest",
+    "reser_une_prem",
+    "reser_outstd_claims",
+    "reser_lins_liab",
+    "reser_lthins_liab",
+    "indept_acc_liab",
+    "pledge_borr",
+    "indem_payable",
+    "policy_div_payable",
+    "total_liab",
+    "treasury_share",
+    "ordin_risk_reser",
+    "forex_differ",
+    "invest_loss_unconf",
+    "minority_int",
+    "total_hldr_eqy_exc_min_int",
+    "total_hldr_eqy_inc_min_int",
+    "total_liab_hldr_eqy",
+    "lt_payroll_payable",
+    "oth_comp_income",
+    "oth_eqt_tools",
+    "oth_eqt_tools_p_shr",
+    "lending_funds",
+    "acc_receivable",
+    "st_fin_payable",
+    "payables",
+    "hfs_assets",
+    "hfs_sales",
+    "cost_fin_assets",
+    "fair_value_fin_assets",
+    "cip_total",
+    "oth_pay_total",
+    "long_pay_total",
+    "debt_invest",
+    "oth_debt_invest",
+    "oth_eq_invest",
+    "oth_illiq_fin_assets",
+    "oth_eq_ppbond",
+    "receiv_financing",
+    "use_right_assets",
+    "lease_liab",
+    "contract_assets",
+    "contract_liab",
+    "accounts_receiv_bill",
+    "accounts_pay",
+    "oth_rcv_total",
+    "fix_assets_total",
+    "update_flag"
+  ],
+  "framework_version": "0.3.0",
+  "frequency": "d",
+  "operation": "panel",
+  "parameters": {
+    "adjusted": false,
+    "calendar_api": "trade_cal",
+    "disclosure_lag": 0,
+    "effective_end": "2025-06-30T00:00:00+08:00",
+    "effective_start": "2025-01-01T00:00:00+08:00",
+    "end": "2025-06-30T00:00:00",
+    "instruments": [
+      "300347.SZ",
+      "300260.SZ",
+      "688606.SH",
+      "300806.SZ",
+      "000968.SZ"
+    ],
+    "start": "2025-01-01T00:00:00",
+    "universe": null
+  },
+  "query_id": "e1bb9886-d1fb-407a-a52c-ed8c4447d28b",
+  "result_shapes": {
+    "acc_exp": [
+      117,
+      5
+    ],
+    "acc_receivable": [
+      117,
+      5
+    ],
+    "accounts_pay": [
+      117,
+      5
+    ],
+    "accounts_receiv": [
+      117,
+      5
+    ],
+    "accounts_receiv_bill": [
+      117,
+      5
+    ],
+    "acct_payable": [
+      117,
+      5
+    ],
+    "acting_trading_sec": [
+      117,
+      5
+    ],
+    "acting_uw_sec": [
+      117,
+      5
+    ],
+    "adv_receipts": [
+      117,
+      5
+    ],
+    "agency_bus_liab": [
+      117,
+      5
+    ],
+    "amor_exp": [
+      117,
+      5
+    ],
+    "ann_date": [
+      117,
+      5
+    ],
+    "bond_payable": [
+      117,
+      5
+    ],
+    "cap_rese": [
+      117,
+      5
+    ],
+    "cash_reser_cb": [
+      117,
+      5
+    ],
+    "cb_borr": [
+      117,
+      5
+    ],
+    "cip": [
+      117,
+      5
+    ],
+    "cip_total": [
+      117,
+      5
+    ],
+    "client_depos": [
+      117,
+      5
+    ],
+    "client_prov": [
+      117,
+      5
+    ],
+    "comm_payable": [
+      117,
+      5
+    ],
+    "comp_type": [
+      117,
+      5
+    ],
+    "const_materials": [
+      117,
+      5
+    ],
+    "contract_assets": [
+      117,
+      5
+    ],
+    "contract_liab": [
+      117,
+      5
+    ],
+    "cost_fin_assets": [
+      117,
+      5
+    ],
+    "debt_invest": [
+      117,
+      5
+    ],
+    "decr_in_disbur": [
+      117,
+      5
+    ],
+    "defer_inc_non_cur_liab": [
+      117,
+      5
+    ],
+    "defer_tax_assets": [
+      117,
+      5
+    ],
+    "defer_tax_liab": [
+      117,
+      5
+    ],
+    "deferred_inc": [
+      117,
+      5
+    ],
+    "depos": [
+      117,
+      5
+    ],
+    "depos_ib_deposits": [
+      117,
+      5
+    ],
+    "depos_in_oth_bfi": [
+      117,
+      5
+    ],
+    "depos_oth_bfi": [
+      117,
+      5
+    ],
+    "depos_received": [
+      117,
+      5
+    ],
+    "deriv_assets": [
+      117,
+      5
+    ],
+    "deriv_liab": [
+      117,
+      5
+    ],
+    "div_payable": [
+      117,
+      5
+    ],
+    "div_receiv": [
+      117,
+      5
+    ],
+    "end_date": [
+      117,
+      5
+    ],
+    "end_type": [
+      117,
+      5
+    ],
+    "estimated_liab": [
+      117,
+      5
+    ],
+    "f_ann_date": [
+      117,
+      5
+    ],
+    "fa_avail_for_sale": [
+      117,
+      5
+    ],
+    "fair_value_fin_assets": [
+      117,
+      5
+    ],
+    "fix_assets": [
+      117,
+      5
+    ],
+    "fix_assets_total": [
+      117,
+      5
+    ],
+    "fixed_assets_disp": [
+      117,
+      5
+    ],
+    "forex_differ": [
+      117,
+      5
+    ],
+    "goodwill": [
+      117,
+      5
+    ],
+    "hfs_assets": [
+      117,
+      5
+    ],
+    "hfs_sales": [
+      117,
+      5
+    ],
+    "htm_invest": [
+      117,
+      5
+    ],
+    "indem_payable": [
+      117,
+      5
+    ],
+    "indep_acct_assets": [
+      117,
+      5
+    ],
+    "indept_acc_liab": [
+      117,
+      5
+    ],
+    "int_payable": [
+      117,
+      5
+    ],
+    "int_receiv": [
+      117,
+      5
+    ],
+    "intan_assets": [
+      117,
+      5
+    ],
+    "inventories": [
+      117,
+      5
+    ],
+    "invest_as_receiv": [
+      117,
+      5
+    ],
+    "invest_loss_unconf": [
+      117,
+      5
+    ],
+    "invest_real_estate": [
+      117,
+      5
+    ],
+    "lease_liab": [
+      117,
+      5
+    ],
+    "lending_funds": [
+      117,
+      5
+    ],
+    "loan_oth_bank": [
+      117,
+      5
+    ],
+    "loanto_oth_bank_fi": [
+      117,
+      5
+    ],
+    "long_pay_total": [
+      117,
+      5
+    ],
+    "lt_amor_exp": [
+      117,
+      5
+    ],
+    "lt_borr": [
+      117,
+      5
+    ],
+    "lt_eqt_invest": [
+      117,
+      5
+    ],
+    "lt_payable": [
+      117,
+      5
+    ],
+    "lt_payroll_payable": [
+      117,
+      5
+    ],
+    "lt_rec": [
+      117,
+      5
+    ],
+    "minority_int": [
+      117,
+      5
+    ],
+    "money_cap": [
+      117,
+      5
+    ],
+    "nca_within_1y": [
+      117,
+      5
+    ],
+    "non_cur_liab_due_1y": [
+      117,
+      5
+    ],
+    "notes_payable": [
+      117,
+      5
+    ],
+    "notes_receiv": [
+      117,
+      5
+    ],
+    "oil_and_gas_assets": [
+      117,
+      5
+    ],
+    "ordin_risk_reser": [
+      117,
+      5
+    ],
+    "oth_assets": [
+      117,
+      5
+    ],
+    "oth_comp_income": [
+      117,
+      5
+    ],
+    "oth_cur_assets": [
+      117,
+      5
+    ],
+    "oth_cur_liab": [
+      117,
+      5
+    ],
+    "oth_debt_invest": [
+      117,
+      5
+    ],
+    "oth_eq_invest": [
+      117,
+      5
+    ],
+    "oth_eq_ppbond": [
+      117,
+      5
+    ],
+    "oth_eqt_tools": [
+      117,
+      5
+    ],
+    "oth_eqt_tools_p_shr": [
+      117,
+      5
+    ],
+    "oth_illiq_fin_assets": [
+      117,
+      5
+    ],
+    "oth_liab": [
+      117,
+      5
+    ],
+    "oth_nca": [
+      117,
+      5
+    ],
+    "oth_ncl": [
+      117,
+      5
+    ],
+    "oth_pay_total": [
+      117,
+      5
+    ],
+    "oth_payable": [
+      117,
+      5
+    ],
+    "oth_rcv_total": [
+      117,
+      5
+    ],
+    "oth_receiv": [
+      117,
+      5
+    ],
+    "payable_to_reinsurer": [
+      117,
+      5
+    ],
+    "payables": [
+      117,
+      5
+    ],
+    "payroll_payable": [
+      117,
+      5
+    ],
+    "ph_invest": [
+      117,
+      5
+    ],
+    "ph_pledge_loans": [
+      117,
+      5
+    ],
+    "pledge_borr": [
+      117,
+      5
+    ],
+    "policy_div_payable": [
+      117,
+      5
+    ],
+    "prec_metals": [
+      117,
+      5
+    ],
+    "prem_receiv_adva": [
+      117,
+      5
+    ],
+    "premium_receiv": [
+      117,
+      5
+    ],
+    "prepayment": [
+      117,
+      5
+    ],
+    "produc_bio_assets": [
+      117,
+      5
+    ],
+    "pur_resale_fa": [
+      117,
+      5
+    ],
+    "r_and_d": [
+      117,
+      5
+    ],
+    "receiv_financing": [
+      117,
+      5
+    ],
+    "refund_cap_depos": [
+      117,
+      5
+    ],
+    "refund_depos": [
+      117,
+      5
+    ],
+    "reinsur_receiv": [
+      117,
+      5
+    ],
+    "reinsur_res_receiv": [
+      117,
+      5
+    ],
+    "report_type": [
+      117,
+      5
+    ],
+    "reser_lins_liab": [
+      117,
+      5
+    ],
+    "reser_lthins_liab": [
+      117,
+      5
+    ],
+    "reser_outstd_claims": [
+      117,
+      5
+    ],
+    "reser_une_prem": [
+      117,
+      5
+    ],
+    "rr_reins_lins_liab": [
+      117,
+      5
+    ],
+    "rr_reins_lthins_liab": [
+      117,
+      5
+    ],
+    "rr_reins_outstd_cla": [
+      117,
+      5
+    ],
+    "rr_reins_une_prem": [
+      117,
+      5
+    ],
+    "rsrv_insur_cont": [
+      117,
+      5
+    ],
+    "sett_rsrv": [
+      117,
+      5
+    ],
+    "sold_for_repur_fa": [
+      117,
+      5
+    ],
+    "special_rese": [
+      117,
+      5
+    ],
+    "specific_payables": [
+      117,
+      5
+    ],
+    "st_bonds_payable": [
+      117,
+      5
+    ],
+    "st_borr": [
+      117,
+      5
+    ],
+    "st_fin_payable": [
+      117,
+      5
+    ],
+    "surplus_rese": [
+      117,
+      5
+    ],
+    "taxes_payable": [
+      117,
+      5
+    ],
+    "time_deposits": [
+      117,
+      5
+    ],
+    "total_assets": [
+      117,
+      5
+    ],
+    "total_cur_assets": [
+      117,
+      5
+    ],
+    "total_cur_liab": [
+      117,
+      5
+    ],
+    "total_hldr_eqy_exc_min_int": [
+      117,
+      5
+    ],
+    "total_hldr_eqy_inc_min_int": [
+      117,
+      5
+    ],
+    "total_liab": [
+      117,
+      5
+    ],
+    "total_liab_hldr_eqy": [
+      117,
+      5
+    ],
+    "total_nca": [
+      117,
+      5
+    ],
+    "total_ncl": [
+      117,
+      5
+    ],
+    "total_share": [
+      117,
+      5
+    ],
+    "trad_asset": [
+      117,
+      5
+    ],
+    "trading_fl": [
+      117,
+      5
+    ],
+    "transac_seat_fee": [
+      117,
+      5
+    ],
+    "treasury_share": [
+      117,
+      5
+    ],
+    "undistr_porfit": [
+      117,
+      5
+    ],
+    "update_flag": [
+      117,
+      5
+    ],
+    "use_right_assets": [
+      117,
+      5
+    ]
+  },
+  "source": {
+    "backend": "parquet",
+    "calendar_api": "trade_cal",
+    "calendar_connection": "live",
+    "data_dir": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data",
+    "dataset": "balancesheet",
+    "fixed_params": {
+      "report_type": "1"
+    },
+    "format": "tushare-archive",
+    "manifest": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/_manifest.json",
+    "manifest_version": 1,
+    "partitions": [
+      {
+        "expected_size": 2417324,
+        "key": "20160930",
+        "mtime_ns": 1784566333302539838,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20160930/data.parquet",
+        "relative_path": "balancesheet/period/20160930/data.parquet",
+        "rows": 6345,
+        "sha256": "22ca002ad12735a276d6cc3cfbf7667be2f3d87589f7a8b37538c578342515f8",
+        "size": 2417324
+      },
+      {
+        "expected_size": 5469266,
+        "key": "20161231",
+        "mtime_ns": 1784566403053555358,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20161231/data.parquet",
+        "relative_path": "balancesheet/period/20161231/data.parquet",
+        "rows": 32988,
+        "sha256": "45c5494dc7e38156176b30843ad05c78a5dc172ec62edf5cf1e5817c8e6fa1f3",
+        "size": 5469266
+      },
+      {
+        "expected_size": 2600518,
+        "key": "20170331",
+        "mtime_ns": 1784566429775601552,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20170331/data.parquet",
+        "relative_path": "balancesheet/period/20170331/data.parquet",
+        "rows": 6795,
+        "sha256": "f2689ff68727697fad96cb0789b4c857fcad3fbaa7030eee2d2b881aa1e24fe2",
+        "size": 2600518
+      },
+      {
+        "expected_size": 3621217,
+        "key": "20170630",
+        "mtime_ns": 1784566469161131499,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20170630/data.parquet",
+        "relative_path": "balancesheet/period/20170630/data.parquet",
+        "rows": 15478,
+        "sha256": "e9756194db31a18b72db45d9c385bc28b85e9c29e703c1d5c91d694eec72fb6e",
+        "size": 3621217
+      },
+      {
+        "expected_size": 2730338,
+        "key": "20170930",
+        "mtime_ns": 1784566501707178162,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20170930/data.parquet",
+        "relative_path": "balancesheet/period/20170930/data.parquet",
+        "rows": 7097,
+        "sha256": "6d0f3e2b663e2715abe3e9022a3296143a595924c28f7524f3dacda88266230c",
+        "size": 2730338
+      },
+      {
+        "expected_size": 5814732,
+        "key": "20171231",
+        "mtime_ns": 1784566569557641986,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20171231/data.parquet",
+        "relative_path": "balancesheet/period/20171231/data.parquet",
+        "rows": 34368,
+        "sha256": "dea28490818bacb5ddb65ae381cd6ca58d59a39b711fa322db238e5461a9782f",
+        "size": 5814732
+      },
+      {
+        "expected_size": 2880058,
+        "key": "20180331",
+        "mtime_ns": 1784566596743802907,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20180331/data.parquet",
+        "relative_path": "balancesheet/period/20180331/data.parquet",
+        "rows": 7461,
+        "sha256": "6038ccdabe598aac366749b3cd36f76fb390f9aead8e50ce0a27740e4b9d07f6",
+        "size": 2880058
+      },
+      {
+        "expected_size": 3970862,
+        "key": "20180630",
+        "mtime_ns": 1784566643811070656,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20180630/data.parquet",
+        "relative_path": "balancesheet/period/20180630/data.parquet",
+        "rows": 16350,
+        "sha256": "1e018916749a2d0d8c9ff18b985a5807c939e1bf25a49b50d74fd17b02289641",
+        "size": 3970862
+      },
+      {
+        "expected_size": 3114273,
+        "key": "20180930",
+        "mtime_ns": 1784566682819931686,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20180930/data.parquet",
+        "relative_path": "balancesheet/period/20180930/data.parquet",
+        "rows": 14459,
+        "sha256": "7b12e8ce3a04ad15ada4b5caf345ef5f1b60bda6740dccc0a7305ee4b497b515",
+        "size": 3114273
+      },
+      {
+        "expected_size": 5567330,
+        "key": "20181231",
+        "mtime_ns": 1784566738338141811,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20181231/data.parquet",
+        "relative_path": "balancesheet/period/20181231/data.parquet",
+        "rows": 29228,
+        "sha256": "652afdb0700407f989385a840268eea1a5601a5e3b15a92d42f0e5b55618dd72",
+        "size": 5567330
+      },
+      {
+        "expected_size": 3000409,
+        "key": "20190331",
+        "mtime_ns": 1784566773584503827,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20190331/data.parquet",
+        "relative_path": "balancesheet/period/20190331/data.parquet",
+        "rows": 11338,
+        "sha256": "09dfb99c1e633a8c0d22a2ab0d9f6055d4a64df14842789cf811d1352b9f6c8e",
+        "size": 3000409
+      },
+      {
+        "expected_size": 3268607,
+        "key": "20190630",
+        "mtime_ns": 1784566802666400769,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20190630/data.parquet",
+        "relative_path": "balancesheet/period/20190630/data.parquet",
+        "rows": 8724,
+        "sha256": "2b566264f51fc57a2d28ed284561eba44416f2e4f58b95bd304eb1c53afe4a95",
+        "size": 3268607
+      },
+      {
+        "expected_size": 2906293,
+        "key": "20190930",
+        "mtime_ns": 1784566831985788682,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20190930/data.parquet",
+        "relative_path": "balancesheet/period/20190930/data.parquet",
+        "rows": 7951,
+        "sha256": "379e6941e96cccd0eb4c54337c83d84a58b94d07ba10f5607b7d69d38ab92a06",
+        "size": 2906293
+      },
+      {
+        "expected_size": 6927176,
+        "key": "20191231",
+        "mtime_ns": 1784566909768523971,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20191231/data.parquet",
+        "relative_path": "balancesheet/period/20191231/data.parquet",
+        "rows": 42232,
+        "sha256": "b4027abff18778cbe4306faacd6e3d08cb634e95b4d2d2943d31dc32872f9c15",
+        "size": 6927176
+      },
+      {
+        "expected_size": 3080063,
+        "key": "20200331",
+        "mtime_ns": 1784566943536744154,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20200331/data.parquet",
+        "relative_path": "balancesheet/period/20200331/data.parquet",
+        "rows": 8388,
+        "sha256": "cc4a892d4521038bca6e4f85a1c1cef6788c0d2bdf7c7dbd0ad46dc5f0e9a47b",
+        "size": 3080063
+      },
+      {
+        "expected_size": 4749656,
+        "key": "20200630",
+        "mtime_ns": 1784566990687595971,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20200630/data.parquet",
+        "relative_path": "balancesheet/period/20200630/data.parquet",
+        "rows": 20270,
+        "sha256": "677ad0972936fb9f3a01ed69144e2335983c08da0e2b0182f5e2b166ad5756f6",
+        "size": 4749656
+      },
+      {
+        "expected_size": 3251271,
+        "key": "20200930",
+        "mtime_ns": 1784567025548900614,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20200930/data.parquet",
+        "relative_path": "balancesheet/period/20200930/data.parquet",
+        "rows": 8807,
+        "sha256": "b0fd0cb9a7258c7d8d0c490c0c82049baa188f8a591e53ed3489297e63008126",
+        "size": 3251271
+      },
+      {
+        "expected_size": 6452892,
+        "key": "20201231",
+        "mtime_ns": 1784567105086220110,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20201231/data.parquet",
+        "relative_path": "balancesheet/period/20201231/data.parquet",
+        "rows": 34273,
+        "sha256": "31700cea0967ad38fc07842c3d399fe1d61bc1526b2b109f1e9a1a2899062f16",
+        "size": 6452892
+      },
+      {
+        "expected_size": 3989740,
+        "key": "20210331",
+        "mtime_ns": 1784567147600272871,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20210331/data.parquet",
+        "relative_path": "balancesheet/period/20210331/data.parquet",
+        "rows": 14369,
+        "sha256": "b2ad090cb7c2157280dde326c8ced758cf6aec08d2760efa95728f56746202d5",
+        "size": 3989740
+      },
+      {
+        "expected_size": 4009015,
+        "key": "20210630",
+        "mtime_ns": 1784567181310262917,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20210630/data.parquet",
+        "relative_path": "balancesheet/period/20210630/data.parquet",
+        "rows": 10157,
+        "sha256": "99b0eb19ba411caf8636e43579472fa96a9b5ddd3f806de1d32125b9887bf960",
+        "size": 4009015
+      },
+      {
+        "expected_size": 2857207,
+        "key": "20210930",
+        "mtime_ns": 1784567217202779385,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20210930/data.parquet",
+        "relative_path": "balancesheet/period/20210930/data.parquet",
+        "rows": 10801,
+        "sha256": "2c274aa6d48ec8ef9cd31933a5e9d13f6057500417f3270718f4fb9933040f12",
+        "size": 2857207
+      },
+      {
+        "expected_size": 5903270,
+        "key": "20211231",
+        "mtime_ns": 1784567281267395808,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20211231/data.parquet",
+        "relative_path": "balancesheet/period/20211231/data.parquet",
+        "rows": 24423,
+        "sha256": "5df567de9d650a67bba0aad0998953f37a4bebcddedec20a69996f791ff476f5",
+        "size": 5903270
+      },
+      {
+        "expected_size": 2753005,
+        "key": "20220331",
+        "mtime_ns": 1784567312982699955,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20220331/data.parquet",
+        "relative_path": "balancesheet/period/20220331/data.parquet",
+        "rows": 7171,
+        "sha256": "fe646c12925bc0430b604cb0892dd2a84352e0dd37327a4560b1825af913d330",
+        "size": 2753005
+      },
+      {
+        "expected_size": 4339716,
+        "key": "20220630",
+        "mtime_ns": 1784567348878151736,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20220630/data.parquet",
+        "relative_path": "balancesheet/period/20220630/data.parquet",
+        "rows": 10846,
+        "sha256": "7fbd5a21e53b22f6091a02cbd60b4120e2be197dad3a5e5007d3397955596014",
+        "size": 4339716
+      },
+      {
+        "expected_size": 2775481,
+        "key": "20220930",
+        "mtime_ns": 1784567379104798609,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20220930/data.parquet",
+        "relative_path": "balancesheet/period/20220930/data.parquet",
+        "rows": 6737,
+        "sha256": "09d899bdc3b8bfc962a9641bad6f18ea3f2cd03a249c56c7871fe1695b067db3",
+        "size": 2775481
+      },
+      {
+        "expected_size": 7583554,
+        "key": "20221231",
+        "mtime_ns": 1784567454645914916,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20221231/data.parquet",
+        "relative_path": "balancesheet/period/20221231/data.parquet",
+        "rows": 37152,
+        "sha256": "c6c3cb5fbc80db2dc9ddd65ed1916b5272e22b2ee3028370c133f94882937272",
+        "size": 7583554
+      },
+      {
+        "expected_size": 3115475,
+        "key": "20230331",
+        "mtime_ns": 1784567494288807372,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20230331/data.parquet",
+        "relative_path": "balancesheet/period/20230331/data.parquet",
+        "rows": 8818,
+        "sha256": "5f2e4cc377ebf01ce2af25f381274985b5b487abe842b6ce60ec3d89cb3f5ed4",
+        "size": 3115475
+      },
+      {
+        "expected_size": 5893989,
+        "key": "20230630",
+        "mtime_ns": 1784567551123025382,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20230630/data.parquet",
+        "relative_path": "balancesheet/period/20230630/data.parquet",
+        "rows": 22947,
+        "sha256": "046e7d1450521d684e3fd8790a460c26373163a28c97567127b2fb0ef286b14a",
+        "size": 5893989
+      },
+      {
+        "expected_size": 2938196,
+        "key": "20230930",
+        "mtime_ns": 1784567587913282178,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20230930/data.parquet",
+        "relative_path": "balancesheet/period/20230930/data.parquet",
+        "rows": 6985,
+        "sha256": "208a51439cb9a25be7f9343a51589bfc094c99964235588bb8be67372de9d92e",
+        "size": 2938196
+      },
+      {
+        "expected_size": 7371182,
+        "key": "20231231",
+        "mtime_ns": 1784567669681519384,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20231231/data.parquet",
+        "relative_path": "balancesheet/period/20231231/data.parquet",
+        "rows": 36922,
+        "sha256": "c19565081afa242868ea59c52e2e97e378e4c82295f042a5d49f7a9b68e657c7",
+        "size": 7371182
+      },
+      {
+        "expected_size": 2914800,
+        "key": "20240331",
+        "mtime_ns": 1784567702073014750,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20240331/data.parquet",
+        "relative_path": "balancesheet/period/20240331/data.parquet",
+        "rows": 7220,
+        "sha256": "ebe75c3e35655b667201ddef7207dc396b1028bb17db998b5ad792992a0191f2",
+        "size": 2914800
+      },
+      {
+        "expected_size": 4774493,
+        "key": "20240630",
+        "mtime_ns": 1784567740663603196,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20240630/data.parquet",
+        "relative_path": "balancesheet/period/20240630/data.parquet",
+        "rows": 11652,
+        "sha256": "8d33626fa7fdcb96bd1a3d4814bb65e31b3a8ca0d6bb1b44c1d7b63f4b1206aa",
+        "size": 4774493
+      },
+      {
+        "expected_size": 2954265,
+        "key": "20240930",
+        "mtime_ns": 1784567773288238776,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20240930/data.parquet",
+        "relative_path": "balancesheet/period/20240930/data.parquet",
+        "rows": 6933,
+        "sha256": "9d9869a4490d75de490610be9821a313afa9fab4b68ff42b80071bfdf0088c6b",
+        "size": 2954265
+      },
+      {
+        "expected_size": 5569442,
+        "key": "20241231",
+        "mtime_ns": 1784567819398832451,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20241231/data.parquet",
+        "relative_path": "balancesheet/period/20241231/data.parquet",
+        "rows": 17357,
+        "sha256": "fe691755b88bdfc5de87ece6cd4dab7aa0c72faf0a37f49d42038f51758020ea",
+        "size": 5569442
+      },
+      {
+        "expected_size": 3122294,
+        "key": "20250331",
+        "mtime_ns": 1784567859787435595,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20250331/data.parquet",
+        "relative_path": "balancesheet/period/20250331/data.parquet",
+        "rows": 8186,
+        "sha256": "3f957d2db9525702b37ce71758e0e182e33a11e5e2ff93917283fad125dc54f3",
+        "size": 3122294
+      },
+      {
+        "expected_size": 5183033,
+        "key": "20250630",
+        "mtime_ns": 1784567900843344929,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20250630/data.parquet",
+        "relative_path": "balancesheet/period/20250630/data.parquet",
+        "rows": 13329,
+        "sha256": "95675c389ca4afbb392e26168243cc55bab65a277c73fb9b4766dad306c0ced0",
+        "size": 5183033
+      },
+      {
+        "expected_size": 3126863,
+        "key": "20250930",
+        "mtime_ns": 1784567933315149260,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20250930/data.parquet",
+        "relative_path": "balancesheet/period/20250930/data.parquet",
+        "rows": 7502,
+        "sha256": "f1f59cd8784d632d50ff948debfb1e8823e3be05d35429f5f117c017749028dd",
+        "size": 3126863
+      },
+      {
+        "expected_size": 5132537,
+        "key": "20251231",
+        "mtime_ns": 1784567974216499920,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20251231/data.parquet",
+        "relative_path": "balancesheet/period/20251231/data.parquet",
+        "rows": 12622,
+        "sha256": "39839ce6baba19b0be9e5aa08d8f0db1aed64cf45a6f881ee3c80763b8af5607",
+        "size": 5132537
+      },
+      {
+        "expected_size": 3155022,
+        "key": "20260331",
+        "mtime_ns": 1784568007116820379,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20260331/data.parquet",
+        "relative_path": "balancesheet/period/20260331/data.parquet",
+        "rows": 8130,
+        "sha256": "2b747db4ea45b86363832135a7e5d5552318e1e6f28253b03f709ca517533b45",
+        "size": 3155022
+      },
+      {
+        "expected_size": 94893,
+        "key": "20260630",
+        "mtime_ns": 1784568026367475958,
+        "path": "/Users/wtx/Sync/Quant/quant_data_infra/tushare/data/balancesheet/period/20260630/data.parquet",
+        "relative_path": "balancesheet/period/20260630/data.parquet",
+        "rows": 12,
+        "sha256": "242982992c154b76e4f50183fa9a12e4eaa33b011955b8fcf8649392a18b5125",
+        "size": 94893
+      }
+    ],
+    "range_end": "2026-07-20",
+    "range_start": "2016-07-20",
+    "schema_hash": "1550cdcab2a9f70f386f0b7969cec26c4976039d801d08e2411f156ad2e9d989",
+    "updated_at": "2026-07-20T17:20:26+00:00"
+  },
+  "started_at": "2026-09-06T04:01:03.697061+00:00",
+  "status": "success"
+}
