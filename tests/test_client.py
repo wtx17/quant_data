@@ -127,6 +127,71 @@ def test_named_universe_expands_in_header_order_and_is_audited(
     assert audit["parameters"]["universe"] == parameters["universe"]
 
 
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        ("2026-01-05", "2026-01-06"),
+        ("2005-01-01", "2015-01-01"),
+        ("2000-01-01", "2000-12-31"),
+        ("2027-01-01", "2027-01-02"),
+    ],
+)
+@pytest.mark.parametrize("names", [["zz500", "hs300", "zz1000"], ["hs300"]])
+def test_universe_list_matches_manual_union_and_audit(
+    tmp_path: Path, sample_files: Path, start: str, end: str, names: list[str]
+) -> None:
+    client = make_client(tmp_path, sample_files)
+    individual = [
+        client.get_panel("daily", ["close"], start=start, end=end, universe=name)["close"]
+        for name in names
+    ]
+    expected = list(dict.fromkeys(code for panel in individual for code in panel.columns))
+    requested = [f" {name.upper()} " for name in names] + [names[0]]
+    panel = client.get_panel("daily", ["close"], start=start, end=end, universe=requested)["close"]
+    manual = client.get_panel("daily", ["close"], start=start, end=end, instruments=expected)[
+        "close"
+    ]
+
+    pd.testing.assert_frame_equal(panel, manual)
+    assert list(panel.columns) == expected
+    metadata = panel.attrs["parameters"]
+    assert metadata["instruments"] == expected
+    assert metadata["universe"] == {
+        "names": names,
+        "panels": [item.attrs["parameters"]["universe"] for item in individual],
+        "count": len(expected),
+    }
+    audits = [json.loads(path.read_text()) for path in (tmp_path / "audit").rglob("*.json")]
+    audit = next(item for item in audits if item["query_id"] == panel.attrs["query_id"])
+    assert audit["status"] == "success"
+    assert audit["parameters"] == metadata
+
+
+@pytest.mark.parametrize("value", [[], ["hs300", "unknown"], [""], ["hs300", None], [["hs300"]]])
+def test_invalid_universe_list_is_audited_before_reading(
+    tmp_path: Path, sample_files: Path, value: list[object], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = make_client(tmp_path, sample_files)
+
+    def unexpected_read(*args: object, **kwargs: object) -> None:
+        pytest.fail("invalid universe must fail before reading the dataset")
+
+    monkeypatch.setattr(type(client._datasets["daily"]), "read_panel", unexpected_read)
+    with pytest.raises(InvalidQueryError):
+        client.get_panel(
+            "daily",
+            ["close"],
+            start="2026-01-05",
+            end="2026-01-06",
+            universe=value,  # type: ignore[arg-type]
+        )
+    audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
+    assert audit["status"] == "failed"
+    assert audit["parameters"]["universe"] == [
+        item if isinstance(item, str) else repr(item) for item in value
+    ]
+
+
 def test_zz1000_named_universe_uses_historical_panel(tmp_path: Path, sample_files: Path) -> None:
     client = make_client(tmp_path, sample_files)
     panel = client.get_panel(
@@ -146,8 +211,9 @@ def test_zz1000_named_universe_uses_historical_panel(tmp_path: Path, sample_file
     assert panel.attrs["parameters"]["universe"]["count"] == 1000
 
 
+@pytest.mark.parametrize("universe", ["hs300", ["hs300", "zz500"]])
 def test_panel_rejects_instruments_and_universe_together(
-    tmp_path: Path, sample_files: Path
+    tmp_path: Path, sample_files: Path, universe: str | list[str]
 ) -> None:
     client = make_client(tmp_path, sample_files)
 
@@ -156,12 +222,12 @@ def test_panel_rejects_instruments_and_universe_together(
             "daily",
             ["close"],
             instruments=[],
-            universe="hs300",
+            universe=universe,
         )
 
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert audit["status"] == "failed"
-    assert audit["parameters"]["universe"] == "hs300"
+    assert audit["parameters"]["universe"] == universe
 
 
 def test_panel_rejects_unknown_universe_and_audits_failure(
@@ -191,20 +257,22 @@ def test_panel_rejects_unknown_universe_and_audits_failure(
         (None, "2026-01-06"),
     ],
 )
+@pytest.mark.parametrize("universe", ["hs300", ["hs300", "zz500"]])
 def test_named_universe_requires_closed_date_range_and_audits_failure(
     tmp_path: Path,
     sample_files: Path,
     start: str | None,
     end: str | None,
+    universe: str | list[str],
 ) -> None:
     client = make_client(tmp_path, sample_files)
 
     with pytest.raises(InvalidQueryError, match="both start and end"):
-        client.get_panel("daily", ["close"], start=start, end=end, universe="hs300")
+        client.get_panel("daily", ["close"], start=start, end=end, universe=universe)
 
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert audit["status"] == "failed"
-    assert audit["parameters"]["universe"] == "hs300"
+    assert audit["parameters"]["universe"] == universe
 
 
 def test_named_universe_before_first_change_returns_no_instruments(

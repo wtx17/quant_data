@@ -81,7 +81,8 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
 
 - `DATASETS.md` 由 `tools/generate_dataset_catalog.py` 生成，不要手工修改。
 - `get_panel()` 的 `universe` 只接受 `hs300`、`zz500`、`zz1000`（忽略大小写和
-  首尾空白），必须同时提供闭区间 `start/end`，并与 `instruments` 互斥。
+  首尾空白）的单个名称或非空名称列表；列表按输入顺序展开成分并集，名称和证券
+  保留首次出现顺序去重。必须同时提供闭区间 `start/end`，并与 `instruments` 互斥。
   查询方法必须拒绝裸字符串形式的 `instruments`，单证券也应放入列表。
 - 股票池资源位于 `resources/universes/`，运行时不得依赖仓库外的源文件。
   `<name>_panel.csv` 的第一列为 `change_date`，后续列为全历史证券，行是从该日期
@@ -91,6 +92,8 @@ pytest tests/test_universes.py tests/test_client.py tests/test_clickhouse.py
   `start` 当日状态以及之后至 `end` 的所有调仓状态的证券并集；首行之前为空，末行
   之后延续末状态。审计和面板参数需要保留规范化名称、panel 首末 change date、
   选中数量、CSV SHA-256 以及完整展开列表；解析失败也必须写失败审计。
+  列表调用的 universe 元数据为 names、panels（各池原有元数据）、count（并集数量）；
+  字符串调用保留原有结构。
 - 展开后的股票池与手工传入完整 `instruments` 列表使用相同的读取路径。不要隐式
   改成全市场数据扫描；日历独立查询全市场去重日期。
 - 修改 Tushare 字段时，同步更新：

@@ -64,12 +64,18 @@ with initialize_data_client(tushare_data_dir="/data/tushare") as data:
     )["close"]
 ```
 
+也支持传入非空名称列表，例如 `universe=["hs300", "zz500"]`，表示各股票池在查询
+区间内的成分并集。名称忽略大小写和首尾空白；重复名称和证券去重，证券列按列表
+顺序及各股票池 CSV 列顺序保留首次出现的位置。空列表或非法名称会报错。
+
 当前支持 `hs300`、`zz500` 和 `zz1000`。这些股票池由包内
 `resources/universes/<name>_panel.csv` 的历史变更面板提供。`universe` 查询必须同时
 给出闭区间 `start/end`，返回区间内曾经属于该指数的证券并集：变更日当天的新状态
 立即生效，区间首日的有效状态也会纳入，查询区间跨越多次调仓时保留所有相关证券。
 `universe` 与 `instruments` 不能同时使用。股票池名称、首末变更日期、内容哈希和展开
 后的证券列表会写入查询审计及面板元数据，并直接用于本地扫描过滤。
+列表调用的 `parameters["universe"]` 包含规范化去重的 `names`、各池来源信息
+`panels` 和并集证券总数 `count`；字符串调用保持原有元数据结构。
 
 全部 Tushare 数据集只读取带 manifest 的本地 Parquet 存档。初始化必须提供
 `tushare_data_dir`，或设置 `QUANT_DATA_TUSHARE_DATA_DIR`；缺少配置立即报错。

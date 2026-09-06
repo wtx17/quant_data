@@ -23,7 +23,7 @@ from .exceptions import (
     InvalidQueryError,
 )
 from .models import ClickHouseConfig, Dataset, Query, QueryAudit
-from ._universes import load_universe
+from ._universes import load_universe, normalize_universe_names
 
 
 class DataClient:
@@ -310,7 +310,7 @@ class DataClient:
         instruments: Sequence[str] | None = None,
         adjusted: bool | None = None,
         *,
-        universe: str | None = None,
+        universe: str | list[str] | None = None,
     ) -> dict[str, pd.DataFrame]:
         """Query fields as ``time × instrument`` Pandas panels.
 
@@ -331,8 +331,10 @@ class DataClient:
             ``True`` forces configured price adjustment, ``False`` requests
             raw values, and ``None`` uses the dataset default.
         universe
-            Optional historical built-in stock-pool name: one of ``"hs300"``,
-            ``"zz500"``, and ``"zz1000"``. Names are case-insensitive and
+            Optional historical built-in stock-pool name or non-empty list of
+            names: ``"hs300"``, ``"zz500"``, and ``"zz1000"``. Lists select
+            the membership union, deduplicated in input and panel-header order.
+            Duplicate names are ignored. Names are case-insensitive and
             surrounding whitespace is ignored. This parameter requires both
             ``start`` and ``end`` and is mutually exclusive with
             ``instruments``.
@@ -407,7 +409,7 @@ class DataClient:
         end: Any | None,
         instruments: Sequence[str] | None,
         adjusted: bool | None,
-        universe: str | None,
+        universe: str | list[str] | None,
     ) -> dict[str, pd.DataFrame]:
         query_id = str(uuid.uuid4())
         started_at = datetime.now(timezone.utc)
@@ -427,7 +429,11 @@ class DataClient:
                     else None
                 ),
                 "universe": (
-                    universe if isinstance(universe, (str, type(None))) else repr(universe)
+                    [name if isinstance(name, str) else repr(name) for name in universe]
+                    if isinstance(universe, list)
+                    else universe
+                    if isinstance(universe, (str, type(None)))
+                    else repr(universe)
                 ),
                 "adjusted": adjusted,
             },
@@ -449,17 +455,34 @@ class DataClient:
             if universe is not None:
                 if query.start is None or query.end is None:
                     raise InvalidQueryError("universe queries require both start and end")
-                panel = load_universe(universe)
-                selected_instruments = panel.select(query.start.date(), query.end.date())
+                names = normalize_universe_names(universe)
+                members: dict[str, None] = {}
+                panel_metadata: list[dict[str, Any]] = []
+                for name in names:
+                    panel = load_universe(name)
+                    selected = panel.select(query.start.date(), query.end.date())
+                    members.update(dict.fromkeys(selected))
+                    panel_metadata.append(
+                        {
+                            "name": panel.name,
+                            "first_change_date": panel.first_change_date.isoformat(),
+                            "last_change_date": panel.last_change_date.isoformat(),
+                            "count": len(selected),
+                            "sha256": panel.sha256,
+                        }
+                    )
+                selected_instruments = tuple(members)
                 query = replace(query, instruments=selected_instruments)
                 record.parameters["instruments"] = list(selected_instruments)
-                record.parameters["universe"] = {
-                    "name": panel.name,
-                    "first_change_date": panel.first_change_date.isoformat(),
-                    "last_change_date": panel.last_change_date.isoformat(),
-                    "count": len(selected_instruments),
-                    "sha256": panel.sha256,
-                }
+                record.parameters["universe"] = (
+                    panel_metadata[0]
+                    if isinstance(universe, str)
+                    else {
+                        "names": list(names),
+                        "panels": panel_metadata,
+                        "count": len(selected_instruments),
+                    }
+                )
 
             apply_adjustment = self._resolve_adjustment(entry, dataset, adjusted)
             record.adjusted = apply_adjustment

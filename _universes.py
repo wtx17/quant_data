@@ -108,6 +108,16 @@ def normalize_universe_name(value: object) -> str:
     return name
 
 
+def normalize_universe_names(value: object) -> tuple[str, ...]:
+    """Normalize a name or non-empty list, removing duplicates in input order."""
+
+    if isinstance(value, str):
+        return (normalize_universe_name(value),)
+    if not isinstance(value, list) or not value:
+        raise InvalidQueryError("universe must be a name or a non-empty list of names")
+    return tuple(dict.fromkeys(normalize_universe_name(name) for name in value))
+
+
 @lru_cache(maxsize=len(SUPPORTED_UNIVERSES))
 def _load_universe(name: str) -> UniversePanel:
     resource = files("quant_data").joinpath("resources", "universes", f"{name}_panel.csv")

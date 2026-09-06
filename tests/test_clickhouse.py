@@ -271,7 +271,12 @@ def test_daily_accepts_suffixed_instruments(tmp_path: Path) -> None:
     assert parameters["instruments"] == ["000001.SZ"]
 
 
-def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("universe", "count"), [("HS300", 300), (["HS300", "zz500", "hs300"], 800)]
+)
+def test_daily_named_universe_is_expanded_as_bound_parameters(
+    tmp_path: Path, universe: str | list[str], count: int
+) -> None:
     result = pa.table(
         {
             "date": pa.array([date(2026, 3, 2)]),
@@ -294,15 +299,16 @@ def test_daily_named_universe_is_expanded_as_bound_parameters(tmp_path: Path) ->
         start="2026-03-02",
         end="2026-03-02",
         adjusted=False,
-        universe="HS300",
+        universe=universe,
     )["close"]
 
-    assert len(panel.columns) == 300
+    assert len(panel.columns) == count
     assert panel.columns[0] == "000001.SZ"
     assert panel.loc[date(2026, 3, 2), "600028.SH"] == pytest.approx(10.3)
     sql, parameters, _ = fake.calls[-1]
     assert parameters["instruments"][0] == "000001.SZ"
-    assert len(parameters["instruments"]) == 300
+    assert len(parameters["instruments"]) == count
+    assert parameters["instruments"] == list(panel.columns)
     assert "600028.SH" not in sql
     assert f"{SUFFIX_EXPRESSION} IN {{instruments:Array(String)}}" in sql
 

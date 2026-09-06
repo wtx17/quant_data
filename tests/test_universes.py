@@ -11,7 +11,19 @@ from quant_data._universes import (
     _parse_universe_csv,
     load_universe,
     normalize_universe_name,
+    normalize_universe_names,
 )
+
+
+def test_normalize_universe_names_preserves_order_and_deduplicates() -> None:
+    assert normalize_universe_names([" ZZ500 ", "HS300", "zz500"]) == ("zz500", "hs300")
+    assert normalize_universe_names(" HS300 ") == ("hs300",)
+
+
+@pytest.mark.parametrize("value", [[], (), ("hs300",), {"hs300"}, {}, 1, None, [1]])
+def test_normalize_universe_names_rejects_invalid_inputs(value: object) -> None:
+    with pytest.raises(InvalidQueryError):
+        normalize_universe_names(value)
 
 
 @pytest.mark.parametrize(
