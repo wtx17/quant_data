@@ -2,9 +2,9 @@
 
 Both packages run unchanged, in separate Python module namespaces, against the
 same files and independently constructed copies of the same fake services.
-Only registration syntax is adapted. No output dtypes, missing values, field
-order or numeric tolerances are normalized. UUIDs and elapsed/start times are
-excluded from equality, along with the explicitly replaced calendar provenance.
+Registration syntax and the intentional DatetimeIndex migration are adapted.
+No value dtypes, missing values, field order or numeric tolerances are normalized.
+UUIDs and elapsed/start times are excluded from equality, along with the explicitly replaced calendar provenance.
 
 Requires the local Git baseline (no network). Run explicitly with
 ``pytest tests/test_panel_compatibility.py``; source distributions lacking Git
@@ -213,6 +213,9 @@ def same_panels(entries, *args, error=None, **kwargs):
         assert list(outcomes[0]) == list(outcomes[1])
         for field in outcomes[0]:
             old, new = outcomes[0][field], outcomes[1][field]
+            assert isinstance(new.index, pd.DatetimeIndex)
+            # The public index contract intentionally changed from Arrow dates.
+            old.index = pd.DatetimeIndex(old.index).as_unit(new.index.unit)
             # assert_frame_equal covers dtype, null mask, axes, names and ordering.
             pd.testing.assert_frame_equal(
                 old, new, check_exact=True, check_index_type=True, check_column_type=True
@@ -232,6 +235,17 @@ def same_panels(entries, *args, error=None, **kwargs):
 def test_signature(baseline):
     old = inspect.signature(baseline.DataClient.get_panel)
     new = inspect.signature(quant_data.DataClient.get_panel)
+    # Multiple named universes are an intentional extension of the baseline API.
+    assert old.parameters["universe"].annotation == "str | None"
+    assert new.parameters["universe"].annotation == "str | list[str] | None"
+    old = old.replace(
+        parameters=[
+            parameter.replace(annotation=new.parameters["universe"].annotation)
+            if parameter.name == "universe"
+            else parameter
+            for parameter in old.parameters.values()
+        ]
+    )
     assert str(old) == str(new)
 
 

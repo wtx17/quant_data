@@ -33,7 +33,7 @@ def test_calendar_holiday_and_session_reuse(tmp_path, instruments):
                 "ci_index_member", ["l1_name"], "2024-01-02", "2024-01-05", instruments
             )["l1_name"]
             assert list(panel.index) == list(
-                pd.to_datetime(["2024-01-02", "2024-01-04", "2024-01-05"]).date
+                pd.to_datetime(["2024-01-02", "2024-01-04", "2024-01-05"])
                 if instruments != []
                 else []
             )

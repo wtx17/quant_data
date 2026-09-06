@@ -118,8 +118,8 @@ def test_daily_panel_and_connection_reuse(tmp_path: Path) -> None:
     ]
 
     assert list(panel.columns) == ["000001.SZ", "000002.SZ"]
-    assert panel.loc[date(2026, 3, 2), "000001.SZ"] == pytest.approx(20.6)
-    assert panel.loc[date(2026, 3, 2), "000002.SZ"] == pytest.approx(22.4)
+    assert panel.loc[pd.Timestamp(2026, 3, 2), "000001.SZ"] == pytest.approx(20.6)
+    assert panel.loc[pd.Timestamp(2026, 3, 2), "000002.SZ"] == pytest.approx(22.4)
     assert panel.attrs["adjusted"] is True
     assert len(factory.calls) == 1
     assert factory.calls[0]["password"] == "secret"
@@ -304,7 +304,7 @@ def test_daily_named_universe_is_expanded_as_bound_parameters(
 
     assert len(panel.columns) == count
     assert panel.columns[0] == "000001.SZ"
-    assert panel.loc[date(2026, 3, 2), "600028.SH"] == pytest.approx(10.3)
+    assert panel.loc[pd.Timestamp(2026, 3, 2), "600028.SH"] == pytest.approx(10.3)
     sql, parameters, _ = fake.calls[-1]
     assert parameters["instruments"][0] == "000001.SZ"
     assert len(parameters["instruments"]) == count
@@ -348,7 +348,7 @@ def test_index_daily_supports_panel_with_suffixes(tmp_path: Path) -> None:
         instruments=instruments,
     )["close"]
     assert list(panel.columns) == instruments
-    assert panel.loc[date(2026, 3, 2), "000001.SH"] == pytest.approx(3350.4)
+    assert panel.loc[pd.Timestamp(2026, 3, 2), "000001.SH"] == pytest.approx(3350.4)
     assert panel.attrs["adjusted"] is False
 
     panel_sql, panel_parameters, _ = fake.calls[-1]

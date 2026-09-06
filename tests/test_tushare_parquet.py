@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -102,14 +101,14 @@ def test_local_daily_basic_reads_date_partitions_without_api_calls(
         instruments=["000001.SZ", "600000.SH"],
     )["turnover_rate"]
 
-    assert list(table["close"].index) == [date(2024, 1, 2), date(2024, 1, 3)]
+    assert list(table["close"].index) == [pd.Timestamp(2024, 1, 2), pd.Timestamp(2024, 1, 3)]
     assert table["close"]["600000.SH"].tolist() == pytest.approx([10.0, 11.0])
     assert table["limit_status"]["600000.SH"].tolist() == [1, 0]
-    assert list(panel.index) == [date(2024, 1, 2), date(2024, 1, 3)]
+    assert list(panel.index) == [pd.Timestamp(2024, 1, 2), pd.Timestamp(2024, 1, 3)]
     assert list(panel.columns) == ["000001.SZ", "600000.SH"]
-    assert panel.loc[date(2024, 1, 2), "000001.SZ"] == pytest.approx(2.1)
-    assert pd.isna(panel.loc[date(2024, 1, 3), "000001.SZ"])
-    assert panel.loc[date(2024, 1, 3), "600000.SH"] == pytest.approx(1.2)
+    assert panel.loc[pd.Timestamp(2024, 1, 2), "000001.SZ"] == pytest.approx(2.1)
+    assert pd.isna(panel.loc[pd.Timestamp(2024, 1, 3), "000001.SZ"])
+    assert panel.loc[pd.Timestamp(2024, 1, 3), "600000.SH"] == pytest.approx(1.2)
     assert calendar.calls == []
     assert factory.calls == 0
 
@@ -286,8 +285,8 @@ def test_local_membership_panel_match_interval_semantics(tmp_path: Path) -> None
         instruments=["600000.SH"],
     )["l1_name"]
 
-    assert panel.loc[date(2024, 1, 2), "600000.SH"] == "old"
-    assert panel.loc[date(2024, 1, 4), "600000.SH"] == "new"
+    assert panel.loc[pd.Timestamp(2024, 1, 2), "600000.SH"] == "old"
+    assert panel.loc[pd.Timestamp(2024, 1, 4), "600000.SH"] == "new"
     assert len(calendar.calls) == 1
     assert calendar.calls[0][0].startswith("SELECT DISTINCT `date`")
 

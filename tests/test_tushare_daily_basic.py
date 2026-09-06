@@ -1,7 +1,7 @@
 """daily_basic needs neither an API nor a ClickHouse calendar."""
 
-from datetime import date
 import json
+import pandas as pd
 import pytest
 from quant_data import DataClient
 from tushare_fixtures import write_daily_basic_archive
@@ -27,7 +27,7 @@ def test_daily_basic_is_fully_local(tmp_path, instruments):
     if instruments == []:
         assert panels["close"].shape == (0, 0)
     else:
-        assert panels["close"].loc[date(2024, 1, 2), "000001.SZ"] == 10.0
+        assert panels["close"].loc[pd.Timestamp(2024, 1, 2), "000001.SZ"] == 10.0
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert not audit["calendar_aligned"]
     assert "calendar" not in audit["source"]

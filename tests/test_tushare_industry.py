@@ -1,6 +1,5 @@
 """Industry intervals read only from local archives."""
 
-from datetime import date
 import json
 import pandas as pd
 import pytest
@@ -31,13 +30,13 @@ def test_industry_intervals(tmp_path, dataset, fixed):
     assert list(panels["is_new"].columns) == ["000004.SZ", "600000.SH", "unknown"]
     panel = panels["is_new"]
     assert panel["unknown"].isna().all()
-    assert panel.loc[date(2024, 1, 4), "600000.SH"] == "Y"
+    assert panel.loc[pd.Timestamp(2024, 1, 4), "600000.SH"] == "Y"
     if fixed:
         assert set(panel.stack().dropna()) == {"Y"}
-        assert pd.isna(panel.loc[date(2024, 1, 2), "600000.SH"])
-        assert pd.isna(panel.loc[date(2024, 1, 3), "600000.SH"])
+        assert pd.isna(panel.loc[pd.Timestamp(2024, 1, 2), "600000.SH"])
+        assert pd.isna(panel.loc[pd.Timestamp(2024, 1, 3), "600000.SH"])
     else:
-        assert panel.loc[date(2024, 1, 3), "600000.SH"] == "N"
+        assert panel.loc[pd.Timestamp(2024, 1, 3), "600000.SH"] == "N"
     assert len(calendar.calls) == 1
     audit = json.loads(next((tmp_path / "audit").rglob("*.json")).read_text())
     assert audit["source"]["calendar"]["table"] == "stock_base.daily"

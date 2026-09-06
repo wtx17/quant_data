@@ -41,7 +41,7 @@ def build_panels(
     Returns
     -------
     dict[str, pandas.DataFrame]
-        Field-keyed panels with a named time index and instrument columns.
+        Field-keyed panels with a named DatetimeIndex and instrument columns.
 
     Raises
     ------
@@ -95,16 +95,17 @@ def build_panels(
                     wide = wide.with_columns(pl.lit(None).alias(instrument))
             wide = wide.select([time_column, *column_order])
             panel = wide.to_pandas(use_pyarrow_extension_array=True).set_index(time_column)
+            panel.index = pd.DatetimeIndex(wide[time_column].to_pandas(), name=time_column)
         else:
-            panel = pd.DataFrame(columns=column_order)
-            panel.index = pd.DatetimeIndex([], name=time_column)
-        if pa.types.is_timestamp(table.schema.field(time_column).type):
-            if frame.height:
-                panel.index = pd.DatetimeIndex(wide[time_column].to_pandas(), name=time_column)
-            else:
-                panel.index = pd.DatetimeIndex(
-                    [], name=time_column, tz=table.schema.field(time_column).type.tz
-                )
+            time_type = table.schema.field(time_column).type
+            panel = pd.DataFrame(
+                columns=column_order,
+                index=pd.DatetimeIndex(
+                    [],
+                    name=time_column,
+                    tz=time_type.tz if pa.types.is_timestamp(time_type) else None,
+                ),
+            )
         panel.columns.name = instrument_column
         panels[field] = panel
     return panels

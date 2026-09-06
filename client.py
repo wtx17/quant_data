@@ -343,7 +343,8 @@ class DataClient:
         -------
         dict[str, pandas.DataFrame]
             One panel per requested field, preserving field order. Every panel
-            carries query metadata in ``DataFrame.attrs``.
+            has a ``pandas.DatetimeIndex`` and carries query metadata in
+            ``DataFrame.attrs``.
 
         Raises
         ------
